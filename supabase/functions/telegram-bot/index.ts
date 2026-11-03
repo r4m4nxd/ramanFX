@@ -36,7 +36,7 @@
 // Logs: the command name and timing only, never message text, chat ids or secrets.
 import { initWasm, Resvg } from 'npm:@resvg/resvg-wasm@2.6.2';
 import { renderSvg } from './chart.ts';
-import { chartData, handle, handleCallback, IMG_VIEW, summaryCard, MAIN_KEYBOARD, polishButtons, tgSafe, type Reply, type ScanResult } from './logic.ts';
+import { chartData, handle, handleCallback, IMG_VIEW, summaryCard, MAIN_KEYBOARD, polishButtons, polishText, tgSafe, type Reply, type ScanResult } from './logic.ts';
 import { alpacaSource, oandaSource, type LiveSource } from './live.ts';
 import { ctraderSource, tokenLoader } from './ctrader.ts';
 import { questradeSource } from './questrade.ts';
@@ -448,7 +448,7 @@ async function openSymbols(): Promise<string[]> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function method(reply: Reply, chatId: unknown, tapped?: Record<string, any>): Record<string, unknown> {
   const markup = reply.keyboard ? MAIN_KEYBOARD : reply.buttons?.length ? { inline_keyboard: polishButtons(reply.buttons) } : undefined;
-  reply = { ...reply, text: tgSafe(reply.text) };
+  reply = { ...reply, text: tgSafe(polishText(reply.text)) };
   if (reply.photo && reply.edit && tapped && Array.isArray(tapped.photo)) {
     return { method: 'editMessageMedia', chat_id: chatId, message_id: tapped.message_id,
       media: { type: 'photo', media: reply.photo, caption: reply.text.slice(0, 1024), parse_mode: 'HTML' }, ...(markup ? { reply_markup: markup } : {}) };

@@ -36,15 +36,15 @@ describe('telegram /fund', () => {
   it('FX pair: both central banks, carry side, bias labelled as context', async () => {
     const r = await handle('/fund eurusd', ctx());
     expect(r.cmd).toBe('fund');
-    expect(r.text).toContain('📑 <b>EURUSD</b> · fundamentals');
-    expect(r.text).toContain('🇪🇺 <b>EUR</b> · ECB 2.00% · held Sep 11 (last cut Jun 5) · next Oct 30');
-    expect(r.text).toContain('🇺🇸 <b>USD</b> · Fed 4.00% · cut 0.25 Oct 28 · next Dec 9');
-    expect(r.text).toContain('CPI 3.0% (Sep) · GDP +3.8% q/q ann. (Q2) · jobless 4.3%');
-    expect(r.text).toContain('Rate gap: <b>USD +2.00%</b> → short EURUSD earns the carry');
-    expect(r.text).toContain('Inflation: EUR 2.2% vs USD 3.0%');
-    expect(r.text).not.toContain('Growth:');                         // y/y vs q/q: not compared
-    expect(r.text).toContain('🧭 <b>Bias</b>: USD stronger: higher rate, hotter CPI');
-    expect(r.text).toContain('not a signal');
+    expect(r.text).toContain('<b>EURUSD</b> · the economies behind it');
+    expect(r.text).toContain('● <b>Euro</b> · interest rate 2.00% (ECB) · held Sep 11 (last cut Jun 5) · next Oct 30');
+    expect(r.text).toContain('● <b>US dollar</b> · interest rate 4.00% (Fed) · cut 0.25 Oct 28 · next Dec 9');
+    expect(r.text).toContain('prices rising 3.0% a year (Sep) · economy growing +3.8% q/q ann. (Q2) · out of work 4.3%');
+    expect(r.text).toContain('the <b>US dollar</b> pays 2.00% more, so selling EURUSD earns a little interest');
+    expect(r.text).toContain('Prices rising: EUR 2.2% vs USD 3.0% a year');
+    expect(r.text).not.toContain('Economy growing:');                         // y/y vs q/q: not compared
+    expect(r.text).toContain('<b>What the economies say</b>: USD stronger: higher rate, hotter CPI');
+    expect(r.text).toContain('not a trade signal');
     expect(r.text).toContain('built Thu Oct 29 · 5:00 PM');           // Calgary clock (UTC-6)
     expect(r.text.length).toBeLessThan(1500);
     noRawLt(r.text);
@@ -56,11 +56,11 @@ describe('telegram /fund', () => {
   it('metals / indices: the note + the currency they follow; /fund alone: majors at a glance', async () => {
     const g = await handle('/fund XAUUSD', ctx());
     expect(g.text).toContain('Gold pays no yield');
-    expect(g.text).toContain('🇺🇸 <b>USD</b> · Fed 4.00%');
+    expect(g.text).toContain('● <b>US dollar</b> · interest rate 4.00% (Fed)');
     const o = await handle('/fund', ctx());
-    expect(o.text).toContain('Central banks');
-    expect(o.text).toContain('🇺🇸 <b>USD</b> 4.00% · CPI 3.0% · next Dec 9');
-    expect(o.text).toContain('🇪🇺 <b>EUR</b> 2.00%');
+    expect(o.text).toContain('Interest rates');
+    expect(o.text).toContain('● <b>US dollar</b> 4.00% · prices rising 3.0% · next decision Dec 9');
+    expect(o.text).toContain('● <b>Euro</b> 2.00%');
     const none = await handle('/fund EURUSD', ctx({ 'fundamentals/fx.json': null }));
     expect(none.text).toContain('Fundamentals unavailable');
     expect((await handle('/fund QQQQQQQ', ctx())).text).toContain('not found');
@@ -68,25 +68,25 @@ describe('telegram /fund', () => {
 
   it('stock: SEC numbers, earnings (Nasdaq / estimated), 8-K titles, phone-sized', async () => {
     const r = await handle('/fund NVDA', ctx());
-    expect(r.text).toContain('📑 <b>NVDA</b> · NVIDIA Corp · fundamentals');
-    expect(r.text).toContain('Market cap <b>$4.40T</b> · P/E <b>52.1</b>');
-    expect(r.text).toContain('Revenue $165.2B TTM (+71% y/y)');
-    expect(r.text).toContain('EPS 3.51 TTM (+60% y/y) · net margin 53%');
-    expect(r.text).toContain('Debt / equity 0.10');
-    expect(r.text).toContain('📅 Earnings: last Aug 27 · next Nov 4 after close (in 6 days) · EPS est. 1.25');
+    expect(r.text).toContain('<b>NVIDIA Corp</b> (NVDA) · the company in numbers');
+    expect(r.text).toContain('Company value <b>$4.40T</b> · price vs profit <b>52 years</b>');
+    expect(r.text).toContain('Sales (last 12 months): $165.2B · up 71% on last year');
+    expect(r.text).toContain('Profit per share (last 12 months): 3.51 · up 60% on last year');
+    expect(r.text).toContain('Debt: low (0.10 for every $1 the owners hold)');
+    expect(r.text).toContain('Earnings reports: last Aug 27 · next Nov 4 after close (in 6 days) · expected profit per share 1.25');
     expect(r.text).toContain('• Oct 20 · Director / officer change');
     expect(r.text).toContain('SEC filings to Jul 27 · price Oct 29 close');
-    expect(r.text).toContain('not part of the zone rules');
+    expect(r.text).toContain('not a trade signal');
     noRawLt(r.text);
     expect(r.buttons?.flat().some(b => 'url' in b && b.url.includes('CIK=1045810'))).toBe(true);
     const a = await handle('/fund AAPL', ctx());                      // no SEC numbers in the file: scanner rows fallback
-    expect(a.text).toContain('📅 Earnings: next ~Dec 20 (in 52 days, estimated)');
+    expect(a.text).toContain('Earnings reports: next ~Dec 20 (in 52 days, estimated)');
   });
 
   it('earnings line for stock replies only within 14 days', async () => {
     const now = new Date('2026-10-29T15:00:00Z');
-    expect(earningsText(ST.stocks.NVDA, now)).toBe('📑 next earnings: Nov 4 after close (in 6 days)');
-    expect(earningsText({ er_next: '2026-10-30', er_kind: 'estimated' }, now)).toBe('📑 next earnings: Oct 30 (tomorrow, estimated)');
+    expect(earningsText(ST.stocks.NVDA, now)).toBe('Next earnings report: Nov 4 after close (in 6 days)');
+    expect(earningsText({ er_next: '2026-10-30', er_kind: 'estimated' }, now)).toBe('Next earnings report: Oct 30 (tomorrow, estimated)');
     expect(earningsText({ er_next: '2026-11-20' }, now)).toBe('');
     expect(earningsText({ er_next: '2026-10-20' }, now)).toBe('');
     expect(daysTo('2026-10-29', new Date('2026-10-30T05:00:00Z'))).toBe(0);   // still Oct 29 in Calgary

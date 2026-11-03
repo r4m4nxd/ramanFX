@@ -28,3 +28,11 @@ describe('summary share card', () => {
     }
   });
 });
+describe('premium polish of every reply', () => {
+  it('drops decorative emoji at line starts and in buttons, keeps markers, max 3 buttons per row', async () => {
+    const { polishText, polishButtons } = await import('../../supabase/functions/telegram-bot/logic');
+    expect(polishText('📰 <b>News</b>\n▲ up\n● dot\n⚠️ warn · 🇺🇸 x')).toBe('<b>News</b>\n▲ up\n● dot\nwarn · 🇺🇸 x');
+    const rows = polishButtons([[{ text: '🔎 Zones', callback_data: 'z' }, { text: '📊 Chart', callback_data: 'c' }, { text: 'a', callback_data: 'a' }, { text: 'b', callback_data: 'b' }]])!;
+    expect(rows.map(r => r.map(b => b.text))).toEqual([['Zones', 'Chart', 'a'], ['b']]);
+  });
+});

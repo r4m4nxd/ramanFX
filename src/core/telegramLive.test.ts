@@ -151,8 +151,8 @@ describe('bot with live data', () => {
     const ins = { clusters: [{ sym: 'DDD', kind: 'cluster', n: 3, value: 2_500_000 }] };
     const c = ctx({ async load(path: string) { return path === 'scanner/latest.json' ? st : path === 'insiders/latest.json' ? ins : null; } });
     const r = await handle('/tfsa', c);
-    expect(r.text).toContain('Insiders buying');
-    expect(r.text.indexOf('DDD')).toBeLessThan(r.text.indexOf('🟩'));   // the insider section comes first
+    expect(r.text).toContain('Company insiders are buying');
+    expect(r.text.indexOf('DDD')).toBeLessThan(r.text.indexOf('Inside a buy area'));   // the insider section comes first
     expect(r.text).toContain('3 insiders bought $2.5M');
     expect(r.text.indexOf('BBB')).toBeLessThan(r.text.indexOf('AAA'));   // MN before W1
     expect(r.text).toContain('DDD');

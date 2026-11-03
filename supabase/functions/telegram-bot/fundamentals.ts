@@ -15,10 +15,10 @@ import { holdersButton } from './holders.ts';
 type J = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 const obj = (v: unknown): J => (v && typeof v === 'object' && !Array.isArray(v) ? (v as J) : {});
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
-const FOOT_FX = 'Fundamental context, not a signal · not advice';
-const FOOT_ST = 'Context only: not part of the zone rules · not advice';
-const FLAG: Record<string, string> = { USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', JPY: '🇯🇵', AUD: '🇦🇺', NZD: '🇳🇿', CAD: '🇨🇦', CHF: '🇨🇭', CNH: '🇨🇳', CNY: '🇨🇳',
-  SEK: '🇸🇪', NOK: '🇳🇴', MXN: '🇲🇽', ZAR: '🇿🇦', SGD: '🇸🇬', PLN: '🇵🇱', HUF: '🇭🇺', CZK: '🇨🇿', TRY: '🇹🇷', DKK: '🇩🇰', HKD: '🇭🇰', THB: '🇹🇭' };
+const FOOT_FX = 'Background only, not a trade signal · For learning only, not financial advice';
+const FOOT_ST = 'Background only, not a trade signal · For learning only, not financial advice';
+const CCY_NAME: Record<string, string> = { USD: 'US dollar', EUR: 'Euro', GBP: 'British pound', JPY: 'Japanese yen', AUD: 'Australian dollar', NZD: 'New Zealand dollar', CAD: 'Canadian dollar', CHF: 'Swiss franc', CNH: 'Chinese yuan', CNY: 'Chinese yuan',
+  SEK: 'Swedish krona', NOK: 'Norwegian krone', MXN: 'Mexican peso', ZAR: 'South African rand', SGD: 'Singapore dollar', PLN: 'Polish zloty', HUF: 'Hungarian forint', CZK: 'Czech koruna', TRY: 'Turkish lira', DKK: 'Danish krone', HKD: 'Hong Kong dollar', THB: 'Thai baht' };
 const MAJORS = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
 export const EARNINGS_DAYS = 14;
 
@@ -32,8 +32,6 @@ export function md(v: unknown): string {
 }
 const rate = (v: unknown) => (num(v) == null ? 'n/a' : `${(v as number).toFixed(2)}%`);
 const pct1 = (v: unknown, sign = false) => (num(v) == null ? 'n/a' : `${sign && (v as number) > 0 ? '+' : ''}${(v as number).toFixed(1)}%`);
-/** A fraction as a whole percent: 0.712 -> '+71%' (sign) / '71%'. */
-const frac = (v: unknown, sign = true) => (num(v) == null ? 'n/a' : `${sign && (v as number) > 0 ? '+' : ''}${Math.round((v as number) * 100)}%`);
 export function money(v: unknown, cur = 'USD'): string {
   const x = num(v);
   if (x == null) return 'n/a';
@@ -45,7 +43,26 @@ export function money(v: unknown, cur = 'USD'): string {
 export const daysTo = (d: string, now: Date) => Math.round((Date.parse(`${d}T12:00:00Z`) - Date.parse(`${isoDay(now)}T12:00:00Z`)) / 86400000);
 const inDays = (n: number) => (n === 0 ? 'today' : n === 1 ? 'tomorrow' : n > 1 ? `in ${n} days` : n === -1 ? 'yesterday' : `${-n} days ago`);
 const builtAt = (js: J) => { const t = when(js.generated_at); return t ? `built ${day(t)} · ${clock(t)}` : ''; };
-export const fundButton = (sym: string): Button => ({ text: '📑 Fundamentals', callback_data: `f:${sym}` });
+export const fundButton = (sym: string): Button => ({ text: 'Company', callback_data: `f:${sym}` });
+/** A scanner fundamentals row ('Revenue TTM', '$303.0B +83% YoY (2026-07)') in plain words. */
+export function plainRow(k: string, v: string): string {
+  const key = k.trim().toLowerCase();
+  let val = v.replace(/\s*\(\d{4}-\d{2}\)/g, '').trim();
+  val = val.replace(/([+-])(\d+(?:\.\d+)?)% (?:YoY|y\/y)/i, (_, sg, n) => `· ${sg === '-' ? 'down' : 'up'} ${n}% on last year`)
+    .replace(/([+-])(\d+(?:\.\d+)?)% 1y/i, (_, sg, n) => `· ${sg === '-' ? 'down' : 'up'} ${n}% in a year`);
+  const per = /ttm/.test(key) ? 'last 12 months' : /fy/.test(key) ? 'last year' : '';
+  if (/^revenue/.test(key)) return `Sales${per ? ` (${per})` : ''}: ${val}`;
+  if (/^eps/.test(key)) return `Profit per share${per ? ` (${per})` : ''}: ${val}`;
+  if (/net margin/.test(key)) { const n = parseFloat(val); return Number.isFinite(n) ? `Kept as profit: ${Math.round(n)}¢ of every $1 of sales` : `Kept as profit: ${val}`; }
+  if (/ocf|fcf/.test(key)) { const [a, b] = val.split('/').map(x => x.trim()); return b ? `Cash made: ${a} from the business · ${b} left after investing` : `Cash made: ${val}`; }
+  if (/debt \/ equity/.test(key)) { const x = parseFloat(val); return Number.isFinite(x) ? `Debt: ${x < 0.5 ? 'low' : x < 1.5 ? 'moderate' : 'high'} (${x.toFixed(2)} for every $1 the owners hold)` : `Debt: ${val}`; }
+  if (/^shares/.test(key)) return `Shares: ${val}`;
+  if (/^p\/e/.test(key)) { const x = parseFloat(val); return Number.isFinite(x) ? `Price vs profit: ${x.toFixed(0)} years of profit to pay the price` : `Price vs profit: ${val}`; }
+  if (/market cap/.test(key)) return `Company value: ${val}`;
+  if (/52w/.test(key)) { const x = parseFloat(val); return Number.isFinite(x) ? `Over the past year: price is ${Math.round(x)}% of the way from its low to its high` : `Past year: ${val}`; }
+  if (/from ath/.test(key)) { const x = parseFloat(val); return Number.isFinite(x) ? (x < -0.5 ? `Below its all-time high by ${Math.abs(Math.round(x))}%` : 'At or near its all-time high') : `From its high: ${val}`; }
+  return `${k}: ${val}`;
+}
 
 // ---- forex --------------------------------------------------------------------------------------------------------
 function decision(r: J): string {
@@ -58,13 +75,13 @@ function decision(r: J): string {
 /** Two lines per currency: the bank and its rate, then CPI / GDP / jobless. */
 export function currencyLines(ccy: string, c: J): string[] {
   const r = obj(c.rate), n = obj(c.next);
-  const head = [`${FLAG[ccy] ?? '•'} <b>${esc(ccy)}</b> · ${esc(c.bank ?? '')} ${rate(r.v)}`];
+  const head = [`● <b>${esc(CCY_NAME[ccy] ?? ccy)}</b> · interest rate ${rate(r.v)} (${esc(c.bank ?? '')})`];
   if (r.date) head.push(esc(decision(r)));
   if (n.date) head.push(esc(`next ${md(n.date)}${num(n.forecast) != null && num(r.v) != null && n.forecast !== r.v ? ` (exp. ${rate(n.forecast)})` : ''}`));
   const cpi = obj(c.cpi), g = obj(c.gdp), u = obj(c.unemp);
-  const data = [num(cpi.v) != null ? `CPI ${pct1(cpi.v)}${cpi.period ? ` (${cpi.period})` : ''}` : '',
-    num(g.v) != null ? `GDP ${pct1(g.v, true)} ${g.basis ?? ''}${g.period ? ` (${g.period})` : ''}` : '',
-    num(u.v) != null ? `jobless ${pct1(u.v)}` : ''].filter(Boolean);
+  const data = [num(cpi.v) != null ? `prices rising ${pct1(cpi.v)} a year${cpi.period ? ` (${cpi.period})` : ''}` : '',
+    num(g.v) != null ? `economy growing ${pct1(g.v, true)} ${g.basis ?? ''}${g.period ? ` (${g.period})` : ''}` : '',
+    num(u.v) != null ? `out of work ${pct1(u.v)}` : ''].filter(Boolean);
   return [head.join(' · '), ...(data.length ? [`   ${esc(data.join(' · '))}`] : [])];
 }
 
@@ -74,26 +91,26 @@ function pairLines(sym: string, p: J, cur: J): string[] {
   const carry = obj(p.carry), d = num(p.diff);
   if (d != null) {
     lines.push(carry.earns
-      ? `💰 Rate gap: <b>${esc(carry.ccy)} +${Math.abs(d).toFixed(2)}%</b> → ${esc(carry.earns)} ${esc(sym)} earns the carry (broker swap varies)`
-      : `💰 Rate gap: ${Math.abs(d).toFixed(2)}%, about level: little carry either way`);
+      ? `● Interest gap: the <b>${esc(CCY_NAME[carry.ccy] ?? carry.ccy)}</b> pays ${Math.abs(d).toFixed(2)}% more, so ${carry.earns === 'long' ? 'buying' : 'selling'} ${esc(sym)} earns a little interest each night (your broker sets the exact amount)`
+      : `● Interest gap: ${Math.abs(d).toFixed(2)}%, about level: little interest either way`);
   }
-  if (num(obj(ca.cpi).v) != null && num(obj(cb.cpi).v) != null) lines.push(esc(`Inflation: ${a} ${pct1(ca.cpi.v)} vs ${b} ${pct1(cb.cpi.v)}`));
-  if (num(p.gdp_diff) != null) lines.push(esc(`Growth: ${a} ${pct1(ca.gdp.v, true)} vs ${b} ${pct1(cb.gdp.v, true)} ${ca.gdp.basis}`));
-  lines.push(`🧭 <b>Bias</b>: ${esc(p.bias)}`);
+  if (num(obj(ca.cpi).v) != null && num(obj(cb.cpi).v) != null) lines.push(esc(`● Prices rising: ${a} ${pct1(ca.cpi.v)} vs ${b} ${pct1(cb.cpi.v)} a year`));
+  if (num(p.gdp_diff) != null) lines.push(esc(`● Economy growing: ${a} ${pct1(ca.gdp.v, true)} vs ${b} ${pct1(cb.gdp.v, true)} ${ca.gdp.basis}`));
+  lines.push(`● <b>What the economies say</b>: ${esc(p.bias)}`);
   return lines;
 }
 
 /** /fund with no symbol: the major central banks at a glance. */
 function overview(fx: J): Reply {
   const cur = obj(fx.currencies);
-  const lines = ['📑 <b>Central banks · majors</b>', ''];
+  const lines = ['<b>Interest rates</b> · the main currencies', ''];
   for (const c of MAJORS) {
     const d = obj(cur[c]);
     if (!d.rate && !d.cpi) continue;
     const r = obj(d.rate), n = obj(d.next);
-    lines.push(`${FLAG[c]} <b>${c}</b> ${rate(r.v)} · CPI ${pct1(obj(d.cpi).v)}${n.date ? ` · next ${esc(md(n.date))}` : ''}`);
+    lines.push(`● <b>${esc(CCY_NAME[c] ?? c)}</b> ${rate(r.v)} · prices rising ${pct1(obj(d.cpi).v)}${n.date ? ` · next decision ${esc(md(n.date))}` : ''}`);
   }
-  lines.push('', 'Send <b>/fund EURUSD</b> or <b>/fund NVDA</b> for one symbol.', `<i>${FOOT_FX}</i> · ${esc(builtAt(fx))}`);
+  lines.push('', 'Send <b>/fund EURUSD</b> or <b>/fund NVDA</b> for one symbol.', `<i>${esc(builtAt(fx))} · ${FOOT_FX}</i>`);
   return { cmd: 'fund', text: fit(lines) };
 }
 
@@ -104,7 +121,7 @@ export function earningsText(e: J, now: Date): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return '';
   const n = daysTo(d, now);
   if (n < 0 || n > EARNINGS_DAYS) return '';
-  return `📑 next earnings: ${md(d)}${e.er_time ? ` ${e.er_time}` : ''} (${inDays(n)}${e.er_kind === 'estimated' ? ', estimated' : ''})`;
+  return `Next earnings report: ${md(d)}${e.er_time ? ` ${e.er_time}` : ''} (${inDays(n)}${e.er_kind === 'estimated' ? ', estimated' : ''})`;
 }
 export async function earningsLine(sym: string, ctx: Ctx): Promise<string> {
   try { return esc(earningsText(obj(obj(obj(await ctx.load('fundamentals/stocks.json')).stocks)[sym]), ctx.now)); } catch { return ''; }
@@ -114,22 +131,23 @@ function stockLines(e: J, st: J, now: Date): string[] {
   const cur = String(e.cur ?? 'USD');
   const lines: string[] = [];
   const mc = num(e.mcap), pe = num(e.pe), eps = num(e.eps);
-  lines.push(`Market cap <b>${esc(money(mc))}</b> · P/E <b>${pe != null ? pe.toFixed(1) : eps != null && eps <= 0 ? 'neg (loss)' : 'n/a'}</b>${e.pe_note ? ` (${esc(e.pe_note)})` : ''}`);
-  const per = e.per === 'FY' ? 'FY' : 'TTM';
-  if (num(e.rev) != null) lines.push(esc(`Revenue ${money(e.rev, cur)} ${per} (${frac(e.rev_g)} y/y)`));
-  if (eps != null) lines.push(esc(`EPS ${eps.toFixed(2)}${cur !== 'USD' ? ` ${cur}` : ''} ${per} (${frac(e.eps_g)} y/y)${num(e.nm) != null ? ` · net margin ${frac(e.nm, false)}` : ''}`));
-  else if (num(e.nm) != null) lines.push(esc(`Net margin ${frac(e.nm, false)}`));
-  if (num(e.de) != null) lines.push(esc(`Debt / equity ${(e.de as number).toFixed(2)}`));
+  lines.push(`Company value <b>${esc(money(mc))}</b> · price vs profit <b>${pe != null ? `${pe.toFixed(0)} years` : eps != null && eps <= 0 ? 'losing money' : 'n/a'}</b>${e.pe_note ? ` (${esc(e.pe_note)})` : ''}`);
+  const per = e.per === 'FY' ? 'last year' : 'last 12 months';
+  const yoy = (g: unknown) => { const x = num(g); return x == null ? '' : ` · ${x < 0 ? 'down' : 'up'} ${Math.abs(Math.round(x * 100))}% on last year`; };
+  if (num(e.rev) != null) lines.push(esc(`Sales (${per}): ${money(e.rev, cur)}${yoy(e.rev_g)}`));
+  if (eps != null) lines.push(esc(`Profit per share (${per}): ${eps.toFixed(2)}${cur !== 'USD' ? ` ${cur}` : ''}${yoy(e.eps_g)}`));
+  if (num(e.nm) != null) lines.push(esc(`Kept as profit: ${Math.round((e.nm as number) * 100)}¢ of every $1 of sales`));
+  if (num(e.de) != null) { const x = e.de as number; lines.push(esc(`Debt: ${x < 0.5 ? 'low' : x < 1.5 ? 'moderate' : 'high'} (${x.toFixed(2)} for every $1 the owners hold)`)); }
   const er: string[] = [];
   if (e.er_last) er.push(`last ${md(e.er_last)}`);
   if (e.er_next) {
     const n = daysTo(String(e.er_next), now);
     er.push(`next ${e.er_kind === 'estimated' ? '~' : ''}${md(e.er_next)}${e.er_time ? ` ${e.er_time}` : ''} (${inDays(n)}${e.er_kind === 'estimated' ? ', estimated' : ''})`);
   }
-  if (er.length) lines.push(`📅 Earnings: ${esc(er.join(' · '))}${num(e.eps_est) != null ? ` · EPS est. ${esc((e.eps_est as number).toFixed(2))}` : ''}`);
+  if (er.length) lines.push(`Earnings reports: ${esc(er.join(' · '))}${num(e.eps_est) != null ? ` · expected profit per share ${esc((e.eps_est as number).toFixed(2))}` : ''}`);
   const fl = Array.isArray(e.filings) ? e.filings.slice(0, 4) : [];
   if (fl.length) {
-    lines.push('', '<b>Latest 8-K filings</b>');
+    lines.push('', '<b>Latest company announcements</b> (SEC 8-K)');
     for (const f of fl) lines.push(`• ${esc(md(f[0]))} · ${esc(f[2] ?? f[1])}`);
   }
   const src = [e.end ? `SEC filings to ${md(e.end)}` : '', e.px != null && st.price_date ? `price ${md(st.price_date)} close` : '', builtAt(st)].filter(Boolean);
@@ -137,13 +155,13 @@ function stockLines(e: J, st: J, now: Date): string[] {
   return lines;
 }
 
-async function stockFund(sym: string, row: J, ctx: Ctx): Promise<Reply> {
+async function stockFund(sym: string, row: J, ctx: Ctx, raw = false): Promise<Reply> {
   const st = obj(await ctx.load('fundamentals/stocks.json'));
   const e = obj(obj(st.stocks)[sym]);
   const name = e.n ?? row.n ?? '';
-  const lines = [`📑 <b>${esc(sym)}</b>${name ? ` · ${esc(name)}` : ''} · fundamentals`, ''];
-  const buttons: Button[][] = [[{ text: `🔎 Zones ${sym}`, callback_data: `z:${sym}` }, { text: `📊 Chart ${sym}`, callback_data: `c:${sym}` }, holdersButton(sym)]];
-  if (e.cik) buttons.push([{ text: '📄 SEC filings', url: `https://www.sec.gov/edgar/browse/?CIK=${encodeURIComponent(String(e.cik))}` }]);
+  const lines = [raw ? `📑 <b>${esc(sym)}</b>` : `<b>${esc(name || sym)}</b>${name ? ` (${esc(sym)})` : ''} · the company in numbers`, ''];
+  const buttons: Button[][] = [[{ text: 'Buy & sell areas', callback_data: `z:${sym}` }, { text: 'Chart', callback_data: `c:${sym}` }, holdersButton(sym)]];
+  if (e.cik) buttons.push([{ text: 'SEC filings', url: `https://www.sec.gov/edgar/browse/?CIK=${encodeURIComponent(String(e.cik))}` }]);
   if (e.na) {
     lines.push(`n/a: ${esc(e.na)}`);
   } else if (e.src) {
@@ -153,13 +171,14 @@ async function stockFund(sym: string, row: J, ctx: Ctx): Promise<Reply> {
     const d = obj(obj(obj(await ctx.load(`scanner/t/${row.k}.json`)).tickers)[sym]);
     const rows = Array.isArray(d.fundamentals_rows) ? d.fundamentals_rows.filter((r: unknown) => Array.isArray(r) && r.length >= 2) : [];
     if (rows.length) {
-      for (const [k, v] of rows.slice(0, 10)) lines.push(`${esc(k)}: ${esc(v)}`);
-      lines.push('', esc(`Source: stock scanner (SEC XBRL)${d.date ? ` · price ${md(d.date)} close` : ''}`));
+      if (raw) for (const [k, v] of rows.slice(0, 10)) lines.push(`${esc(k)}: ${esc(v)}`);
+      else lines.push(`<blockquote>${rows.slice(0, 10).map(([k, v]: [string, string]) => esc(plainRow(String(k), String(v)))).join('\n')}</blockquote>`);
+      lines.push('', `<i>${esc(`From SEC filings${d.date ? ` · price at the ${md(d.date)} close` : ''}`)}</i>`);
     } else {
-      lines.push('No fundamentals published for it yet (the nightly SEC refresh fills them in).');
+      lines.push('No company numbers published for it yet (the nightly refresh fills them in).');
     }
     const er = stockLines({ er_last: e.er_last, er_next: e.er_next, er_kind: e.er_kind, er_time: e.er_time, filings: e.filings }, {}, ctx.now)
-      .filter(l => l.startsWith('📅') || l.startsWith('•') || l === '<b>Latest 8-K filings</b>');
+      .filter(l => l.startsWith('Earnings reports') || l.startsWith('•') || l.startsWith('<b>Latest company announcements'));
     if (er.length) lines.push(...er);
   }
   const ins = await insiderLine(sym, ctx).catch(() => '');   // '🕵️ insiders bought $X in last 30d' (insiders.ts)
@@ -169,7 +188,7 @@ async function stockFund(sym: string, row: J, ctx: Ctx): Promise<Reply> {
 }
 
 // ---- command ------------------------------------------------------------------------------------------------------
-export async function cmdFund(q: string, ctx: Ctx): Promise<Reply> {
+export async function cmdFund(q: string, ctx: Ctx, raw = false): Promise<Reply> {
   if (!q) {
     const fx = obj(await ctx.load('fundamentals/fx.json'));
     if (!fx.currencies) return { cmd: 'fund', text: 'Send a symbol after it, e.g. <b>/fund EURUSD</b> or <b>/fund NVDA</b>.' };
@@ -177,13 +196,13 @@ export async function cmdFund(q: string, ctx: Ctx): Promise<Reply> {
   }
   const { hit, suggest } = await resolve(q, ctx);
   if (!hit) return { cmd: 'fund', text: `📑 <b>${esc([...q.toUpperCase()].slice(0, 30).join(''))}</b> not found` + (suggest.length ? `\nDid you mean: ${suggest.map(s => `/fund ${esc(s)}`).join(' · ')}` : '') };
-  if (hit.market === 'stock') return stockFund(hit.sym, hit.row, ctx);
+  if (hit.market === 'stock') return stockFund(hit.sym, hit.row, ctx, raw);
   const fx = obj(await ctx.load('fundamentals/fx.json'));
   const cur = obj(fx.currencies);
   const sym = hit.sym;
-  const buttons: Button[][] = [[{ text: `🔎 Zones ${sym}`, callback_data: `z:${sym}` }, { text: `📊 Chart ${sym}`, callback_data: `c:${sym}` }]];
+  const buttons: Button[][] = [[{ text: 'Buy & sell areas', callback_data: `z:${sym}` }, { text: 'Chart', callback_data: `c:${sym}` }]];
   if (!fx.currencies) return { cmd: 'fund', text: '⚠️ <b>Fundamentals unavailable</b>\nThe nightly file did not load. Try again in a minute.', buttons };
-  const lines = [`📑 <b>${esc(sym)}</b> · fundamentals`, ''];
+  const lines = [`<b>${esc(sym)}</b> · the economies behind it`, ''];
   const p = obj(obj(fx.pairs)[sym]), note = obj(obj(fx.notes)[sym]);
   if (p.base) lines.push(...pairLines(sym, p, cur));
   else if (note.text) {
@@ -192,6 +211,6 @@ export async function cmdFund(q: string, ctx: Ctx): Promise<Reply> {
   } else {
     lines.push('No fundamentals for it yet (its central-bank data is not on the calendar).');
   }
-  lines.push('', `<i>${FOOT_FX}</i>`, esc(`Data: TradingView calendar${cur.USD?.next?.verified ? ', federalreserve.gov' : ''} · ${builtAt(fx)} · times Calgary`));
+  lines.push('', `<i>${esc(`TradingView calendar${cur.USD?.next?.verified ? ', federalreserve.gov' : ''} · ${builtAt(fx)} MT`)} · ${FOOT_FX}</i>`);
   return { cmd: 'fund', text: fit(lines), buttons };
 }

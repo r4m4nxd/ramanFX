@@ -104,7 +104,6 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
 export const APP = 'https://raman-fx.vercel.app';
 const LIMIT = 4000;
 const FOOT = 'For learning only, not financial advice';
-const ICON: Record<string, string> = { BUY: '🟢', SELL: '🔴', WATCH: '👀', NEAR: '⏳' };
 const TF_SHORT: Record<string, string> = { M15: '15m', H1: '1H', H4: '4H', D1: 'D1', W1: 'W1', MN: 'MN', '3M': '3M', '6M': '6M' };
 const TF_ORDER = ['MN', 'W1', 'D1', 'H4', 'H1', 'M15', '3M', '6M'];
 export const CAL = 'America/Edmonton';
@@ -134,7 +133,6 @@ export function away(p: number): string {
 }
 const px = (v: unknown, digits = 2) => (num(v) == null ? 'n/a' : (v as number).toFixed(digits));
 const stockPx = (v: unknown) => (num(v) == null ? 'n/a' : (v as number).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-const rr = (v: unknown) => { const r = num(v); return r == null ? '' : r >= 10 ? `R:R ${r.toFixed(0)}` : `R:R ${r.toFixed(1)}`; };
 
 /** Join lines; past LIMIT, cut whole lines and say so (every tag opens and closes on one line, so a cut is safe). */
 export function fit(lines: string[], limit = LIMIT): string {
@@ -236,26 +234,38 @@ const fxSigPct = (s: J) => { const p = num(s.price), e = num(s.entry); return p 
 /** Price decimals of an instrument: an integer 0..10 (a corrupt value would make toFixed throw and break /fx for all). */
 const digitsOf = (s: J) => { const d = num(s.digits); return d == null ? 5 : Math.min(10, Math.max(0, Math.round(d))); };
 
+// ---- plain-English building blocks (owner 2026-11-03: "for an audience with zero trading knowledge") ----------------
+const TF_ADJ: Record<string, string> = { M15: '15-minute', H1: 'hourly', H4: '4-hour', D1: 'daily', W1: 'weekly', MN: 'monthly', '3M': '3-month', '6M': '6-month' };
+const tfAdj = (t: unknown) => TF_ADJ[String(t ?? '')] ?? tf(t);
+const areaWord = (side: unknown) => (side === 'supply' ? 'sell area' : 'buy area');
+const KIND_WORD: Record<string, string> = { BUY: 'Buy signal', SELL: 'Sell signal', WATCH: 'Watching' };
+const MARK: Record<string, string> = { BUY: '▲', SELL: '▼', WATCH: '●' };
+const gainX = (v: unknown) => { const r = num(v); return r == null ? '' : `possible gain ${r >= 10 ? r.toFixed(0) : r.toFixed(1)}× the risk`; };
+const code = (s: string) => `<code>${s}</code>`;
+/** '<i>source · time · For learning only, not financial advice</i>' (the same footer on every message). */
+const footer = (...bits: (string | false | null | undefined)[]) => `<i>${[...bits.filter(Boolean), FOOT].join(' · ')}</i>`;
+/** A Telegram quote block (one fit() line, so a cut never splits it); expandable = collapsed until tapped. */
+const qb = (rows: string[], expandable = false) => (rows.length ? `<blockquote${expandable ? ' expandable' : ''}>${rows.join('\n')}</blockquote>` : '');
+function signalRows(o: { sym: string; kind: string; tf: unknown; entry: string; stop: string; target: string | null; rr: unknown; p: number | null; note?: string }): string[] {
+  const where = o.p == null ? '' : Math.abs(o.p) < 0.05 ? 'price is at it' : `price is ${shortPct(o.p)} away`;
+  return [`${MARK[o.kind] ?? '●'} <b>${esc(o.sym)}</b> · ${esc(KIND_WORD[o.kind] ?? o.kind)} · ${esc(tfAdj(o.tf))}`,
+    `${o.kind === 'SELL' ? 'Sell' : 'Buy'} at ${code(esc(o.entry))} · exit if wrong ${code(esc(o.stop))}${o.target ? ` · take profit ${code(esc(o.target))}` : ''}`,
+    esc([gainX(o.rr), where, o.note ?? ''].filter(Boolean).join(' · '))];
+}
 function fxSignalLines(s: J): string[] {
   const d = digitsOf(s), k = String(s.kind);
-  const top = `${ICON[k] ?? '•'} <b>${esc(s.sym)}</b> ${tf(s.tf)} ${esc(k)} ${px(s.entry, d)}${num(s.target) != null ? ` → ${px(s.target, d)}` : ''}`;
-  const p = fxSigPct(s);
-  const bits = [`stop ${px(s.stop, d)}`, rr(s.rr), `${s.side ?? ''}`.trim(), p != null ? (p < 0.05 ? 'at the entry' : away(p)) : '',
-    k === 'WATCH' ? (s.watch_kind === 'new' ? 'price still far' : 'confirm first') : ''];
-  return [top, esc(bits.filter(Boolean).join(' · '))];
+  return signalRows({ sym: String(s.sym), kind: k, tf: s.tf, entry: px(s.entry, d), stop: px(s.stop, d), target: num(s.target) != null ? px(s.target, d) : null, rr: s.rr, p: fxSigPct(s),
+    note: k === 'WATCH' ? (s.watch_kind === 'new' ? 'waiting for the price to come back' : 'wait for confirmation') : '' });
 }
 function stockSignalLines(s: J): string[] {
   const k = String(s.kind);
-  const top = `${ICON[k] ?? '•'} <b>${esc(s.symbol)}</b> ${tf(s.tf)} ${esc(k)} ${stockPx(s.entry)}${num(s.target) != null ? ` → ${stockPx(s.target)}` : ''}`;
-  const p = num(s.to_entry_pct);
-  const bits = [`stop ${stockPx(s.stop)}`, rr(s.rr), 'demand', p != null ? (Math.abs(p) < 0.05 ? 'at the entry' : away(p)) : '',
-    k === 'BUY' ? `score ${s.score ?? 0}/10` : s.watch === 'new' ? 'price still far' : 'confirm first'];
-  return [top, esc(bits.filter(Boolean).join(' · '))];
+  return signalRows({ sym: String(s.symbol), kind: k, tf: s.tf, entry: stockPx(s.entry), stop: stockPx(s.stop), target: num(s.target) != null ? stockPx(s.target) : null, rr: s.rr, p: num(s.to_entry_pct),
+    note: k === 'BUY' ? `quality ${s.score ?? 0}/10` : s.watch === 'new' ? 'waiting for the price to come back' : 'wait for confirmation' });
 }
 const names = (rows: J[], key: string, n: number, extra?: (r: J) => string) =>
-  rows.slice(0, n).map(r => `${esc(r[key])} ${tf(r.tf)}${extra ? ` ${esc(extra(r))}` : ''}`).join(' · ') + (rows.length > n ? ` +${rows.length - n}` : '');
+  rows.slice(0, n).map(r => `${esc(r[key])} ${esc(tfAdj(r.tf))}${extra ? ` ${esc(extra(r))}` : ''}`).join(' · ') + (rows.length > n ? ` +${rows.length - n} more` : '');
 function section(title: string, rows: J[], key: string, n = 8, extra?: (r: J) => string): string[] {
-  return rows.length ? [`<b>${esc(title)}</b> (${rows.length})`, names(rows, key, n, extra)] : [];
+  return rows.length ? [`<b>${esc(title)}</b> (${rows.length})\n${names(rows, key, n, extra)}`] : [];
 }
 const okSig = (k: string) => (r: J) => !!r && typeof r[k] === 'string' && !!r[k] && typeof r.kind === 'string';   // a malformed row is skipped, not printed as 'null'
 const fxSetups = (fx: J) => [...arr(fx.signals).filter(okSig('sym')).sort((a, b) => Number(!a.wl) - Number(!b.wl) || (b.score ?? 0) - (a.score ?? 0)),
@@ -277,12 +287,13 @@ const stList = (st: J, side: string, sec: string) => arr(obj(obj(st.zone_lists)[
 const kb = (label: string, path: string): Button[][] => [[{ text: label, url: `${APP}${path}` }]];
 
 /** The persistent quick-reply keyboard (ReplyKeyboardMarkup); its button texts map to commands in handle(). */
-export const QUICK: [string, string][][] = [[['💱 FX', 'fx'], ['📈 Stocks', 'stocks'], ['⏳ Near', 'near']], [['📋 Signals', 'signals'], ['🕐 Times', 'times'], ['📅 Next', 'next']]];
+export const QUICK: [string, string][][] = [[['Currencies', 'fx'], ['Stocks', 'stocks'], ['Near', 'near']], [['Signals', 'signals'], ['Times', 'times'], ['Next events', 'next']]];
 export const MAIN_KEYBOARD = { keyboard: QUICK.map(r => r.map(([text]) => ({ text }))), is_persistent: true, resize_keyboard: true };
-const QUICK_MAP = new Map<string, string>(QUICK.flat().flatMap(([label, cmd]) => [[label.toLowerCase(), cmd], [label.replace(/^\S+\s+/, '').toLowerCase(), cmd]] as [string, string][]));
+const QUICK_MAP = new Map<string, string>([...QUICK.flat(), ['💱 FX', 'fx'], ['📈 Stocks', 'stocks'], ['⏳ Near', 'near'], ['📋 Signals', 'signals'], ['🕐 Times', 'times'], ['📅 Next', 'next']]   // + the old keyboard's labels
+  .flatMap(([label, cmd]) => [[label.toLowerCase(), cmd], [label.replace(/^\S+\s+/, '').toLowerCase(), cmd]] as [string, string][]));
 /** Callback buttons for symbols: [🔎 SYM] [📊 SYM] per symbol (callback_data <= 64 bytes). */
 export function symButtons(syms: string[], n = 3): Button[][] {
-  return [...new Set(syms)].slice(0, n).filter(s => cbOk(`z:${s}`)).map(s => [{ text: `🔎 Zones ${s}`, callback_data: `z:${s}` }, { text: `📊 Chart ${s}`, callback_data: `c:${s}` }]);
+  return [...new Set(syms.filter(Boolean).map(String))].slice(0, n).filter(s => cbOk(`z:${s}`)).map(s => [{ text: s, callback_data: `z:${s}` }, { text: `Chart ${s}`, callback_data: `c:${s}` }]);
 }
 /** Buttons in rows of at most 3 (a phone shows ~3 labels per row before cutting them to '…'). */
 /** Every reply's buttons, premium style (owner 2026-11-03): no leading emoji, at most 3 per row. */
@@ -291,6 +302,8 @@ export function polishButtons(rows: Button[][] | undefined): Button[][] | undefi
   const clean = (b: Button): Button => ({ ...b, text: b.text.replace(/^(?:[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u2190-\u21FF\u2B00-\u2BFF][\uFE0F\u200D]*)+\s*/u, '').trim() || b.text });
   return rows.flatMap(r => rows3(r.map(clean)));
 }
+/** Every reply's text, premium style: no decorative emoji at the start of a line (▲ ▼ ● markers stay). */
+export const polishText = (t: string) => t.replace(/^(?:[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}][\uFE0F\u200D]*)+[ \t]*/gmu, '');
 export const rows3 = (bs: Button[]): Button[][] => { const out: Button[][] = []; for (let i = 0; i < bs.length; i += 3) out.push(bs.slice(i, i + 3)); return out; };
 const cbOk = (d: string) => new TextEncoder().encode(d).length <= 64;
 
@@ -327,21 +340,20 @@ async function cmdFx(ctx: Ctx): Promise<Reply> {
   const fx = obj(await ctx.load('fx/latest.json'));
   if (!Array.isArray(fx.map)) return { cmd: 'fx', text: NO_DATA };
   const setups = fxSetups(fx), c = obj(fx.counts);
-  const head = setups.length ? [c.BUY ? `${c.BUY} BUY` : '', c.SELL ? `${c.SELL} SELL` : '', c.WATCH ? `${c.WATCH} WATCH` : ''].filter(Boolean).join(' · ') : 'no open setups';
-  const lines = [`💱 <b>FX · ${esc(head)}</b>`, `${esc(tf('H1'))} candle closed ${esc(when(fx.h1_close_utc ?? fx.h4_close_utc ?? fx.generated))}${fx.fixture ? ' · sample data' : ''}`, ''];
-  for (const s of setups.slice(0, 8)) lines.push(...fxSignalLines(s), '');
-  if (setups.length > 8) lines.push(`+${setups.length - 8} more setups in the app`, '');
+  const head = setups.length ? [c.BUY ? `${c.BUY} buy` : '', c.SELL ? `${c.SELL} sell` : '', c.WATCH ? `${c.WATCH} watching` : ''].filter(Boolean).join(' · ') : 'no trade ideas open';
+  const lines = [`<b>Currencies, metals &amp; indices</b> · ${esc(head)}`, `<i>Checked ${esc(when(fx.h1_close_utc ?? fx.h4_close_utc ?? fx.generated))} MT${fx.fixture ? ' · sample data' : ''}</i>`, ''];
+  for (const s of setups.slice(0, 6)) lines.push(qb(fxSignalLines(s)));
+  if (setups.length > 6) lines.push(`+${setups.length - 6} more in the app`);
   const close = fxCloseRows(fx);
+  lines.push('', '<b>Getting close to a good area</b>');
   if (close.length) {
-    lines.push(`${ICON.NEAR} <b>Getting close</b>`);
-    for (const r of close.slice(0, 6)) lines.push(`<b>${esc(r.sym)}</b> · ${tf(r.tf)} ${esc(r.side)} · ${esc(away(fxPct(r)))}`);
-    if (close.length > 6) lines.push(`+${close.length - 6} more`);
-    lines.push('');
-  } else lines.push('Nothing on the watchlist close to a good zone yet.', '');
-  lines.push(...section('In demand', fxList(fx, 'demand', 'in'), 'sym'), ...section('In supply', fxList(fx, 'supply', 'in'), 'sym'),
-    ...section('Bounced off demand', fxList(fx, 'demand', 'left'), 'sym', 6), ...section('Turned down at supply', fxList(fx, 'supply', 'left'), 'sym', 6));
-  lines.push('', `${c.instruments ?? arr(fx.map).length} markets · check levels on Pepperstone · ${FOOT}`);
-  return { cmd: 'fx', text: fit(lines), buttons: [...symButtons([...setups.map(x => x.sym), ...close.map(r => r.sym)]), ...kb('Open FX scanner', '/scanner/fx')] };
+    lines.push(qb([...close.slice(0, 6).map(r => `● <b>${esc(r.sym)}</b> · ${esc(tfAdj(r.tf))} ${areaWord(r.side)} · ${esc(shortPct(fxPct(r)))} away`), ...(close.length > 6 ? [`+${close.length - 6} more`] : [])]));
+  } else lines.push('Nothing on the watchlist is close yet.');
+  const more = [...section('Inside a buy area', fxList(fx, 'demand', 'in'), 'sym'), ...section('Inside a sell area', fxList(fx, 'supply', 'in'), 'sym'),
+    ...section('Bounced up from a buy area', fxList(fx, 'demand', 'left'), 'sym', 6), ...section('Turned down from a sell area', fxList(fx, 'supply', 'left'), 'sym', 6)];
+  if (more.length) lines.push('', qb(more, true));
+  lines.push('', footer('Pepperstone prices', `${c.instruments ?? arr(fx.map).length} markets checked`));
+  return { cmd: 'fx', text: fit(lines), buttons: [...symButtons([...setups.map(x => x.sym), ...close.map(r => r.sym)]), ...kb('Open in the app', '/scanner/fx')] };
 }
 
 async function cmdStocks(ctx: Ctx): Promise<Reply> {
@@ -349,30 +361,32 @@ async function cmdStocks(ctx: Ctx): Promise<Reply> {
   if (!Array.isArray(st.signals)) return { cmd: 'stocks', text: NO_DATA };
   const s = stockSetups(st);
   const nb = s.filter(x => x.kind === 'BUY').length, nw = s.length - nb;
-  const lines = [`📈 <b>Stocks · ${s.length ? `${nb} BUY · ${nw} WATCH` : 'no setups today'}</b>`,
-    `${esc(st.date ? dayOfIso(st.date) : '')} close · scanned ${esc(when(st.generated_at))}${st.fixture ? ' · sample data' : ''}`, ''];
-  for (const x of s.slice(0, 8)) lines.push(...stockSignalLines(x), '');
-  if (s.length > 8) lines.push(`+${s.length - 8} more in the app`, '');
+  const lines = [`<b>Stocks</b> · ${s.length ? [nb ? `${nb} buy signal${nb > 1 ? 's' : ''}` : '', nw ? `${nw} watching` : ''].filter(Boolean).join(' · ') : 'no trade ideas today'}`,
+    `<i>${esc(st.date ? dayOfIso(st.date) : '')} close · checked ${esc(when(st.generated_at))} MT${st.fixture ? ' · sample data' : ''}</i>`, ''];
+  for (const x of s.slice(0, 6)) lines.push(qb(stockSignalLines(x)));
+  if (s.length > 6) lines.push(`+${s.length - 6} more in the app`);
   const near = (side: string) => stList(st, side, 'near').slice().sort((a, b) => stockPct(a) - stockPct(b));
-  lines.push(...section('⏳ Close to demand', near('demand'), 's', 8, r => shortPct(stockPct(r))),
-    ...section('Close to supply', near('supply'), 's', 6, r => shortPct(stockPct(r))),
-    ...section('In demand', stList(st, 'demand', 'in'), 's', 6));
-  lines.push('', `${st.scanned ?? ''} stocks · ${FOOT}`.trim());
-  return { cmd: 'stocks', text: fit(lines), buttons: [...symButtons([...s.map(x => x.symbol), ...near('demand').map(r => r.s)]), ...kb('Open stock scanner', '/scanner')] };
+  const nd = near('demand');
+  lines.push('', '<b>Getting close to a buy area</b>');
+  lines.push(nd.length ? qb([...nd.slice(0, 6).map(r => `● <b>${esc(r.s)}</b> · ${esc(tfAdj(r.tf))} · ${esc(shortPct(stockPct(r)))} away`), ...(nd.length > 6 ? [`+${nd.length - 6} more`] : [])]) : 'None right now.');
+  const more = [...section('Close to a sell area (a place to take profit)', near('supply'), 's', 6, r => shortPct(stockPct(r))), ...section('Inside a buy area', stList(st, 'demand', 'in'), 's', 8)];
+  if (more.length) lines.push('', qb(more, true));
+  lines.push('', footer(`${st.scanned ?? ''} stocks checked`.trim()));
+  return { cmd: 'stocks', text: fit(lines), buttons: [...symButtons([...s.map(x => x.symbol), ...nd.map(r => r.s)]), ...kb('Open in the app', '/scanner')] };
 }
 
 async function cmdSignals(ctx: Ctx): Promise<Reply> {
   const [fx, st] = [obj(await ctx.load('fx/latest.json')), obj(await ctx.load('scanner/latest.json'))];
   if (!Array.isArray(fx.map) && !Array.isArray(st.signals)) return { cmd: 'signals', text: NO_DATA };
   const f = fxSetups(fx), s = stockSetups(st);
-  const lines = [`📋 <b>Open signals · ${f.length + s.length}</b>`, ''];
-  const one = (icon: string, sym: string, t: string, kind: string, entry: string, p: number | null) =>
-    `${icon} <b>${esc(sym)}</b> ${tf(t)} ${esc(kind)} ${esc(entry)}${p != null ? ` · ${esc(Math.abs(p) < 0.05 ? 'at the entry' : away(p))}` : ''}`;
-  lines.push(`<b>FX</b>${Array.isArray(fx.map) ? ` · ${esc(when(fx.h1_close_utc ?? fx.generated))}` : ' · data unavailable'}`);
-  lines.push(...(f.length ? f.map(x => one(ICON[x.kind] ?? '•', x.sym, x.tf, x.kind, px(x.entry, digitsOf(x)), fxSigPct(x))) : ['none open']));
+  const lines = [`<b>Open trade ideas</b> · ${f.length + s.length}`, '<i>▲ buy signal · ▼ sell signal · ● watching (not ready yet)</i>', ''];
+  const one = (sym: string, t: string, kind: string, entry: string, p: number | null) =>
+    `${MARK[kind] ?? '●'} <b>${esc(sym)}</b> · ${esc((KIND_WORD[kind] ?? kind).toLowerCase())} · ${esc(tfAdj(t))} · at ${code(esc(entry))}${p != null ? ` · ${esc(Math.abs(p) < 0.05 ? 'price is there' : `${shortPct(p)} away`)}` : ''}`;
+  lines.push(`<b>Currencies, metals &amp; indices</b>${Array.isArray(fx.map) ? '' : ' · data unavailable'}`);
+  lines.push(f.length ? qb(f.map(x => one(x.sym, x.tf, x.kind, px(x.entry, digitsOf(x)), fxSigPct(x)))) : 'None open.');
   lines.push('', `<b>Stocks</b>${Array.isArray(st.signals) ? ` · ${esc(st.date ? dayOfIso(st.date) : '')} close` : ' · data unavailable'}`);
-  lines.push(...(s.length ? s.map(x => one(ICON[x.kind] ?? '•', x.symbol, x.tf, x.kind, stockPx(x.entry), num(x.to_entry_pct))) : ['none open']));
-  lines.push('', `Details: /fx · /stocks · /zones SYMBOL · ${FOOT}`);
+  lines.push(s.length ? qb(s.map(x => one(x.symbol, x.tf, x.kind, stockPx(x.entry), num(x.to_entry_pct)))) : 'None open.');
+  lines.push('', 'Tap a name for its buy & sell areas and chart.'.replace('&', '&amp;'), footer(Array.isArray(fx.map) ? `checked ${when(fx.h1_close_utc ?? fx.generated)} MT` : ''));
   return { cmd: 'signals', text: fit(lines), buttons: symButtons([...f.map(x => x.sym), ...s.map(x => x.symbol)], 4) };
 }
 
@@ -389,10 +403,10 @@ async function cmdNear(ctx: Ctx): Promise<Reply> {
   const rows = [...best.values()].sort((a, b) => a.p - b.p || a.sym.localeCompare(b.sym));
   const inFx = new Set(['demand', 'supply'].flatMap(s => fxList(fx, s, 'in').map(r => r.sym))).size;
   const inSt = new Set(['demand', 'supply'].flatMap(s => stList(st, s, 'in').map(r => r.s))).size;
-  const lines = [`${ICON.NEAR} <b>Within 1% of a zone · ${rows.length}</b>`, 'Strong zones the scanners track, closest first.', ''];
-  for (const r of rows) lines.push(`<b>${esc(r.sym)}</b> ${r.m === 'FX' ? 'FX' : 'stock'} · ${tf(r.tf)} ${esc(r.side)} · ${esc(away(r.p))}`);
-  if (!rows.length) lines.push('Nothing within 1% right now.');
-  lines.push('', `Already inside a zone: ${inFx} FX · ${inSt} stocks (/fx, /stocks)`, FOOT);
+  const lines = [`<b>Within 1% of a buy or sell area</b> · ${rows.length}`, '<i>Closest first. A buy area is where buyers stepped in before; a sell area is where sellers took over.</i>', ''];
+  if (rows.length) lines.push(qb(rows.map(r => `${r.side === 'demand' ? '▲' : '▼'} <b>${esc(r.sym)}</b> · ${esc(tfAdj(r.tf))} ${areaWord(r.side)} · ${esc(shortPct(r.p))} away`)));
+  else lines.push('Nothing within 1% right now.');
+  lines.push('', `Already inside an area: ${inFx} currencies & indices · ${inSt} stocks`.replace(/&/g, '&amp;'), footer());
   return { cmd: 'near', text: fit(lines), buttons: symButtons(rows.map(r => r.sym)) };
 }
 
@@ -401,15 +415,14 @@ async function cmdNear(ctx: Ctx): Promise<Reply> {
 export async function cmdTurns(ctx: Ctx): Promise<Reply> {
   const st = obj(await ctx.load('fx/trendchg.json'));
   const cur = arr(st.current);
-  const icon: Record<string, string> = { break: '⚠️', removed1: '🟡', changed: '🔄' };
-  const lines = ['🧭 <b>Direction changes · daily / weekly</b>', "Raja: a trend line broken by a close, then 2 opposite zones removed = direction changed.", ''];
-  for (const x of cur.slice(0, 25)) {
-    const up = (num(x.side) ?? 0) > 0, opp = up ? 'supply' : 'demand';
-    const what = x.stage === 'changed' ? `CHANGED ${up ? 'up' : 'down'} · ${num(x.rm) ?? 2} ${opp} removed` : x.stage === 'removed1' ? `turning ${up ? 'up' : 'down'} · 1 of 2 ${opp} removed` : `line broken ${String(x.cross ?? '').slice(0, 10)} · turning ${up ? 'up' : 'down'}`;
-    lines.push(`${icon[String(x.stage)] ?? '·'} <b>${esc(x.sym)}</b> ${tf(x.tf)} · ${esc(what)}`);
-  }
-  if (!cur.length) lines.push('None in progress right now.');
-  lines.push('', `You get an alert at each step · ${FOOT}`);
+  const lines = ['<b>Direction changes</b> · daily & weekly'.replace('&', '&amp;'), '<i>Step 1: the price closes through the trend line. Step 2 and 3: it breaks the last two areas that held it back. After step 3 the direction has changed.</i>', ''];
+  const rows = cur.slice(0, 25).map(x => {
+    const up = (num(x.side) ?? 0) > 0, opp = up ? 'sell' : 'buy';
+    const what = x.stage === 'changed' ? `direction changed ${up ? 'up' : 'down'} · step 3 of 3` : x.stage === 'removed1' ? `turning ${up ? 'up' : 'down'} · 1 of 2 ${opp} areas broken · step 2 of 3` : `trend line broken ${String(x.cross ?? '').slice(0, 10)} · step 1 of 3`;
+    return `${up ? '▲' : '▼'} <b>${esc(x.sym)}</b> · ${esc(tfAdj(x.tf))} · ${esc(what)}`;
+  });
+  lines.push(rows.length ? qb(rows) : 'None in progress right now.');
+  lines.push('', 'You get an alert at each step.', footer());
   return { cmd: 'turns', text: fit(lines), buttons: symButtons(cur.filter(x => x.stage === 'changed').map(x => String(x.sym)), 3) };
 }
 /** /areas (owner pick 'FX 1'): the open realignment areas of the hourly FX scan (public/fx/arrivals.json): where a
@@ -418,17 +431,17 @@ export async function cmdTurns(ctx: Ctx): Promise<Reply> {
 export async function cmdAreas(ctx: Ctx): Promise<Reply> {
   const st = obj(await ctx.load('fx/arrivals.json'));
   const rows = Object.values(obj(st.areas)).map(obj).filter(a => !a.confirmed && num(a.lo) != null && num(a.hi) != null && num(a.price) != null);
-  if (!rows.length) return { cmd: 'areas', text: '🎯 <b>Realignment areas</b>\nNone open right now. They appear when a higher-timeframe arrival leaves a weak zone near the bigger trend line.' };
+  const title = '<b>Pullback areas</b> · where the best trades start';
+  const why = '<i>When a bigger trend pulls back, it often turns again inside one of these areas. You get a confirmation alert when a smaller chart turns there too.</i>';
+  if (!rows.length) return { cmd: 'areas', text: [title, why, '', 'None open right now.', '', footer()].join('\n') };
   const dist = (a: J) => { const p = a.price as number; return p >= a.lo && p <= a.hi ? 0 : Math.min(Math.abs(p - a.lo), Math.abs(p - a.hi)) / p * 100; };
   rows.sort((a, b) => Number(!a.inside) - Number(!b.inside) || dist(a) - dist(b));
-  const lines = ['🎯 <b>Realignment areas</b> · the A+ trade comes from here', 'A higher-timeframe correction should end in the area; the entry is a lower-timeframe arrival inside it (you get a ✅ Confirmation alert).', ''];
-  for (const a of rows.slice(0, 15)) {
+  const out = rows.slice(0, 15).map(a => {
     const d = dist(a), dg = num(a.digits) ?? 5;
-    lines.push(`${a.inside ? '🎯' : d < 1 ? '⏳' : '·'} <b>${esc(a.sym)}</b> ${tf(a.tf)} ${a.dir > 0 ? 'buy' : 'sell'} area ${(a.lo as number).toFixed(dg)}–${(a.hi as number).toFixed(dg)} · ${a.inside ? 'price inside: watching ' + tf(a.ltf) : d.toFixed(1) + '% away'}`);
-  }
-  if (rows.length > 15) lines.push(`+${rows.length - 15} more in the app`);
-  lines.push('', `🎯 inside (confirmation can come any bar) · ⏳ within 1% · ${FOOT}`);
-  return { cmd: 'areas', text: fit(lines), buttons: symButtons(rows.filter(a => a.inside || dist(a) < 1).map(a => String(a.sym)), 3) };
+    return `${a.dir > 0 ? '▲' : '▼'} <b>${esc(a.sym)}</b> · ${esc(tfAdj(a.tf))} ${a.dir > 0 ? 'buy' : 'sell'} area ${code(`${(a.lo as number).toFixed(dg)}–${(a.hi as number).toFixed(dg)}`)} · ${a.inside ? `price is inside: watching the ${esc(tfAdj(a.ltf))} chart` : `${d.toFixed(1)}% away`}`;
+  });
+  if (rows.length > 15) out.push(`+${rows.length - 15} more in the app`);
+  return { cmd: 'areas', text: fit([title, why, '', qb(out), '', footer()]), buttons: symButtons(rows.filter(a => a.inside || dist(a) < 1).map(a => String(a.sym)), 3) };
 }
 const usdShort = (v: unknown) => { const x = num(v); if (x == null) return ''; const a = Math.abs(x); return a >= 1e9 ? `$${(a / 1e9).toFixed(1)}B` : a >= 1e6 ? `$${(a / 1e6).toFixed(1)}M` : `$${(a / 1e3).toFixed(0)}K`; };
 /** /tfsa (owner 2026-11-02: "for the TFSA I buy at the best price: near, inside or just left a higher-timeframe zone"):
@@ -449,44 +462,46 @@ export async function cmdTfsa(q: string, ctx: Ctx): Promise<Reply> {
     return [...best.values()].sort((a, b) => rank[a.tf] - rank[b.tf] || (num(b.score) ?? 0) - (num(a.score) ?? 0) || (num(a.pct) ?? 0) - (num(b.pct) ?? 0));
   };
   const seen = new Set<string>();
-  const sections: [string, string, J[]][] = [['in', '🟩 <b>Inside</b> the zone (best price now)', pick('in')], ['left', '↗️ <b>Just left</b> it (bounced, still close)', pick('left')], ['near', '⏳ <b>Near</b> (coming down to it)', pick('near')]];
-  const lines = [`🏦 <b>TFSA · buy at the best price</b>`, `Stocks at a weekly / monthly / 3-month demand zone${caOnly ? ' · CAD listings' : ''}, biggest timeframe first.`];
+  const sections: [string, string, J[]][] = [['in', '<b>Inside a buy area</b> (the best price now)', pick('in')], ['left', '<b>Just bounced</b> from one (still close)', pick('left')], ['near', '<b>Coming down</b> to one', pick('near')]];
+  const lines = [`<b>Long-term buys</b> · at the best price${caOnly ? ' · Canadian listings' : ''}`, `<i>Stocks at a weekly, monthly or 3-month buy area: a price where buyers stepped in before. Biggest first.</i>`];
   const shown: string[] = [];
   // Baker (owner pick 2026-11-02): insiders buying while the stock sits at a big demand zone = the top section
   const ins = obj(await ctx.load('insiders/latest.json').catch(() => null));
   const buys = new Map<string, J>(arr(ins.clusters).map(c => [String(c.sym), c] as [string, J]));
   const top = sections.flatMap(([, , rows]) => rows).filter(r => buys.has(String(r.s)) && !seen.has(String(r.s)) && !!seen.add(String(r.s)));
   if (top.length) {
-    lines.push('', '⭐ <b>Insiders buying</b> at the zone (last 30 days)');
+    lines.push('', '<b>Company insiders are buying</b> (last 30 days)');
+    const rowsI: string[] = [];
     for (const r of top.slice(0, 8)) {
       const c = buys.get(String(r.s))!;
       shown.push(String(r.s));
       const who = c.kind === 'cluster' ? `${num(c.n) ?? 2} insiders` : c.kind === 'early' ? '1 insider (early)' : 'big solo buy';
-      lines.push(`<b>${esc(r.s)}</b>${r.cur === 'CAD' ? ' 🇨🇦' : ''} · ${tf(r.tf)} ${stockPx(r.prox)}–${stockPx(r.dist)} · ${r.section === 'in' ? 'in it' : `${(num(r.pct) ?? 0).toFixed(1)}% away`} · ${esc(who)} bought ${esc(usdShort(c.value))}`);
+      rowsI.push(`▲ <b>${esc(r.s)}</b>${r.cur === 'CAD' ? ' (CA)' : ''} · ${esc(tfAdj(r.tf))} ${code(`${stockPx(r.prox)}–${stockPx(r.dist)}`)} · ${r.section === 'in' ? 'price is inside' : `${(num(r.pct) ?? 0).toFixed(1)}% away`} · ${esc(who)} bought ${esc(usdShort(c.value))}`);
     }
+    lines.push(qb(rowsI));
   }
   for (const [, title, rows] of sections) {
     const rs = rows.filter(r => !seen.has(r.s)).slice(0, 10);
     rs.forEach(r => seen.add(r.s));
     if (!rs.length) continue;
     lines.push('', title);
-    for (const r of rs) {
+    lines.push(qb(rs.map(r => {
       shown.push(String(r.s));
-      const where = r.section === 'in' ? 'in it' : r.section === 'left' ? `${(num(r.pct) ?? 0).toFixed(1)}% above, just left` : `${(num(r.pct) ?? 0).toFixed(1)}% away`;
-      lines.push(`<b>${esc(r.s)}</b>${r.cur === 'CAD' ? ' 🇨🇦' : ''} · ${tf(r.tf)} ${stockPx(r.prox)}–${stockPx(r.dist)} · ${esc(where)} · ${esc(String(r.n ?? '').slice(0, 26))}`);
-    }
+      const where = r.section === 'in' ? 'price is inside' : r.section === 'left' ? `${(num(r.pct) ?? 0).toFixed(1)}% above` : `${(num(r.pct) ?? 0).toFixed(1)}% away`;
+      return `● <b>${esc(r.s)}</b>${r.cur === 'CAD' ? ' (CA)' : ''} · ${esc(String(r.n ?? '').slice(0, 26))}\n   ${esc(tfAdj(r.tf))} ${code(`${stockPx(r.prox)}–${stockPx(r.dist)}`)} · ${esc(where)}`;
+    })));
   }
   // Stocks 3 (owner pick): weekly down line broken + a fresh daily arrival demand (stock scan: scanner/arrivals.json)
   const turns = caOnly ? [] : arr(obj(await ctx.load('scanner/arrivals.json').catch(() => null)).weekly_turns);
   if (turns.length) {
-    lines.push('', '🌱 <b>Weekly turn</b> + fresh daily arrival (a new up-move starting)');
-    for (const t of turns.slice(0, 8)) {
+    lines.push('', '<b>Turning up</b> (a new rise may be starting)');
+    lines.push(qb(turns.slice(0, 8).map(t => {
       shown.push(String(t.sym));
-      lines.push(`<b>${esc(t.sym)}</b> · weekly line broken ${esc(String(t.w1_cross ?? '').slice(0, 10))} (${esc(t.w1_state)}) · daily demand ${stockPx(t.d1_lo)}–${stockPx(t.d1_hi)}`);
-    }
+      return `▲ <b>${esc(t.sym)}</b> · weekly downtrend broken ${esc(String(t.w1_cross ?? '').slice(0, 10))} · daily buy area ${code(`${stockPx(t.d1_lo)}–${stockPx(t.d1_hi)}`)}`;
+    })));
   }
-  if (!shown.length) lines.push('', 'No stock is at a weekly / monthly / 3-month demand zone right now.');
-  lines.push('', `Send a ticker for its zones and chart · /tfsa ca: Canadian listings only · scan of ${esc(when(st.generated_at))} · ${FOOT}`);
+  if (!shown.length) lines.push('', 'No stock is at a weekly, monthly or 3-month buy area right now.');
+  lines.push('', 'Send a ticker for its full picture · /tfsa ca: Canadian listings only', footer(`checked ${when(st.generated_at)} MT`));
   return { cmd: 'tfsa', text: fit(lines), buttons: symButtons(shown, 4) };
 }
 
@@ -654,7 +669,7 @@ async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
   if (lv) lines.push(esc(`zones + price live (Alpaca) · signals: scan of ${when(st.generated_at)}`));
   lines.push('Trend: ' + esc([['W1', d.w1], ['MN', d.mn], ['3M', d.m3]].filter(x => x[1] && x[1] !== 'n/a').map(([t, v]) => `${tf(t)} ${String(v).toLowerCase()}`).join(' · ')));
   if (d.signal) lines.push(`Open: ${esc(d.signal)} (see /stocks)`);
-  const earn = await earningsLine(r.sym, ctx);   // '📑 next earnings: Nov 4 (in 6 days)' within 14 days
+  const earn = await earningsLine(r.sym, ctx);   // 'Next earnings report: Nov 4 (in 6 days)' within 14 days
   if (earn) lines.push(earn);
   const zl = obj(st.zone_lists);
   const mine = ['demand', 'supply'].flatMap(side => ['in', 'near', 'left'].flatMap(sec => arr(obj(zl[side])[sec]).filter(x => x.s === r.sym).map(x => ({ ...x, side, section: sec }))));
@@ -709,7 +724,7 @@ async function summaryParts(hit: Resolved, ctx: Ctx): Promise<{ lines: string[];
   const sym = hit.sym, stock = hit.market === 'stock';
   const [zr, fr, list, ins, soc] = await Promise.all([
     (stock ? stockZones(hit, ctx) : fxZones(hit, ctx)).catch(() => null),
-    cmdFund(sym, ctx).catch(() => null),
+    cmdFund(sym, ctx, true).catch(() => null),
     loadHeadlines(ctx, `headlines/sym/${sym}`, 3500).catch(() => null),
     stock ? insiderLine(sym, ctx).catch(() => '') : Promise.resolve(''),
     ctx.social ? ctx.social(sym).catch(() => null) : Promise.resolve(null),
@@ -823,7 +838,7 @@ async function plainZones(hit: Resolved, ctx: Ctx): Promise<Reply> {
       : b ? `● No ${what} yet: ${esc(b)}` : `● No ${what} yet`);
   }
   const earn = strip(head.find(l => /earnings/.test(l)) ?? '');
-  if (earn) lines.push(`● ${esc(earn.replace(/^\S+\s*/, '').replace(/^next earnings/i, 'Next earnings report'))}`);
+  if (earn) lines.push(`● ${esc(earn)}`);
   lines.push('', `<i>${[feed && `${feed} prices`, `${zs.length} areas on the chart`, 'For learning only, not financial advice'].filter(Boolean).join(' · ')}</i>`);
   const note = raw.text.split('\n').find(l => l.startsWith('(live data'));
   if (note) lines.push(note);

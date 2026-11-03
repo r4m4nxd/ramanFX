@@ -26,7 +26,7 @@ function ctx(now = '2026-10-29T15:00:00Z', extra: Record<string, unknown> = {}, 
   };
 }
 const visibleLen = (s: string) => s.length;
-const noRawLt = (s: string) => expect(s.replace(/<\/?(b|i|code|blockquote)>/g, '')).not.toMatch(/<(?!\/)/);
+const noRawLt = (s: string) => expect(s.replace(/<\/?(b|i|code|blockquote)( expandable)?>/g, '')).not.toMatch(/<(?!\/)/);
 
 describe('telegram bot', () => {
   it('menu list in commands.json matches the code', () => {
@@ -79,7 +79,7 @@ describe('telegram bot', () => {
     const s = await handle('/stocks', ctx());
     for (const sig of st.signals.slice(0, 3)) expect(s.text).toContain(`<b>${sig.symbol}</b>`);
     const n = await handle('/near', ctx());
-    expect(n.text).toMatch(/Within 1% of a zone/);
+    expect(n.text).toMatch(/Within 1% of a buy or sell area/);
   });
 
   it('/zones and a bare symbol show every timeframe with status', async () => {
@@ -167,7 +167,9 @@ describe('telegram bot', () => {
     expect(MAIN_KEYBOARD.is_persistent).toBe(true);
     expect(MAIN_KEYBOARD.resize_keyboard).toBe(true);
     const labels = MAIN_KEYBOARD.keyboard.flat().map(b => b.text);
-    expect(labels).toEqual(['💱 FX', '📈 Stocks', '⏳ Near', '📋 Signals', '🕐 Times', '📅 Next']);
+    expect(labels).toEqual(['Currencies', 'Stocks', 'Near', 'Signals', 'Times', 'Next events']);
+    expect((await handle('Currencies', ctx())).cmd).toBe('fx');
+    expect((await handle('Next events', ctx())).cmd).toBe('next');
     expect((await handle('💱 FX', ctx())).cmd).toBe('fx');
     expect((await handle('⏳ Near', ctx())).cmd).toBe('near');
     expect((await handle('next', ctx())).cmd).toBe('next');
