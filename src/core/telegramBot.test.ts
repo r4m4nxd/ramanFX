@@ -93,7 +93,12 @@ describe('telegram bot', () => {
     expect(bare.text).toContain('<b>XAUUSD</b> · FX');
     const nv = await handle('NVDA', ctx());
     expect(nv.text).toContain('<b>NVDA</b>');
-    expect(nv.text).toMatch(/<b>(W1|MN|3M)<\/b>/);
+    expect(nv.cmd).toBe('summary');                                  // a bare symbol = the one-stop summary card
+    expect(nv.text).toContain('<b>Zones</b>');
+    expect(nv.text).toMatch(/(W1|MN|3M) · /);
+    expect(nv.text).toContain('<b>News</b>');
+    expect(JSON.stringify(nv.buttons)).toContain('"callback_data":"z:NVDA"');
+    expect(JSON.stringify(nv.buttons)).toContain('"callback_data":"i:NVDA"');
     const brk = await handle('/zones brk-b', ctx());
     expect(brk.text).toContain('<b>BRK.B</b>');
     const typo = await handle('/zones EURUDS', ctx());

@@ -68,6 +68,30 @@ const secGet = async (url: string): Promise<string | null> => {
     return await r.text();
   } catch { return null; }
 };
+/** StockTwits chatter (public symbol stream, no key): the last ~30 posts, their bullish / bearish tags, one top post.
+ *  Cached 10 min per symbol; any failure = null (the summary card skips the line). */
+const socialMemo = new Map<string, { t: number; v: { n: number; bull: number; bear: number; watchers?: number; top?: string } | null }>();
+async function social(sym: string) {
+  const k = sym.toUpperCase().replace(/^([A-Z]{3})([A-Z]{3})$/, '$1$2.X');      // FX / crypto pairs: EURUSD.X style
+  const hit = socialMemo.get(k);
+  if (hit && Date.now() - hit.t < 600_000) return hit.v;
+  let v = null;
+  try {
+    const r = await fetch(`https://api.stocktwits.com/api/2/streams/symbol/${encodeURIComponent(k)}.json`, { headers: { 'User-Agent': 'RamanFX-bot/1.0 (personal Telegram bot)', Accept: 'application/json' }, signal: AbortSignal.timeout(4000) });
+    if (r.ok) {
+      const js = await r.json() as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const msgs = Array.isArray(js?.messages) ? js.messages : [];
+      const tag = (m: Record<string, any>) => m?.entities?.sentiment?.basic; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const top = msgs.filter((m: Record<string, any>) => typeof m?.body === 'string' && m.body.length > 25 && !/https?:\/\//.test(m.body)) // eslint-disable-line @typescript-eslint/no-explicit-any
+        .sort((a: Record<string, any>, b: Record<string, any>) => (b?.likes?.total ?? 0) - (a?.likes?.total ?? 0))[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
+      v = { n: msgs.length, bull: msgs.filter((m: Record<string, any>) => tag(m) === 'Bullish').length, bear: msgs.filter((m: Record<string, any>) => tag(m) === 'Bearish').length, // eslint-disable-line @typescript-eslint/no-explicit-any
+        watchers: Number(js?.symbol?.watchlist_count) || undefined, top: top ? String(top.body).replace(/\s+/g, ' ').slice(0, 140) : undefined };
+    } else { await r.body?.cancel(); console.log(JSON.stringify({ ev: 'social_http', status: r.status })); }
+  } catch { /* off */ }
+  socialMemo.set(k, { t: Date.now(), v });
+  if (socialMemo.size > 300) socialMemo.delete(socialMemo.keys().next().value as string);
+  return v;
+}
 const live: LiveSource = {
   fx: ctFx || oandaFx ? async (name: string, sym?: string) => (ctFx && sym ? await ctFx(sym) : null) ?? (oandaFx ? await oandaFx(name) : null) : undefined,
   // US listings from Alpaca; TSX listings (SYM.TO) from the owner's Questrade app (questrade.ts), which Alpaca does not serve
@@ -463,7 +487,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const ctx = { load, now: new Date(), dispatch: GH_TOKEN ? dispatchScans : undefined, imageUrl, prefs: SB_URL && SB_KEY ? prefs : undefined,
-    live, sec: SEC_UA ? secGet : undefined, scanOne: GH_TOKEN ? dispatchOne : undefined, health: SB_URL && SB_KEY ? healthText : undefined };
+    live, sec: SEC_UA ? secGet : undefined, social, scanOne: GH_TOKEN ? dispatchOne : undefined, health: SB_URL && SB_KEY ? healthText : undefined };
   const cq = upd?.callback_query;
   if (cq && typeof cq === 'object') {
     const fromId = cq.from?.id;

@@ -16,7 +16,8 @@ import { arrivalLine, atrPct, isWide, nestNote, refineOf, verdict } from './char
 import type { LiveFx, LiveSource, LiveStock } from './live.ts';
 import { cmdFund, earningsLine, fundButton } from './fundamentals.ts';
 import { nyseHolidays } from '../trader-coach/health.ts';
-import { cmdInsiders } from './insiders.ts';
+import { cmdInsiders, insiderLine } from './insiders.ts';
+import { symbolLines } from './headlines.ts';
 import { cmdHolders, holdersButton } from './holders.ts';
 
 export type Button = { text: string; url: string } | { text: string; callback_data: string };
@@ -46,6 +47,8 @@ export interface Ctx {
   health?: () => Promise<string>;
   /** SEC EDGAR getter with the SEC User-Agent (url -> text, null on failure): /insiders SYM live; undefined = no SEC_UA. */
   sec?: (url: string) => Promise<string | null>;
+  /** StockTwits chatter for a symbol (index.ts): recent posts with their bullish / bearish tags; undefined = off. */
+  social?: (sym: string) => Promise<{ n: number; bull: number; bear: number; watchers?: number; top?: string } | null>;
   /** Who is asking: the owner (default) or a guest the owner added (guests.ts: market commands, own prefs only). */
   role?: Role;
 }
@@ -671,6 +674,60 @@ async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
   return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'stock', ctx), ...rows3([...(d.chart ? [{ text: '📈 TradingView', url: String(d.chart) }] : []), { text: '🔎 App', url: `${APP}/scanner/${encodeURIComponent(slug)}` }, ...scanButton(r.sym, ctx), ...newsButton(r.sym)]), ...holdersRow(r.sym), ...prefsButtons(r.sym, ctx)] };
 }
 
+/** The one-stop card for a bare symbol (owner 2026-11-03): price + trend, where price is against the zones (inside,
+ *  approaching, just left - the biggest timeframe first), fundamentals, insiders, what people say (StockTwits), the
+ *  newest headlines; every part has a button for the detail. Built from the existing replies (zones, /fund, /news). */
+export async function cmdSummary(hit: Resolved, ctx: Ctx): Promise<Reply> {
+  const sym = hit.sym, stock = hit.market === 'stock';
+  const [zr, fr, list, ins, soc] = await Promise.all([
+    (stock ? stockZones(hit, ctx) : fxZones(hit, ctx)).catch(() => null),
+    cmdFund(sym, ctx).catch(() => null),
+    loadHeadlines(ctx, `headlines/sym/${sym}`, 3500).catch(() => null),
+    stock ? insiderLine(sym, ctx).catch(() => '') : Promise.resolve(''),
+    ctx.social ? ctx.social(sym).catch(() => null) : Promise.resolve(null),
+  ]);
+  const zl = (zr?.text ?? '').split('\n');
+  const cut = zl.indexOf('');
+  const lines = [...(cut > 0 ? zl.slice(0, cut) : zl.slice(0, 3))];
+  // zones: per-TF headings '<b>TF</b>' then '🟩 demand a–b · 1.2% away · ...' lines
+  type Z = { tf: string; line: string; side: string; inside: boolean; left: boolean; away: number };
+  const zs: Z[] = [];
+  let tfh = '';
+  for (const l of zl.slice(Math.max(cut, 0))) {
+    const h = /^<b>([^<]{1,12})<\/b>$/.exec(l);
+    if (h) { tfh = h[1]; continue; }
+    if (!/^(🟩|🟥)/.test(l)) continue;
+    const side = l.startsWith('🟩') ? 'demand' : 'supply';
+    const m = /· ([\d.]+)% away/.exec(l);
+    zs.push({ tf: tfh, line: l, side, inside: / · in it/.test(l), left: /bounced|turned down/.test(l), away: m ? +m[1] : (/ · in it/.test(l) ? 0 : 999) });
+  }
+  const order = (z: Z) => -TF_SHOW.indexOf(z.tf);
+  const inside = zs.filter(z => z.inside).sort((a, b) => order(a) - order(b)).slice(0, 2);
+  const left = zs.filter(z => z.left && !z.inside).sort((a, b) => order(a) - order(b)).slice(0, 1);
+  const near = (side: string) => zs.filter(z => z.side === side && !z.inside && z.away < 999).sort((a, b) => a.away - b.away)[0];
+  const zoneLines: string[] = [];
+  for (const z of inside) zoneLines.push(`📍 ${esc(z.tf)} · ${z.line}`);
+  for (const z of left) zoneLines.push(`↗️ just left · ${esc(z.tf)} · ${z.line}`);
+  for (const side of ['demand', 'supply']) { const z = near(side); if (z && !inside.includes(z) && !left.includes(z)) zoneLines.push(`${side === 'demand' ? '⬇️ next demand' : '⬆️ next supply'} · ${esc(z.tf)} · ${z.line}`); }
+  lines.push('', '<b>Zones</b>', ...(zoneLines.length ? zoneLines : ['No zone near the price.']));
+  // fundamentals: the /fund reply's body, a few lines
+  const fl = (fr?.text ?? '').split('\n').slice(1).filter(l => l.trim() && !/^<i>|^Data:|^Source|^<b>Latest 8-K/.test(l)).slice(0, 5);
+  if (fl.length) lines.push('', '<b>Fundamentals</b>', ...fl);
+  if (ins) lines.push('', ins);
+  if (soc && soc.n > 0) lines.push('', `💬 <b>StockTwits</b> · ${soc.n} recent posts · ${soc.bull} bullish / ${soc.bear} bearish${soc.watchers ? ` · ${soc.watchers.toLocaleString('en-US')} watchers` : ''}`, ...(soc.top ? [`<i>"${esc(soc.top)}"</i>`] : []));
+  const nl = symbolLines(sym, list, ctx.now.getTime(), 3).filter(l => l.startsWith('• '));
+  lines.push('', '<b>News</b>', ...(nl.length ? nl : ['No headlines about it in the last 3 days.']));
+  lines.push('', `Tap a button for the detail · ${FOOT}`);
+  const cb = (t: string, d: string) => (cbOk(d) ? [{ text: t, callback_data: d }] : []);
+  const buttons: Button[][] = [
+    [...cb('🔎 All zones', `z:${sym}`), ...cb('📊 Chart', `c:${sym}`), ...cb('📑 Fundamentals', `f:${sym}`)],
+    [...newsButton(sym), ...(stock ? [...cb('👥 Holders', `h:${sym}`), ...cb('🕵️ Insiders', `i:${sym}`)] : [])],
+    ...prefsButtons(sym, ctx),
+  ].filter(r => r.length);
+  return { cmd: 'summary', text: fit(lines), buttons };
+}
+const TF_SHOW = ['15m', '1H', '4H', 'Daily', 'Weekly', 'Monthly', '3-month', 'M15', 'H1', 'H4', 'D1', 'W1', 'MN', '3M'];
+
 async function cmdZones(q: string, ctx: Ctx): Promise<Reply> {
   if (!q) return { cmd: 'zones', text: 'Send a symbol after it, e.g. <b>/zones EURUSD</b> or <b>/zones NVDA</b>. Just the symbol works too.' };
   const { hit, suggest } = await resolve(q, ctx);
@@ -1247,6 +1304,8 @@ export async function handleCallback(data: string, ctx: Ctx): Promise<Reply> {
   if (m && m[1] === 'c') return { ...(await cmdChart(m[2], m[3] ?? '', ctx)), edit: !!m[3] };
   const fd = /^f:([A-Za-z0-9._-]{1,20})$/.exec(data ?? '');
   if (fd) return cmdFund(fd[1], ctx);
+  const id = /^i:([A-Za-z0-9._-]{1,20})$/.exec(data ?? '');
+  if (id) return cmdInsiders(id[1], ctx);
   const hd = /^h:([A-Za-z0-9._-]{1,20})$/.exec(data ?? '');
   if (hd) return cmdHolders(hd[1], ctx);
   if (CB_CMDS[data]) return handle(CB_CMDS[data], ctx);
@@ -1512,7 +1571,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
   if (t.endsWith('?') && t.length > 3) return cmdAsk(t, ctx);
   if (SYMBOLISH.test(t)) {
     const { hit, suggest } = await resolve(t, ctx);
-    if (hit) return withLatest(hit.sym, ctx, hit.market === 'fx' ? fxZones(hit, ctx) : stockZones(hit, ctx));
+    if (hit) return cmdSummary(hit, ctx);                 // 2026-11-03: a bare symbol = the one-stop summary card
     if (suggest.length) return { cmd: 'symbol?', text: notFound(t, suggest) };
   }
   return { cmd: 'text', text: HINT };
