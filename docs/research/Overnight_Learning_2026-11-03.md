@@ -31,6 +31,15 @@ branch: `docs/research/arrival_study/round3/Round3.md`, `round4/Round4.md`, `doc
    - A stop (monthly close below the zone) roughly halved the 12-month return: no stops on long-term holds.
    - Caveat: the stock list is today's companies, so stocks that went bust are missing; that flatters every result.
 
+## FX scanner rule experiments (finished 07:32 UTC)
+
+- The scanner's **current FX rules made 0 trades in 21 years** (2005–2026, 115 markets): the gates never all line up.
+- With the nesting rule off: 52 trades. With nesting + spread off ("loose"): 88 trades, **-0.51R per trade in 2005–2020
+  and -0.06R in 2020–2026**, win rate 12–24%. Half the trades never got more than +0.6R in their favour.
+- None of the 19 rule changes (break-even, targets, freshness, continuation, stops, approach, curve, cancel, size) has
+  enough trades to judge; the learner changed nothing. Small hints only: break-even at 1R and dropping continuation
+  zones looked better recently (n = 21 and 14, not meaningful).
+
 ## What I recommend
 
 - **Treat the zone alerts as a watchlist, not trade signals.** The data says the edge, if any, is in your own judgment,
@@ -48,5 +57,3 @@ branch: `docs/research/arrival_study/round3/Round3.md`, `round4/Round4.md`, `doc
 - Monthly: the FX and stock backtests test 19 / 17 rule changes on three rule sets; the learner (5th of each month)
   adopts a change only if it wins in both older and recent data with enough trades, at most 3 per month, and drops it
   when it stops working. It messages you when anything changes. `/learn` in the bot shows the current state.
-- Pending at the time of writing: the FX backtest experiments (19 rule changes on the FX scanner's own rules) were
-  still running; results land in `public/learn/fx_experiments.json` and the learner picks them up.
