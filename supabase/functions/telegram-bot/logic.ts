@@ -749,7 +749,20 @@ export async function cmdSummary(hit: Resolved, ctx: Ctx): Promise<Reply> {
 /** The summary card's data for the image endpoint (?img=SYM&tf=CARD): null = unknown symbol. */
 export async function summaryCard(q: string, ctx: Ctx): Promise<CardData | null> {
   const { hit } = await resolve(q, ctx);
-  return hit ? (await summaryParts(hit, ctx)).data : null;
+  if (!hit) return null;
+  const [{ data }, cd] = await Promise.all([summaryParts(hit, ctx), chartData(hit.sym, 'D1', ctx).catch(() => null)]);
+  const p = cd?.model.panels[0];                                     // owner 2026-11-03: the daily chart under the summary
+  if (p && p.bars.length > 10) {
+    const n = Math.min(90, p.bars.length), cut = p.bars.length - n;
+    data.chart = { tf: 'D1', bars: p.bars.slice(-n), digits: cd!.model.digits,
+      zones: [...data.zones.map(z => ({ side: z.kind === 'buy' ? 'demand' : 'supply', lo: z.lo, hi: z.hi })), ...p.zones.filter(z => !z.removed).map(z => ({ side: z.side, lo: Math.min(z.prox, z.dist), hi: Math.max(z.prox, z.dist) }))],
+      lines: (p.tls ?? []).filter(t => !t.htf && t.kind !== 'momentum' && !t.crossed && !t.broken).map(t => t.pts.map(([i, v]) => [i - cut, v] as [number, number])) };
+    const bs = data.chart.bars, hi = Math.max(...bs.map(b => b.h)), lo = Math.min(...bs.map(b => b.l)), px0 = data.price ?? bs[bs.length - 1].c;
+    const f = (v: number) => `${hit.market === 'stock' ? '$' : ''}${v.toLocaleString('en-US', { maximumFractionDigits: cd!.model.digits })}`;
+    const off = (hi - px0) / hi * 100;
+    data.points = [...(data.points ?? []), off < 1 ? `Near its ${n}-day high of ${f(hi)}.` : `${off.toFixed(1)}% below its ${n}-day high of ${f(hi)} (low ${f(lo)}).`].slice(0, 5);
+  }
+  return data;
 }
 async function summaryParts(hit: Resolved, ctx: Ctx): Promise<{ lines: string[]; data: CardData }> {
   const sym = hit.sym, stock = hit.market === 'stock';
@@ -792,7 +805,26 @@ async function summaryParts(hit: Resolved, ctx: Ctx): Promise<{ lines: string[];
   const trendLine = head.find(l => l.startsWith('Trend:')) ?? '';
   const i0 = sl.findIndex(l => l.startsWith('• '));
   const headline = i0 >= 0 ? { title: strip(sl[i0].slice(2)), meta: strip(sl[i0 + 1] ?? '') } : null;
-  const data: CardData = { sym, name: name === 'FX' ? '' : name, market: hit.market, price, digits, live: /live/.test(head.join(' ')),
+  const points: string[] = [];
+  const shownBuy = cz.some(z => z.kind === 'buy'), shownSell = cz.some(z => z.kind === 'sell');
+  const nb = near('demand'), ns = near('supply');
+  const rng = (z: Z) => `${stock ? '$' : ''}${z.lo.toLocaleString('en-US', { maximumFractionDigits: digits })}–${stock ? '$' : ''}${z.hi.toLocaleString('en-US', { maximumFractionDigits: digits })}`;
+  const tfa = (t: string) => (TF_PLAIN[t] ?? t).toLowerCase();
+  if (ns && !shownSell && ns.away < 30) points.push(`Next ${tfa(ns.tf)} sell area ${rng(ns)} is ${ns.away.toFixed(1)}% higher${stock ? ': a place to take profit' : ''}.`);
+  if (nb && !shownBuy && nb.away < 30) points.push(`Next ${tfa(nb.tf)} buy area ${rng(nb)} is ${nb.away.toFixed(1)}% lower.`);
+  if (head.some(l => /^Open:/.test(l))) points.push('A trade idea is open on it now: see /signals.');
+  const earnL = head.find(l => /earnings/i.test(l));
+  if (earnL) points.push(strip(earnL).replace(/^\W+/, '') + '.');
+  if (ins) points.push(strip(ins).replace(/^\W+/, '').replace(/^./, c => c.toUpperCase()) + '.');
+  const tr = trendOf(strip(head.find(l => l.startsWith('Trend:')) ?? ''));
+  if (tr.length) points.unshift(tr.map(t => `${t.word.toLowerCase()} ${t.label === 'BIG PICTURE' ? 'in the big picture' : t.label.toLowerCase()}`).join(', ').replace(/^./, c => c.toUpperCase()) + '.');
+  if (!stock) {
+    const fx = (fr?.text ?? '').split('\n').map(strip);
+    const gap = fx.find(l => /Interest gap/.test(l)); if (gap) points.push(gap.replace(/^\W+/, '').replace(/, so .*$/, '.').replace(/^Interest gap: the /, 'Interest rates: the '));
+    const say = fx.find(l => /What the economies say/.test(l)); if (say) points.push(say.replace(/^\W+/, '').replace(/^What the economies say: /, 'Economy: '));
+  }
+  if (headline && points.length < 4) points.push(`In the news: ${headline.title}`);
+  const data: CardData = { points: points.slice(0, 4).map(p => p.replace(/\.\.$/, '.')), sym, name: name === 'FX' ? '' : name, market: hit.market, price, digits, live: /live/.test(head.join(' ')),
     trend: trendOf(strip(trendLine)), zones: cz.slice(0, 3), fund: stock ? plainFund(fl) : [],
     social: soc && soc.n > 0 ? { n: soc.n, bull: soc.bull, bear: soc.bear } : null, headline, at: ctx.now };
   return { lines, data };

@@ -36,3 +36,20 @@ describe('premium polish of every reply', () => {
     expect(rows.map(r => r.map(b => b.text))).toEqual([['Zones', 'Chart', 'a'], ['b']]);
   });
 });
+describe('summary card: chart + key points', () => {
+  it('the image data has the daily chart and plain key points; the SVG draws them', async () => {
+    const { summaryCard } = await import('../../supabase/functions/telegram-bot/logic');
+    const read = (p: string) => (existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null);
+    const c = { now: new Date('2026-10-29T15:00:00Z'), async load(p: string) { return read(`public/${p}`); } } as Parameters<typeof summaryCard>[1];
+    for (const sym of ['NVDA', 'EURUSD']) {
+      const d = (await summaryCard(sym, c))!;
+      expect(d.chart?.bars.length).toBeGreaterThan(10);
+      expect(d.points?.length).toBeGreaterThanOrEqual(2);
+      for (const p of d.points!) expect(p).not.toMatch(/\b(demand|supply|W1|MN|D1)\b/);
+      const svg = cardSvg(d);
+      expect(svg).toContain('DAILY CHART');
+      expect(svg).toContain('KEY POINTS');
+      expect(svg).not.toMatch(/NaN|undefined/);
+    }
+  });
+});

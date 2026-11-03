@@ -12,7 +12,10 @@ export interface CardData {
   social: { n: number; bull: number; bear: number } | null;
   headline: { title: string; meta: string } | null;
   at: Date;
+  points?: string[];                         // 'Key points': plain one-liners
+  chart?: CardChart;                         // the daily chart drawn under the summary (the image only)
 }
+export interface CardChart { tf: string; digits: number; bars: { t: string; o: number; h: number; l: number; c: number }[]; zones: { side: string; lo: number; hi: number }[]; lines: [number, number][][] }
 
 const CCY: Record<string, string> = { EUR: 'Euro', USD: 'US dollar', GBP: 'British pound', JPY: 'Japanese yen', CHF: 'Swiss franc', CAD: 'Canadian dollar',
   AUD: 'Australian dollar', NZD: 'New Zealand dollar', XAU: 'Gold', XAG: 'Silver', XPT: 'Platinum', XPD: 'Palladium', CNH: 'Chinese yuan', HKD: 'Hong Kong dollar',
@@ -126,8 +129,8 @@ export function wrap(s: string, size: number, width: number, maxLines = 2): stri
 /** The 1080x1350 card as SVG. */
 const SHORT: Record<string, string> = { 'Sales, last 12 months': 'Sales · 12 mo', 'Profit per share': 'Profit / share', 'Price vs profit': 'Price / profit' };
 export function cardSvg(d: CardData): string {
-  const W = 1080, H = 1350, X = 80, R = W - 80;
-  const s: string[] = [`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="${C.ink}"/>`];
+  const W = 1080, X = 80, R = W - 80;
+  const s: string[] = [];
   // brand row
   s.push(`<rect x="${X}" y="72" width="40" height="40" rx="10" fill="none" stroke="${C.gold}" stroke-width="1.5"/>`, T(X + 20, 101, 'R', 24, C.gold, { font: SERIF, anchor: 'middle' }),
     T(X + 56, 99, 'RAMANFX', 20, C.mute, { weight: 600, ls: 4.8 }), T(R, 99, `${dateLong(d.at)} · ${time(d.at)} MT`, 18, C.dim, { font: MONO, anchor: 'end' }));
@@ -156,8 +159,21 @@ export function cardSvg(d: CardData): string {
     y += 134;
   }
   if (!d.zones.length) { s.push(T(X, y + 40, 'No buy or sell area near the price right now.', 24, C.dim)); y += 80; }
+  // the daily chart (owner 2026-11-03: "include the image of the chart underneath")
+  if (d.chart && d.chart.bars.length > 10) { y += 24; s.push(T(X, y + 17, 'DAILY CHART · LAST ' + d.chart.bars.length + ' DAYS', 17, C.gold, { ls: 3.4 })); y += 36; s.push(miniChart(d.chart, X, y, R - X, 380, d.price)); y += 380 + 8;
+    s.push(T(X, y + 22, `Green: buy areas · red: sell areas${d.chart.lines.length ? ' · lilac: trend lines' : ''} · gold: price now`, 17, C.faint)); y += 34; }
+  // key points
+  if (d.points?.length) {
+    y += 40; s.push(T(X, y, 'KEY POINTS', 17, C.gold, { ls: 3.4 })); y += 14;
+    for (const p of d.points.slice(0, 4)) {
+      const ls = wrap(p, 23, R - X - 36, 2);
+      s.push(`<circle cx="${X + 7}" cy="${y + 30}" r="5" fill="${C.gold}"/>`);
+      ls.forEach((l, k) => s.push(T(X + 30, y + 38 + k * 32, l, 23, C.text)));
+      y += 18 + ls.length * 32;
+    }
+  }
   // company numbers (stocks)
-  y += 16;
+  y += 30;
   if (d.fund.length) {
     s.push(`<line x1="${X}" y1="${y}" x2="${R}" y2="${y}" stroke="${C.line}"/>`);
     const fw = (R - X) / d.fund.length;
@@ -184,8 +200,45 @@ export function cardSvg(d: CardData): string {
     wrap(d.headline.title, 22, hw, 2).forEach((l, i) => s.push(T(hx, y + 40 + i * 30, l, 22, C.text)));
     s.push(T(hx, y + 106, d.headline.meta, 17, C.dim));
   }
+  if (d.social || d.headline) y += 130;
+  const H = Math.max(1350, y + 130);
   // footer
   s.push(T(X, H - 72, 'Read with the supply &amp; demand method'.replace('&amp;', '&'), 17, C.faint), T(R, H - 72, 'For learning only, not financial advice', 17, C.faint, { anchor: 'end' }));
-  s.push('</svg>');
-  return s.join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="${C.ink}"/>` + s.join('') + '</svg>';
+}
+/** A compact candle chart: the buy / sell areas as bands, candles, the trend lines and the price line. */
+function miniChart(c: CardChart, x0: number, y0: number, w: number, h: number, price: number | null): string {
+  const bars = c.bars, n = bars.length;
+  let lo = Math.min(...bars.map(b => b.l)), hi = Math.max(...bars.map(b => b.h));
+  const pad = (hi - lo) * 0.08 || hi * 0.01; lo -= pad; hi += pad;
+  const axis = 120, pw = w - axis;
+  const Y = (v: number) => y0 + (hi - v) / (hi - lo) * h, step = pw / n, X = (i: number) => x0 + step * (i + 0.5);
+  const out: string[] = [`<rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="14" fill="${C.panel}"/>`, `<clipPath id="mc"><rect x="${x0}" y="${y0}" width="${pw}" height="${h}"/></clipPath>`, '<g clip-path="url(#mc)">'];
+  for (const z of c.zones) {
+    if (z.hi < lo || z.lo > hi) continue;
+    const a = Y(Math.min(hi, z.hi)), b = Y(Math.max(lo, z.lo));
+    out.push(`<rect x="${x0}" y="${a}" width="${pw}" height="${Math.max(2, b - a)}" fill="${z.side === 'demand' ? C.greenBar : C.redBar}" fill-opacity="0.22"/>`);
+  }
+  const bw = Math.max(2, step * 0.62);
+  bars.forEach((b, i) => {
+    const up = b.c >= b.o, col = up ? C.green : C.red, xc = X(i);
+    out.push(`<line x1="${xc}" y1="${Y(b.h)}" x2="${xc}" y2="${Y(b.l)}" stroke="${col}" stroke-width="1.5"/>`,
+      `<rect x="${xc - bw / 2}" y="${Y(Math.max(b.o, b.c))}" width="${bw}" height="${Math.max(1.5, Math.abs(Y(b.o) - Y(b.c)))}" fill="${col}"/>`);
+  });
+  for (const l of c.lines) {
+    const pts = l.filter(([i]) => Number.isFinite(i));
+    if (pts.length < 2) continue;
+    const [a, b] = [pts[0], pts[pts.length - 1]];
+    const k = (b[1] - a[1]) / ((b[0] - a[0]) || 1), i0 = Math.max(a[0], -0.5), i1 = n - 0.5;
+    if (i1 <= i0) continue;
+    out.push(`<line x1="${X(i0)}" y1="${Y(a[1] + k * (i0 - a[0]))}" x2="${X(i1)}" y2="${Y(a[1] + k * (i1 - a[0]))}" stroke="#C4B5FD" stroke-width="2.5"/>`);
+  }
+  out.push('</g>');
+  const fmt = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: c.digits, maximumFractionDigits: c.digits });
+  for (const v of [hi - pad, (hi + lo) / 2, lo + pad]) if (price == null || Math.abs(Y(v) - Y(price)) > 34) out.push(T(x0 + w - 14, Y(v) + 6, fmt(v), 17, C.faint, { font: MONO, anchor: 'end' }));
+  if (price != null && price > lo && price < hi) {
+    out.push(`<line x1="${x0}" y1="${Y(price)}" x2="${x0 + pw}" y2="${Y(price)}" stroke="${C.gold}" stroke-width="1.5" stroke-dasharray="6 6"/>`,
+      `<rect x="${x0 + pw + 4}" y="${Y(price) - 16}" width="${axis - 12}" height="32" rx="6" fill="${C.gold}"/>`, T(x0 + pw + 4 + (axis - 12) / 2, Y(price) + 7, fmt(price), 17, C.ink, { font: MONO, anchor: 'middle', weight: 600 }));
+  }
+  return out.join('');
 }
