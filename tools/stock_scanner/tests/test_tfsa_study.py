@@ -68,3 +68,55 @@ class TfsaStudyTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TfsaRowsTest(unittest.TestCase):
+    def test_monthly_close_stop(self):
+        # entry 100 on 2024-01-30; distal 95: January closes 96 (above), February's last close 94 -> stopped at 94
+        days = [f'2024-01-{d:02d}' for d in (29, 30, 31)] + [f'2024-02-{d:02d}' for d in range(1, 30)] + \
+            [f'2024-03-{d:02d}' for d in range(1, 32)] + [f'2024-04-{d:02d}' for d in range(1, 31)] * 3
+        days = sorted(set(days))
+        cl = [100.0] * len(days)
+        for i, d in enumerate(days):
+            if d == '2024-01-31':
+                cl[i] = 96.0
+            if d == '2024-02-29':
+                cl[i] = 94.0
+            if d > '2024-02-29':
+                cl[i] = 120.0
+        b = [Bar(d, c, c + 1, c - 1, c) for d, c in zip(days, cl)]
+        f = TS._forward(b, 1, 100.0, 95.0)
+        self.assertTrue(f['3m']['stopped'])
+        self.assertAlmostEqual(f['3m']['sret'], -6.0)
+        self.assertAlmostEqual(f['3m']['ret'], 20.0)
+        self.assertFalse(TS._forward(b, 1, 100.0, 90.0)['3m']['stopped'])
+
+    def test_block_ci_by_month(self):
+        rows = [(f'2020-{m:02d}', v) for m in range(1, 13) for v in ([5.0] * 30 if m != 3 else [-80.0] * 5)]
+        lo, hi = TS.block_ci(rows)
+        self.assertLess(lo, hi)
+        self.assertIsNone(TS.block_ci([('2020-01', 1.0), ('2020-01', 2.0)]))
+
+    def test_rows_and_holds(self):
+        evs = []
+        for s in range(8):
+            evs += TS.ticker_events(f'T{s}', synth.ticker(s))
+        out = TS.summarize(evs, synth.ticker(101), fixture=True)
+        need = {'in', 'tf_W1', 'tf_MN', 'tf_3M', 'all_four', *TS.FILTERS, *(f + '_fail' for f in TS.FILTERS), *TS.COMBOS}
+        self.assertEqual(set(out['rows']), need)
+        r = out['rows']['in']
+        a, tr, te = (r[p]['12m'] for p in ('all', 'train', 'test'))
+        self.assertEqual(a['n'], tr['n'] + te['n'])
+        self.assertGreater(a['months'], 12)
+        self.assertLessEqual(a['months'], a['n'])
+        for k in ('ci_excess_random', 'ci_excess_random_time', 'ci_excess_spy_time', 'stop_ret', 'stopped'):
+            self.assertIn(k, a)
+        self.assertIn(r['all']['12m']['n'], (out['by_section']['in']['12m']['n'],))
+        self.assertIn('Survivorship', out['verdict'])
+        fake = {p: {'12m': {'n': 50, 'ci_excess_random_time': [0.5, 3.0]}} for p in ('train', 'test')}
+        self.assertTrue(TS.holds(fake))
+        fake['test']['12m']['ci_excess_random_time'] = [-0.1, 3.0]
+        self.assertFalse(TS.holds(fake))
+        md = '\n'.join(TS.render_md(out))
+        self.assertIn('tf_MN_3M+not_top3', md)
+        json.dumps(out, allow_nan=False)

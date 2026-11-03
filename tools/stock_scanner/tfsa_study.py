@@ -43,6 +43,14 @@ SPLIT_DATE = '2022-01-01'
 QUAL_LOOKBACK = 20
 SMA = 200
 BOOT = 1000
+COMBOS = {
+    'tf_MN_3M': lambda e: e['tf'] in ('MN', '3M'),
+    'tf_MN_3M+not_top3': lambda e: e['tf'] in ('MN', '3M') and not e['top3'],
+    'tf_MN_3M+not_top3+regime_fail': lambda e: e['tf'] in ('MN', '3M') and not e['top3'] and e.get('regime') is False,
+    'W1+not_top3': lambda e: e['tf'] == 'W1' and not e['top3'],
+    'tf_MN_3M+mom12_fail': lambda e: e['tf'] in ('MN', '3M') and e.get('mom12') is not None and e['mom12'] <= 0,
+    'any+not_top3+qualified': lambda e: not e['top3'] and e['qualified'],
+}
 FILTERS = ('market_regime', 'mom12', 'not_top3', 'qualified')
 
 
@@ -55,12 +63,24 @@ def _ret(a: float, b: float) -> float:
     return (b / a - 1) * 100
 
 
-def _forward(bars: Sequence[Bar], i: int, entry: float) -> Dict:
+def _forward(bars: Sequence[Bar], i: int, entry: float, dist: Optional[float] = None) -> Dict:
+    """Per horizon: ret (hold to the close), dd (lowest low vs the entry), exit date; the stop variant: sret / stopped =
+    out at the first MONTHLY close (a month's last session, seen once the next session starts a new month) below the
+    zone distal, after the entry session."""
     out = {}
-    for k, h in HORIZONS.items():
-        if i + h < len(bars):
+    n = len(bars)
+    stop_k = -1
+    if dist is not None:
+        for k in range(i + 1, min(n - 1, i + max(HORIZONS.values()) + 1)):
+            if bars[k + 1].d[:7] != bars[k].d[:7] and bars[k].c < dist:
+                stop_k = k
+                break
+    for key, h in HORIZONS.items():
+        if i + h < n:
             lo = min(b.l for b in bars[i:i + h + 1])
-            out[k] = {'ret': round(_ret(entry, bars[i + h].c), 3), 'dd': round(min(0.0, _ret(entry, lo)), 3), 'exit': bars[i + h].d}
+            st = 0 <= stop_k <= i + h
+            out[key] = {'ret': round(_ret(entry, bars[i + h].c), 3), 'dd': round(min(0.0, _ret(entry, lo)), 3), 'exit': bars[i + h].d,
+                        'sret': round(_ret(entry, bars[stop_k].c if st else bars[i + h].c), 3), 'stopped': st}
     return out
 
 
@@ -132,7 +152,7 @@ def _event(sym, tf, sec, bars, i, ref, entry, z, qualified) -> Dict:
     return {'sym': sym, 'tf': tf, 'section': sec, 'date': bars[i].d, 'ref_date': bars[ref].d, 'entry': round(entry, 4),
             'prox': round(z.prox, 4), 'dist': round(z.dist, 4), 'qualified': bool(qualified),
             'mom12': round(mom, 2) if mom is not None else None,
-            'top3': hi > lo and entry >= lo + 2.0 / 3.0 * (hi - lo), 'fwd': _forward(bars, i, entry)}
+            'top3': hi > lo and entry >= lo + 2.0 / 3.0 * (hi - lo), 'fwd': _forward(bars, i, entry, z.dist)}
 
 
 # ---- summary --------------------------------------------------------------------------------------------------------
@@ -164,26 +184,29 @@ def _spy_tools(spy: Sequence[Bar]):
     return ret, above
 
 
-def cluster_ci(rows: List[tuple], n: int = BOOT, seed: int = 7) -> Optional[List[float]]:
-    """95% bootstrap CI of the mean of rows (ticker, value), resampling tickers."""
-    by = defaultdict(list)
+def block_ci(rows: List[tuple], n: int = BOOT, seed: int = 7) -> Optional[List[float]]:
+    """95% bootstrap CI of the mean of rows (block key, value), resampling whole blocks (tickers, or calendar months:
+    market-wide episodes cluster in time)."""
+    by: Dict[str, List[float]] = defaultdict(list)
     for t, v in rows:
         by[t].append(v)
-    units = [(sum(v), len(v)) for v in by.values()]
-    if len(units) < 2:
+    sums = [sum(v) for v in by.values()]
+    cnts = [len(v) for v in by.values()]
+    m = len(sums)
+    if m < 2:
         return None
     rnd = random.Random(seed)
-    m = len(units)
+    rng = range(m)
     means = []
     for _ in range(n):
-        s = c = 0
-        for _k in range(m):
-            a, b = units[rnd.randrange(m)]
-            s += a
-            c += b
-        means.append(s / c)
+        idx = rnd.choices(rng, k=m)
+        c = sum(map(cnts.__getitem__, idx))
+        means.append(sum(map(sums.__getitem__, idx)) / c)
     means.sort()
     return [round(means[int(0.025 * n)], 3), round(means[int(0.975 * n) - 1], 3)]
+
+
+cluster_ci = block_ci
 
 
 def _median(xs: List[float]) -> Optional[float]:
@@ -195,26 +218,40 @@ def _median(xs: List[float]) -> Optional[float]:
 
 
 def hstats(evs: List[Dict], k: str) -> Dict:
+    """One horizon: n, tickers, months (distinct calendar months of the entries = the effective sample for
+    market-wide effects), returns, excess vs SPY / vs a random day with a ticker-block and a month-block CI, the share
+    beating SPY, drawdowns, and the monthly-close stop variant (stop_ret, stopped share)."""
     rows = [e for e in evs if k in e['fwd'] and e['fwd'][k].get('spy') is not None]
     if not rows:
         return {'n': 0}
-    r = [e['fwd'][k]['ret'] for e in rows]
-    x = [e['fwd'][k]['ret'] - e['fwd'][k]['spy'] for e in rows]
-    xr = [(e['sym'], e['fwd'][k]['ret'] - e['rnd'][k]) for e in rows if k in e.get('rnd', {})]
-    dd = [e['fwd'][k]['dd'] for e in rows]
+    f = [e['fwd'][k] for e in rows]
+    r = [x['ret'] for x in f]
+    x = [a['ret'] - a['spy'] for a in f]
+    rr = [(e, e['fwd'][k]['ret'] - e['rnd'][k]) for e in rows if k in e.get('rnd', {})]
+    dd = [a['dd'] for a in f]
+    sr = [a.get('sret', a['ret']) for a in f]
     m = len(rows)
-    return {'n': m, 'tickers': len({e['sym'] for e in rows}),
+    return {'n': m, 'tickers': len({e['sym'] for e in rows}), 'months': len({e['date'][:7] for e in rows}),
             'mean_ret': round(sum(r) / m, 3), 'median_ret': _median(r),
             'mean_excess_spy': round(sum(x) / m, 3), 'median_excess_spy': _median(x),
-            'ci_excess_spy': cluster_ci([(e['sym'], v) for e, v in zip(rows, x)]),
+            'ci_excess_spy': block_ci([(e['sym'], v) for e, v in zip(rows, x)]),
+            'ci_excess_spy_time': block_ci([(e['date'][:7], v) for e, v in zip(rows, x)]),
             'beat_spy': round(sum(1 for v in x if v > 0) / m, 3),
-            'mean_excess_random': round(sum(v for _, v in xr) / len(xr), 3) if xr else None,
-            'ci_excess_random': cluster_ci(xr) if xr else None,
-            'worst_dd': round(min(dd), 2), 'median_dd': _median(dd)}
+            'mean_excess_random': round(sum(v for _, v in rr) / len(rr), 3) if rr else None,
+            'ci_excess_random': block_ci([(e['sym'], v) for e, v in rr]) if rr else None,
+            'ci_excess_random_time': block_ci([(e['date'][:7], v) for e, v in rr]) if rr else None,
+            'worst_dd': round(min(dd), 2), 'median_dd': _median(dd),
+            'stop_ret': round(sum(sr) / m, 3), 'stopped': round(sum(1 for a in f if a.get('stopped')) / m, 3)}
 
 
 def _group(evs: List[Dict]) -> Dict:
     return {k: hstats(evs, k) for k in HORIZONS}
+
+
+def _split3(evs: List[Dict]) -> Dict:
+    """{all, train (< SPLIT_DATE), test (>= SPLIT_DATE)} x horizons."""
+    return {'all': _group(evs), 'train': _group([e for e in evs if e['date'] < SPLIT_DATE]),
+            'test': _group([e for e in evs if e['date'] >= SPLIT_DATE])}
 
 
 def dedupe(evs: List[Dict]) -> List[Dict]:
@@ -253,44 +290,69 @@ def summarize(evs: List[Dict], spy: Optional[Sequence[Bar]], seed: int = 7, fixt
     out['splits'] = {'train': _group([e for e in main if e['date'] < SPLIT_DATE]), 'test': _group([e for e in main if e['date'] >= SPLIT_DATE]),
                      'tickers_A': _group([e for e in main if _half(e['sym'], seed) == 'A']),
                      'tickers_B': _group([e for e in main if _half(e['sym'], seed) == 'B'])}
+    rows = {'in': lambda e: True, **{f'tf_{tf}': (lambda t: lambda e: e['tf'] == t)(tf) for tf in TFS}}
+    for name, f in filt.items():
+        rows[name] = f
+        rows[f'{name}_fail'] = (lambda g: lambda e: not g(e))(f)
+    rows['all_four'] = lambda e: all(f(e) for f in filt.values())
+    rows.update(COMBOS)
+    out['rows'] = {name: _split3([e for e in main if f(e)]) for name, f in rows.items()}
+    out['rows_note'] = ('first-touch ("in") buys, one per stock and day (the biggest timeframe); tf rows use that timeframe; '
+                        'all / train (< 2022) / test (>= 2022); ci_*_time = bootstrap resampling calendar months')
     out['verdict'] = verdict(out)
     return out
 
 
-def _proven(g: Dict) -> Optional[bool]:
-    ci = (g or {}).get('ci_excess_spy')
-    return None if not ci or (g.get('n') or 0) < 30 else ci[0] > 0
+def holds(row: Dict, k: str = '12m') -> Optional[bool]:
+    """True only when the month-block CI of the excess vs a random day is above zero in BOTH train and test."""
+    cis = [((row or {}).get(p) or {}).get(k, {}) for p in ('train', 'test')]
+    if any((c.get('n') or 0) < 30 or not c.get('ci_excess_random_time') for c in cis):
+        return None
+    return all(c['ci_excess_random_time'][0] > 0 for c in cis)
 
 
 def verdict(s: Dict) -> str:
-    """Plain English, first line of the report: buying at the first touch, 12 months, vs SPY and vs a random day."""
-    g = (s.get('by_section') or {}).get('in', {}).get('12m') or {}
+    """Plain English, first line of the report: the first-touch buy over 12 months vs a random day on the same stock
+    (time-block CI, train AND test) and vs SPY, the rows that hold, survivorship."""
+    rows = s.get('rows') or {}
+    g = (rows.get('in') or {}).get('all', {}).get('12m') or {}
     if (g.get('n') or 0) < 30:
         return 'Not enough first-touch buys with 12 months of data to judge (need 30+).'
-    tr, te = s['splits']['train'].get('12m', {}), s['splits']['test'].get('12m', {})
-    ci = g.get('ci_excess_spy') or [None, None]
-    both = _proven(tr) and _proven(te)
-    word = ('beat' if g['mean_excess_spy'] > 0 else 'lagged')
-    line = (f"Buying at the first touch of a W1 / MN / 3M demand zone and holding 12 months (no stop) {word} SPY by "
-            f"{abs(g['mean_excess_spy']):.1f}% on average (median {g['median_excess_spy']:+.1f}%, 95% CI {ci[0]:+.1f} to {ci[1]:+.1f}); "
-            f"{g['beat_spy'] * 100:.0f}% of {g['n']} buys beat SPY")
-    if g.get('mean_excess_random') is not None:
-        line += f"; vs buying the same stock on a random day: {g['mean_excess_random']:+.1f}%"
-    line += f". Worst drop during a hold {g['worst_dd']:.0f}% (median {g['median_dd']:.0f}%). "
-    if both:
-        line += 'The edge over SPY holds in both the train (before 2022) and the test (2022 on) period.'
-    else:
-        line += 'NOT proven: the edge over SPY is not clearly above zero in both the train (before 2022) and the test (2022 on) period.'
+    ci = g.get('ci_excess_random_time') or [None, None]
+    h = holds(rows.get('in'))
+    line = (f"Buying at the first touch of a W1 / MN / 3M demand zone and holding 12 months (no stop): "
+            f"{g['mean_excess_random']:+.1f}% vs buying the same stock on a random day (95% CI by calendar month "
+            f"{ci[0]:+.1f} to {ci[1]:+.1f}), {g['mean_excess_spy']:+.1f}% vs SPY ({g['beat_spy'] * 100:.0f}% of {g['n']} buys "
+            f"beat SPY, {g['months']} entry months); worst drop during a hold {g['worst_dd']:.0f}%. ")
+    line += ('This HOLDS: the edge over a random day is above zero in both the train (before 2022) and the test (2022 on) period. '
+             if h else 'NOT proven: the edge over a random day is not clearly above zero (calendar-month CI) in both the train '
+             '(before 2022) and the test (2022 on) period. ')
+    ok = [n for n, r in rows.items() if n != 'in' and holds(r)]
+    line += (f"Rows that hold in both periods: {', '.join(ok)}. " if ok else 'No filter or combination holds in both periods. ')
+    line += ("Survivorship: the universe is today's index members (stocks that later fell out or went bust are missing), "
+             'which flatters every buy-and-hold result here.')
     return line
 
 
-def _cell(m: Dict) -> str:
-    if not m or not m.get('n'):
-        return '| 0 | | | | | | |'
-    ci = m.get('ci_excess_spy') or [None, None]
-    f = lambda v: 'n/a' if v is None else f'{v:+.1f}%'  # noqa: E731
-    return (f"| {m['n']} | {f(m['mean_ret'])} | {f(m['mean_excess_spy'])} ({f(ci[0])} to {f(ci[1])}) | {f(m['median_excess_spy'])} | "
-            f"{m['beat_spy'] * 100:.0f}% | {f(m.get('mean_excess_random'))} | {m['worst_dd']:.0f}% |")
+def _pct(v, nd=1) -> str:
+    return 'n/a' if v is None else f'{v:+.{nd}f}%'
+
+
+def _ci(c) -> str:
+    return 'n/a' if not c else f'{c[0]:+.1f} to {c[1]:+.1f}'
+
+
+def row_line(name: str, r: Dict, k: str) -> str:
+    a, tr, te = (r.get(p, {}).get(k, {}) for p in ('all', 'train', 'test'))
+    if not a.get('n'):
+        return f'| {name} | 0 | | | | | | | |'
+    h = holds(r, k)
+    return (f"| {name} | {a['n']} / {a['months']} | {_pct(a.get('mean_excess_random'))} | "
+            f"{_pct(tr.get('mean_excess_random'))} ({_ci(tr.get('ci_excess_random_time'))}) | "
+            f"{_pct(te.get('mean_excess_random'))} ({_ci(te.get('ci_excess_random_time'))}) | "
+            f"{_pct(a.get('mean_excess_spy'))} ({a.get('beat_spy', 0) * 100:.0f}% beat) | {_pct(a.get('mean_ret'))} | "
+            f"{_pct(a.get('stop_ret'))} ({a.get('stopped', 0) * 100:.0f}% stopped) | "
+            + ('yes' if h else 'no' if h is False else 'n/a') + ' |')
 
 
 def render_md(s: Optional[Dict]) -> List[str]:
@@ -300,22 +362,22 @@ def render_md(s: Optional[Dict]) -> List[str]:
     if s.get('fixture'):
         L += ['> SYNTHETIC FIXTURE RUN: checks the code path only.', '']
     L += ['Every first touch of a W1 / MN / 3M demand zone (drawn on closed candles, as the live scanner does) on every '
-          'ticker: buy and hold 3 / 6 / 12 months, no stop. "in" = limit at the proximal on the first touch; "near" = the '
-          f"first close within {NEAR_PCT:g}% above it before a touch; \"left\" = the first close back above it within "
-          f"{LEFT_SESSIONS} sessions of the touch (the /tfsa sections). Compared with SPY over the same dates (close to close) "
-          'and with the same stock bought on a random day (seeded) for the same length. One buy per stock, section and day '
-          '(the biggest timeframe). CI = 95% bootstrap resampling tickers. Survivorship: today\'s index members.', '',
+          'ticker: limit buy at the proximal and hold 3 / 6 / 12 months, no stop (the stop column: out at the first monthly '
+          'close below the zone distal). Compared with the same stock bought on a random day (seeded) for the same length and '
+          'with SPY over the same dates (close to close). One buy per stock and day (the biggest timeframe). "Holds" = the '
+          '95% CI of the excess over a random day, bootstrapped by CALENDAR MONTH (market-wide drops cluster in time), is '
+          'above zero in BOTH train (entries before 2022) and test (2022 on). Buys / months = buys and distinct entry months '
+          '(the effective sample). Survivorship: today\'s index members.', '',
           f"Events: {s['events']['unique']} unique ({s['events']['raw']} raw) on {s['events']['tickers']} tickers, "
           f"{s['period'].get('start')} to {s['period'].get('end')}.", '']
-    hdr = ['| | Buys | Avg return | Avg vs SPY (95% CI) | Median vs SPY | Beat SPY | Vs random day | Worst drop |',
-           '|---|---|---|---|---|---|---|---|']
-    for k in HORIZONS:
-        L += [f'### {k} hold', ''] + hdr
-        L += [f'| section: {sec} ' + _cell(s['by_section'][sec].get(k)) for sec in SECTIONS]
-        L += [f'| in, {tf} ' + _cell(s['by_tf'][tf].get(k)) for tf in TFS]
-        for name, g in s['filters'].items():
-            L.append(f'| in, {name} ' + _cell(g['pass'].get(k)))
-            if 'fail' in g:
-                L.append(f'| in, not {name} ' + _cell(g['fail'].get(k)))
-        L += [f'| in, {name} ' + _cell(g.get(k)) for name, g in s['splits'].items()] + ['']
-    return L
+    hdr = ['| First-touch buys | Buys / months | Vs random day | Train vs random (month CI) | Test vs random (month CI) | '
+           'Vs SPY | Avg return | With monthly-close stop | Holds |', '|---|---|---|---|---|---|---|---|---|']
+    for k in ('12m', '6m', '3m'):
+        L += [f'### {k} hold', ''] + hdr + [row_line(n, r, k) for n, r in (s.get('rows') or {}).items()] + ['']
+    L += ['### By section (12m, all years)', '', '| Section | Buys | Vs random day | Vs SPY | Beat SPY | Worst drop |', '|---|---|---|---|---|---|']
+    for sec in SECTIONS:
+        m = s['by_section'][sec].get('12m') or {}
+        if m.get('n'):
+            L.append(f"| {sec} | {m['n']} | {_pct(m.get('mean_excess_random'))} | {_pct(m['mean_excess_spy'])} | "
+                     f"{m['beat_spy'] * 100:.0f}% | {m['worst_dd']:.0f}% |")
+    return L + ['']
