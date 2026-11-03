@@ -19,6 +19,7 @@ import json
 import os
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from typing import Dict, List, Optional
@@ -28,6 +29,7 @@ from zones import Bar
 SB = os.environ.get('SUPABASE_URL') or 'https://dqjzufofmblerslcynzr.supabase.co'
 REST = f'{SB}/rest/v1/rfx_questrade_token'
 LOGIN = 'https://login.questrade.com/oauth2/token'
+UA = 'RamanFX/1.0 (personal Questrade app; read-only market data)'
 PACE = 0.12                                   # s between API calls (market data allows ~20 / s)
 _LOCK = threading.Lock()
 _S: Dict = {}
@@ -56,7 +58,10 @@ def _session() -> Dict:
     with _LOCK:
         if _S.get('exp', 0) > time.time() + 120:
             return _S
-        rows = _sb('GET', REST + '?id=eq.1&select=refresh_token,access_token,api_server,expires_at')   # raises when unreachable
+        try:
+            rows = _sb('GET', REST + '?id=eq.1&select=refresh_token,access_token,api_server,expires_at')
+        except urllib.error.HTTPError as e:
+            raise RuntimeError(f'Supabase token table: HTTP {e.code}') from None
         row = rows[0] if rows else None
         if row and row.get('access_token') and row.get('expires_at'):
             exp = dt.datetime.fromisoformat(row['expires_at'].replace('Z', '+00:00')).timestamp()
@@ -66,8 +71,11 @@ def _session() -> Dict:
         _sb('PATCH', REST + '?id=eq.0', {'updated_at': dt.datetime.now(dt.timezone.utc).isoformat()})   # writable? (no row 0)
         rt = (row or {}).get('refresh_token') or (os.environ.get('QUESTRADE_REFRESH_TOKEN') or '').strip()
         q = urllib.parse.urlencode({'grant_type': 'refresh_token', 'refresh_token': rt})
-        with urllib.request.urlopen(f'{LOGIN}?{q}', timeout=20) as r:
-            js = json.loads(r.read())
+        try:
+            with urllib.request.urlopen(urllib.request.Request(f'{LOGIN}?{q}', headers={'User-Agent': UA, 'Accept': 'application/json'}), timeout=20) as r:
+                js = json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            raise RuntimeError(f'Questrade login: HTTP {e.code} {e.read()[:120]!r}') from None
         if not js.get('refresh_token') or not js.get('access_token'):
             raise RuntimeError('Questrade: token refused')
         exp = time.time() + int(js.get('expires_in') or 1800)
@@ -80,7 +88,7 @@ def _session() -> Dict:
 
 def _get(path: str) -> Dict:
     s = _session()
-    req = urllib.request.Request(s['api'].rstrip('/') + '/' + path.lstrip('/'), headers={'Authorization': f"Bearer {s['access']}"})
+    req = urllib.request.Request(s['api'].rstrip('/') + '/' + path.lstrip('/'), headers={'Authorization': f"Bearer {s['access']}", 'User-Agent': UA, 'Accept': 'application/json'})
     with _LOCK:
         wait = _S.get('t', 0) + PACE - time.time()
         if wait > 0:
