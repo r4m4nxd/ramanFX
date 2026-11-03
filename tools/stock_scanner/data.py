@@ -497,6 +497,13 @@ def tsx_feed() -> str:
     want = os.environ.get('SCANNER_TSX_FEED', '').strip().lower()
     if want == 'eodhd' and os.environ.get('EODHD_API_KEY', '').strip():
         return 'eodhd'
+    if want != 'off':
+        try:
+            import questrade as Q
+            if Q.enabled():
+                return 'questrade'                 # 2026-11-03: the owner's Questrade app (free, official)
+        except ImportError:
+            pass
     if want == 'yahoo':                 # opt-in only: Yahoo answers GitHub's runners 429 (tested 2026-11-02)
         return 'yahoo'
     return ''
@@ -548,6 +555,14 @@ def fetch_tsx(sym: str, max_age_h: float = 12.0, offline: bool = False) -> Tuple
         raise RuntimeError(f'{sym}: no TSX feed switched on')
     start = (dt.date.today() - dt.timedelta(days=HISTORY_DAYS)).isoformat()
     try:
+        if tsx_feed() == 'questrade':
+            import questrade as Q
+            bars = Q.daily(sym, start)
+            meta = {'source': 'questrade', 'exchange': 'TSX', 'currency': 'CAD'}
+            if len(bars) < 60:
+                raise ValueError('too few bars')
+            save_cached(sym, bars, meta)
+            return bars, meta
         if tsx_feed() == 'yahoo':
             bars, meta = parse_yahoo(http_get(yahoo_tsx_url(sym), expect=looks_json))
             meta = {**meta, 'source': 'yahoo', 'exchange': 'TSX', 'currency': meta.get('currency') or 'CAD'}

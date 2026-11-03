@@ -1,0 +1,32 @@
+name: Questrade check
+
+# Manual: exchanges the Questrade refresh token (the new one is stored in Supabase rfx_questrade_token first) and prints
+# the number of daily bars of a few TSX names. tools/stock_scanner/questrade.py. No token is printed.
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: TSX daily bars from Questrade
+        env:
+          QUESTRADE_REFRESH_TOKEN: ${{ secrets.QUESTRADE_REFRESH_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          cd tools/stock_scanner
+          python - <<'PY'
+          import questrade as Q
+          print('enabled:', Q.enabled())
+          for s in ('RY.TO', 'BBD.B.TO', 'ATD.TO'):
+              try:
+                  b = Q.daily(s, '2016-01-01')
+                  print(s, len(b), 'bars', b[0].d if b else '-', '->', b[-1].d if b else '-', 'last close', b[-1].c if b else '-')
+              except Exception as e:
+                  print(s, 'ERROR', type(e).__name__, str(e)[:120])
+          PY

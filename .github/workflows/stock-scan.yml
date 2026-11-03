@@ -165,6 +165,10 @@ jobs:
           # SCANNER_TSX_FEED=eodhd + secret EODHD_API_KEY.
           SCANNER_TSX_FEED: ${{ vars.SCANNER_TSX_FEED || '' }}
           EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+          # TSX-only names from the owner's Questrade app (tools/stock_scanner/questrade.py; the rotating refresh token
+          # lives in Supabase rfx_questrade_token, the secret seeds it once)
+          QUESTRADE_REFRESH_TOKEN: ${{ secrets.QUESTRADE_REFRESH_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           # Optional fundamentals fallback (Financial Modeling Prep, free tier) for companies without SEC XBRL data.
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
 
