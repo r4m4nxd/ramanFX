@@ -53,17 +53,18 @@ def _sb(method: str, url: str, body=None):
     return json.loads(raw) if raw else None
 
 
-def _session() -> Dict:
-    """{access, api} valid for at least 2 more minutes; exchanges the refresh token when needed."""
+def _session(force: bool = False) -> Dict:
+    """{access, api} valid for at least 2 more minutes; exchanges the refresh token when needed (force: always, after
+    Questrade rejected the stored access token)."""
     with _LOCK:
-        if _S.get('exp', 0) > time.time() + 120:
+        if not force and _S.get('exp', 0) > time.time() + 120:
             return _S
         try:
             rows = _sb('GET', REST + '?id=eq.1&select=refresh_token,access_token,api_server,expires_at')
         except urllib.error.HTTPError as e:
             raise RuntimeError(f'Supabase token table: HTTP {e.code}') from None
         row = rows[0] if rows else None
-        if row and row.get('access_token') and row.get('expires_at'):
+        if not force and row and row.get('access_token') and row.get('expires_at'):
             exp = dt.datetime.fromisoformat(row['expires_at'].replace('Z', '+00:00')).timestamp()
             if exp > time.time() + 120:
                 _S.update(access=row['access_token'], api=row['api_server'], exp=exp)
@@ -86,7 +87,7 @@ def _session() -> Dict:
         return _S
 
 
-def _get(path: str) -> Dict:
+def _get(path: str, retry: bool = True) -> Dict:
     s = _session()
     req = urllib.request.Request(s['api'].rstrip('/') + '/' + path.lstrip('/'), headers={'Authorization': f"Bearer {s['access']}", 'User-Agent': UA, 'Accept': 'application/json'})
     with _LOCK:
@@ -98,7 +99,16 @@ def _get(path: str) -> Dict:
         with urllib.request.urlopen(req, timeout=20) as r:
             return json.loads(r.read())
     except urllib.error.HTTPError as e:
-        raise RuntimeError(f"Questrade {path.split('?')[0]}: HTTP {e.code} {e.read()[:160]!r}") from None
+        body = e.read()[:160]
+        if e.code == 401 and retry:                    # the stored access token was revoked: one fresh exchange
+            with _LOCK:
+                stale = s.get('access')
+                if _S.get('access') == stale:           # no other thread renewed it meanwhile
+                    _S.clear()
+            if not _S:
+                _session(force=True)
+            return _get(path, retry=False)
+        raise RuntimeError(f"Questrade {path.split('?')[0]}: HTTP {e.code} {body!r}") from None
 
 
 def symbol_id(sym: str) -> Optional[int]:
