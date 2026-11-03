@@ -36,10 +36,11 @@
 // Logs: the command name and timing only, never message text, chat ids or secrets.
 import { initWasm, Resvg } from 'npm:@resvg/resvg-wasm@2.6.2';
 import { renderSvg } from './chart.ts';
-import { chartData, handle, handleCallback, IMG_VIEW, MAIN_KEYBOARD, tgSafe, type Reply, type ScanResult } from './logic.ts';
+import { chartData, handle, handleCallback, IMG_VIEW, summaryCard, MAIN_KEYBOARD, tgSafe, type Reply, type ScanResult } from './logic.ts';
 import { alpacaSource, oandaSource, type LiveSource } from './live.ts';
 import { ctraderSource, tokenLoader } from './ctrader.ts';
 import { questradeSource } from './questrade.ts';
+import { cardSvg } from './card.ts';
 import { journalRoute } from './journal.ts';   // trader coach: 'why did you take it?' replies + /took (journal.ts)
 import { keyOk, restStore } from './prefs.ts';
 import { headlineLoader } from './headlines.ts';
@@ -287,9 +288,39 @@ const pngCache = new Map<string, Uint8Array>();
 let renders: number[] = [];
 const imageUrl = (sym: string, view: string, v: string) => `${FN_URL}?img=${encodeURIComponent(sym)}&tf=${encodeURIComponent(view)}&v=${encodeURIComponent(v)}`;
 
+// The summary share card (card.ts): Inter + Instrument Serif (ticker) + IBM Plex Mono (numbers), all OFL, from the
+// Google Fonts repo on jsdelivr; a missing extra font only falls back to Inter.
+const CARD_FONTS = ['https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/instrumentserif/InstrumentSerif-Regular.ttf',
+  'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/ibmplexmono/IBMPlexMono-Medium.ttf'];
+let cardFontBufs: Promise<Uint8Array[]> | null = null;
+async function cardPng(sym: string, v: string): Promise<Response> {
+  const key = `${sym}|CARD|${v}`;
+  let png = pngCache.get(key);
+  if (!png) {
+    const now = Date.now();
+    renders = renders.filter(t => now - t < 60_000);
+    if (renders.length >= 30) return empty(429);
+    renders.push(now);
+    const data = await summaryCard(sym, { load, now: new Date(), live, social });
+    if (!data) return empty(404);
+    wasmReady ??= initWasm(fetch(WASM));
+    fontBufs ??= Promise.all(FONTS.map(fetchBytes));
+    cardFontBufs ??= Promise.all(CARD_FONTS.map(u => fetchBytes([u]).catch(() => new Uint8Array(0))));
+    try { await wasmReady; } catch (e) { wasmReady = null; throw e; }
+    let fonts: Uint8Array[];
+    try { fonts = [...await fontBufs, ...(await cardFontBufs).filter(b => b.length)]; } catch (e) { fontBufs = null; throw e; }
+    png = new Resvg(cardSvg(data), { font: { fontBuffers: fonts, defaultFontFamily: 'Inter', loadSystemFonts: false } }).render().asPng();
+    pngCache.set(key, png);
+    if (pngCache.size > 40) pngCache.delete(pngCache.keys().next().value as string);
+    console.log(JSON.stringify({ ev: 'card', ms: Date.now() - now }));
+  }
+  return new Response(png, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600' } });
+}
+
 async function chartPng(url: URL): Promise<Response> {
   const sym = (url.searchParams.get('img') ?? '').slice(0, 20), view = (url.searchParams.get('tf') ?? 'Q').toUpperCase();
   if (!/^[A-Za-z0-9._-]{1,20}$/.test(sym) || !IMG_VIEW.test(view)) return empty(400);
+  if (view === 'CARD') return cardPng(sym, url.searchParams.get('v') ?? '');
   const cd = await chartData(sym, view, { load, now: new Date(), live });
   if (!cd) return empty(404);
   const key = `${cd.sym}|${view}|${cd.v}`;

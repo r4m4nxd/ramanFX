@@ -18,6 +18,7 @@ import { cmdFund, earningsLine, fundButton } from './fundamentals.ts';
 import { nyseHolidays } from '../trader-coach/health.ts';
 import { cmdInsiders, insiderLine } from './insiders.ts';
 import { symbolLines } from './headlines.ts';
+import { caption as cardCaption, plainFund, trendOf, type CardData, type CardZone } from './card.ts';
 import { cmdHolders, holdersButton } from './holders.ts';
 
 export type Button = { text: string; url: string } | { text: string; callback_data: string };
@@ -678,6 +679,27 @@ async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
  *  approaching, just left - the biggest timeframe first), fundamentals, insiders, what people say (StockTwits), the
  *  newest headlines; every part has a button for the detail. Built from the existing replies (zones, /fund, /news). */
 export async function cmdSummary(hit: Resolved, ctx: Ctx): Promise<Reply> {
+  const { lines, data } = await summaryParts(hit, ctx);
+  const sym = hit.sym, stock = hit.market === 'stock';
+  const cb = (t: string, d: string) => (cbOk(d) ? [{ text: t, callback_data: d }] : []);
+  const v = String(Math.floor(ctx.now.getTime() / 300_000));            // a new card every 5 min (Telegram caches photo URLs)
+  const img = ctx.imageUrl ? ctx.imageUrl(sym, 'CARD', v) : '';
+  const share: Button[] = img ? [{ text: 'Share', url: `https://t.me/share/url?url=${encodeURIComponent(img)}&text=${encodeURIComponent(`${sym} · RamanFX`)}` }] : [];
+  const buttons: Button[][] = [
+    [...cb('Buy & sell areas', `z:${sym}`), ...cb('Chart', `c:${sym}`), ...cb(stock ? 'Company' : 'Economy', `f:${sym}`)],
+    [...newsButton(sym).map(b => ({ ...b, text: 'News' })), ...(stock ? [...cb('Holders', `h:${sym}`), ...cb('Insiders', `i:${sym}`)] : []), ...(stock ? [] : share)],
+    ...(stock && share.length ? [share] : []),
+    ...prefsButtons(sym, ctx),
+  ].filter(r => r.length);
+  if (img) return { cmd: 'summary', text: cardCaption(data), photo: img, buttons };
+  return { cmd: 'summary', text: fit(lines), buttons };
+}
+/** The summary card's data for the image endpoint (?img=SYM&tf=CARD): null = unknown symbol. */
+export async function summaryCard(q: string, ctx: Ctx): Promise<CardData | null> {
+  const { hit } = await resolve(q, ctx);
+  return hit ? (await summaryParts(hit, ctx)).data : null;
+}
+async function summaryParts(hit: Resolved, ctx: Ctx): Promise<{ lines: string[]; data: CardData }> {
   const sym = hit.sym, stock = hit.market === 'stock';
   const [zr, fr, list, ins, soc] = await Promise.all([
     (stock ? stockZones(hit, ctx) : fxZones(hit, ctx)).catch(() => null),
@@ -688,9 +710,10 @@ export async function cmdSummary(hit: Resolved, ctx: Ctx): Promise<Reply> {
   ]);
   const zl = (zr?.text ?? '').split('\n');
   const cut = zl.indexOf('');
-  const lines = [...(cut > 0 ? zl.slice(0, cut) : zl.slice(0, 3))];
+  const head = cut > 0 ? zl.slice(0, cut) : zl.slice(0, 3);
+  const lines = [...head];
   // zones: per-TF headings '<b>TF</b>' then '🟩 demand a–b · 1.2% away · ...' lines
-  type Z = { tf: string; line: string; side: string; inside: boolean; left: boolean; away: number };
+  type Z = { tf: string; line: string; side: string; inside: boolean; left: boolean; away: number; lo: number; hi: number };
   const zs: Z[] = [];
   let tfh = '';
   for (const l of zl.slice(Math.max(cut, 0))) {
@@ -698,33 +721,43 @@ export async function cmdSummary(hit: Resolved, ctx: Ctx): Promise<Reply> {
     if (h) { tfh = h[1]; continue; }
     if (!/^(🟩|🟥)/.test(l)) continue;
     const side = l.startsWith('🟩') ? 'demand' : 'supply';
-    const m = /· ([\d.]+)% away/.exec(l);
-    zs.push({ tf: tfh, line: l, side, inside: / · in it/.test(l), left: /bounced|turned down/.test(l), away: m ? +m[1] : (/ · in it/.test(l) ? 0 : 999) });
+    const m = /· ([\d.]+)% away/.exec(l), rg = /(demand|supply) ([\d,.]+)–([\d,.]+)/.exec(l);
+    const a = rg ? parseFloat(rg[2].replace(/,/g, '')) : NaN, b = rg ? parseFloat(rg[3].replace(/,/g, '')) : NaN;
+    zs.push({ tf: tfh, line: l, side, inside: / · in it/.test(l), left: /bounced|turned down/.test(l), away: m ? +m[1] : (/ · in it/.test(l) ? 0 : 999), lo: Math.min(a, b), hi: Math.max(a, b) });
   }
   const order = (z: Z) => -TF_SHOW.indexOf(z.tf);
   const inside = zs.filter(z => z.inside).sort((a, b) => order(a) - order(b)).slice(0, 2);
   const left = zs.filter(z => z.left && !z.inside).sort((a, b) => order(a) - order(b)).slice(0, 1);
   const near = (side: string) => zs.filter(z => z.side === side && !z.inside && z.away < 999).sort((a, b) => a.away - b.away)[0];
   const zoneLines: string[] = [];
-  for (const z of inside) zoneLines.push(`📍 ${esc(z.tf)} · ${z.line}`);
-  for (const z of left) zoneLines.push(`↗️ just left · ${esc(z.tf)} · ${z.line}`);
-  for (const side of ['demand', 'supply']) { const z = near(side); if (z && !inside.includes(z) && !left.includes(z)) zoneLines.push(`${side === 'demand' ? '⬇️ next demand' : '⬆️ next supply'} · ${esc(z.tf)} · ${z.line}`); }
+  const cz: CardZone[] = [];
+  const add = (z: Z, state: CardZone['state']) => { if (Number.isFinite(z.lo)) cz.push({ kind: z.side === 'demand' ? 'buy' : 'sell', tf: z.tf, lo: z.lo, hi: z.hi, state, away: z.away }); };
+  for (const z of inside) { zoneLines.push(`📍 ${esc(z.tf)} · ${z.line}`); add(z, 'inside'); }
+  for (const z of left) { zoneLines.push(`↗️ just left · ${esc(z.tf)} · ${z.line}`); add(z, 'left'); }
+  for (const side of ['demand', 'supply']) { const z = near(side); if (z && !inside.includes(z) && !left.includes(z)) { zoneLines.push(`${side === 'demand' ? '⬇️ next demand' : '⬆️ next supply'} · ${esc(z.tf)} · ${z.line}`); add(z, z.away < 3 ? 'near' : 'next'); } }
   lines.push('', '<b>Zones</b>', ...(zoneLines.length ? zoneLines : ['No zone near the price.']));
-  // fundamentals: the /fund reply's body, a few lines
   const fl = (fr?.text ?? '').split('\n').slice(1).filter(l => l.trim() && !/^<i>|^Data:|^Source|^<b>Latest 8-K/.test(l)).slice(0, 5);
   if (fl.length) lines.push('', '<b>Fundamentals</b>', ...fl);
   if (ins) lines.push('', ins);
   if (soc && soc.n > 0) lines.push('', `💬 <b>StockTwits</b> · ${soc.n} recent posts · ${soc.bull} bullish / ${soc.bear} bearish${soc.watchers ? ` · ${soc.watchers.toLocaleString('en-US')} watchers` : ''}`, ...(soc.top ? [`<i>"${esc(soc.top)}"</i>`] : []));
-  const nl = symbolLines(sym, list, ctx.now.getTime(), 3).filter(l => l.startsWith('• '));
+  const sl = symbolLines(sym, list, ctx.now.getTime(), 3);
+  const nl = sl.filter(l => l.startsWith('• '));
   lines.push('', '<b>News</b>', ...(nl.length ? nl : ['No headlines about it in the last 3 days.']));
   lines.push('', `Tap a button for the detail · ${FOOT}`);
-  const cb = (t: string, d: string) => (cbOk(d) ? [{ text: t, callback_data: d }] : []);
-  const buttons: Button[][] = [
-    [...cb('🔎 All zones', `z:${sym}`), ...cb('📊 Chart', `c:${sym}`), ...cb('📑 Fundamentals', `f:${sym}`)],
-    [...newsButton(sym), ...(stock ? [...cb('👥 Holders', `h:${sym}`), ...cb('🕵️ Insiders', `i:${sym}`)] : [])],
-    ...prefsButtons(sym, ctx),
-  ].filter(r => r.length);
-  return { cmd: 'summary', text: fit(lines), buttons };
+  // the card's data
+  const strip = (t: string) => t.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+  const h0 = strip(head[0] ?? '');
+  const name = (/^\S*\s*\S+ · ([^·]+)/.exec(h0)?.[1] ?? '').trim();
+  const pm = /price ([\d,.]+)/.exec(head.join(' '));
+  const price = pm ? parseFloat(pm[1].replace(/,/g, '')) : null;
+  const digits = pm && pm[1].includes('.') ? pm[1].split('.')[1].length : 2;
+  const trendLine = head.find(l => l.startsWith('Trend:')) ?? '';
+  const i0 = sl.findIndex(l => l.startsWith('• '));
+  const headline = i0 >= 0 ? { title: strip(sl[i0].slice(2)), meta: strip(sl[i0 + 1] ?? '') } : null;
+  const data: CardData = { sym, name: name === 'FX' ? '' : name, market: hit.market, price, digits, live: /live/.test(head.join(' ')),
+    trend: trendOf(strip(trendLine)), zones: cz.slice(0, 3), fund: stock ? plainFund(fl) : [],
+    social: soc && soc.n > 0 ? { n: soc.n, bull: soc.bull, bear: soc.bear } : null, headline, at: ctx.now };
+  return { lines, data };
 }
 const TF_SHOW = ['15m', '1H', '4H', 'Daily', 'Weekly', 'Monthly', '3-month', 'M15', 'H1', 'H4', 'D1', 'W1', 'MN', '3M'];
 
@@ -857,7 +890,7 @@ export const isQuad = (view: string) => view[0] === 'Q';
 /** Chart decimals: the instrument's digits, but never fewer than 4 significant figures of the price (a 0.0000123 coin
  *  with 5 digits would print every level as 0.00001). */
 export const chartDigits = (price: number, digits: number) => Math.min(10, Math.max(digits, 3 - Math.floor(Math.log10(price))));
-export const IMG_VIEW = /^(Q|Q?(3M|MN|W1|D1|H4|H1|M15))$/;
+export const IMG_VIEW = /^(CARD|Q|Q?(3M|MN|W1|D1|H4|H1|M15))$/;
 export function quadTfs(market: 'fx' | 'stock', anchor: string, ctx?: Ctx): string[] {
   const all = ORDER.filter(t => viewTfs(market, ctx).includes(t));
   const i = all.indexOf(anchor);

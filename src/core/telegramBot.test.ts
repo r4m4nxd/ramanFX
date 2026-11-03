@@ -90,13 +90,15 @@ describe('telegram bot', () => {
     expect(fx.text.length).toBeLessThan(4096);
     noRawLt(fx.text);
     const bare = await handle('XAUUSD', ctx());
-    expect(bare.text).toContain('<b>XAUUSD</b> · FX');
+    expect(bare.text).toContain('<b>Gold (in US dollars)</b> (XAUUSD)');   // the summary card's plain caption
+    expect(bare.photo).toContain('tf=CARD');
+    expect(bare.text.length).toBeLessThanOrEqual(1024);
     const nv = await handle('NVDA', ctx());
-    expect(nv.text).toContain('<b>NVDA</b>');
-    expect(nv.cmd).toBe('summary');                                  // a bare symbol = the one-stop summary card
-    expect(nv.text).toContain('<b>Zones</b>');
-    expect(nv.text).toMatch(/(W1|MN|3M) · /);
-    expect(nv.text).toContain('<b>News</b>');
+    expect(nv.text).toContain('(NVDA)');
+    expect(nv.cmd).toBe('summary');                                  // a bare symbol = the one-stop summary card (image + caption)
+    expect(nv.photo).toContain('img=NVDA&tf=CARD');
+    expect(nv.text).toMatch(/buy area|sell area/);
+    expect(nv.text).toContain('For learning only, not financial advice');
     expect(JSON.stringify(nv.buttons)).toContain('"callback_data":"z:NVDA"');
     expect(JSON.stringify(nv.buttons)).toContain('"callback_data":"i:NVDA"');
     const brk = await handle('/zones brk-b', ctx());
