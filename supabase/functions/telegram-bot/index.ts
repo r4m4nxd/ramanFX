@@ -39,6 +39,7 @@ import { renderSvg } from './chart.ts';
 import { chartData, handle, handleCallback, IMG_VIEW, MAIN_KEYBOARD, tgSafe, type Reply, type ScanResult } from './logic.ts';
 import { alpacaSource, oandaSource, type LiveSource } from './live.ts';
 import { ctraderSource, tokenLoader } from './ctrader.ts';
+import { questradeSource } from './questrade.ts';
 import { journalRoute } from './journal.ts';   // trader coach: 'why did you take it?' replies + /took (journal.ts)
 import { keyOk, restStore } from './prefs.ts';
 import { headlineLoader } from './headlines.ts';
@@ -69,7 +70,12 @@ const secGet = async (url: string): Promise<string | null> => {
 };
 const live: LiveSource = {
   fx: ctFx || oandaFx ? async (name: string, sym?: string) => (ctFx && sym ? await ctFx(sym) : null) ?? (oandaFx ? await oandaFx(name) : null) : undefined,
-  stock: ALPACA_ID && ALPACA_SECRET ? alpacaSource(ALPACA_ID, ALPACA_SECRET) : undefined,
+  // US listings from Alpaca; TSX listings (SYM.TO) from the owner's Questrade app (questrade.ts), which Alpaca does not serve
+  stock: (() => {
+    const us = ALPACA_ID && ALPACA_SECRET ? alpacaSource(ALPACA_ID, ALPACA_SECRET) : undefined;
+    const ca = SB_URL && SB_KEY ? questradeSource(SB_URL, () => dbHeaders()) : undefined;
+    return us || ca ? async (sym: string) => (/\.TO$/i.test(sym) ? (ca ? ca(sym) : null) : (us ? us(sym) : null)) : undefined;
+  })(),
 };
 const FN_URL = 'https://dqjzufofmblerslcynzr.supabase.co/functions/v1/telegram-bot';
 const WASM = 'https://cdn.jsdelivr.net/npm/@resvg/resvg-wasm@2.6.2/index_bg.wasm';

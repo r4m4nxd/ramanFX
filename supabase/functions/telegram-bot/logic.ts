@@ -280,6 +280,8 @@ const QUICK_MAP = new Map<string, string>(QUICK.flat().flatMap(([label, cmd]) =>
 export function symButtons(syms: string[], n = 3): Button[][] {
   return [...new Set(syms)].slice(0, n).filter(s => cbOk(`z:${s}`)).map(s => [{ text: `🔎 Zones ${s}`, callback_data: `z:${s}` }, { text: `📊 Chart ${s}`, callback_data: `c:${s}` }]);
 }
+/** Buttons in rows of at most 3 (a phone shows ~3 labels per row before cutting them to '…'). */
+export const rows3 = (bs: Button[]): Button[][] => { const out: Button[][] = []; for (let i = 0; i < bs.length; i += 3) out.push(bs.slice(i, i + 3)); return out; };
 const cbOk = (d: string) => new TextEncoder().encode(d).length <= 64;
 
 // ---- commands ------------------------------------------------------------------------------------------------------
@@ -624,7 +626,7 @@ async function fxZones(r: Resolved, ctx: Ctx): Promise<Reply> {
   lines.push('', `Nearest ${zones.length} zones · check levels on Pepperstone · ${FOOT}`);
   const note = liveNote(r, ctx, lv);
   if (note) lines.push(note);
-  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'fx', ctx), [{ text: `📈 ${r.sym} on TradingView`, url: `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(d.tv || `PEPPERSTONE:${r.sym}`)}` }, ...scanButton(r.sym, ctx), ...newsButton(r.sym)], ...prefsButtons(r.sym, ctx)] };
+  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'fx', ctx), ...rows3([{ text: `📈 TradingView`, url: `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(d.tv || `PEPPERSTONE:${r.sym}`)}` }, ...scanButton(r.sym, ctx), ...newsButton(r.sym)]), ...prefsButtons(r.sym, ctx)] };
 }
 
 async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
@@ -666,7 +668,7 @@ async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
   const note = liveNote(r, ctx, lv);
   if (note) lines.push(note);
   const slug = String(r.sym).replace(/\./g, '-');
-  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'stock', ctx), [...(d.chart ? [{ text: `📈 ${r.sym}`, url: String(d.chart) }] : []), { text: 'Open in scanner', url: `${APP}/scanner/${encodeURIComponent(slug)}` }, ...scanButton(r.sym, ctx), ...newsButton(r.sym)], ...holdersRow(r.sym), ...prefsButtons(r.sym, ctx)] };
+  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'stock', ctx), ...rows3([...(d.chart ? [{ text: '📈 TradingView', url: String(d.chart) }] : []), { text: '🔎 App', url: `${APP}/scanner/${encodeURIComponent(slug)}` }, ...scanButton(r.sym, ctx), ...newsButton(r.sym)]), ...holdersRow(r.sym), ...prefsButtons(r.sym, ctx)] };
 }
 
 async function cmdZones(q: string, ctx: Ctx): Promise<Reply> {
