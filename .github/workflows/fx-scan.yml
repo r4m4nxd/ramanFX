@@ -161,6 +161,14 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           FX_WATCHLIST: ${{ secrets.FX_WATCHLIST }}
 
+      # Live outcome tracker (tools/learn/outcomes.py): records this scan's new ideas in public/learn/ledger-fx.json and
+      # follows the open ones on the H1 bars the scan just published (public/fx/d), no API call, ~1 s. Never fails the scan.
+      - name: Learn from live results
+        if: ${{ !cancelled() && steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' && hashFiles('public/fx/latest.json') != '' }}
+        continue-on-error: true
+        timeout-minutes: 3
+        run: python tools/learn/outcomes.py --market fx
+
       - name: Save data cache
         if: ${{ always() && steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' && hashFiles('tools/fx_scanner/.cache/**') != '' }}
         uses: actions/cache/save@v4
@@ -173,4 +181,4 @@ jobs:
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          bash scripts/data-branch.sh push "fx: scan $(date -u +%Y-%m-%dT%H:%MZ)" public/fx --keep public/fx/backtest.json public/fx/realign.json
+          bash scripts/data-branch.sh push "fx: scan $(date -u +%Y-%m-%dT%H:%MZ)" public/fx public/learn/ledger-fx.json public/learn/outcomes.json --keep public/fx/backtest.json public/fx/realign.json

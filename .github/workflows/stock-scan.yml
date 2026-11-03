@@ -172,6 +172,15 @@ jobs:
           # Optional fundamentals fallback (Financial Modeling Prep, free tier) for companies without SEC XBRL data.
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
 
+      # Live outcome tracker (tools/learn/outcomes.py): records this scan's new ideas in public/learn/ledger-stock.json and
+      # follows the open ones on the daily bars the scan just loaded (its cache), no API call, a few seconds. Never fails
+      # the scan.
+      - name: Learn from live results
+        if: ${{ !cancelled() && steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' && hashFiles('public/scanner/latest.json') != '' }}
+        continue-on-error: true
+        timeout-minutes: 3
+        run: python tools/learn/outcomes.py --market stock
+
       - name: Save data cache
         if: ${{ always() && steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' && hashFiles('tools/stock_scanner/.cache/daily/*.json') != '' }}
         uses: actions/cache/save@v4
@@ -189,4 +198,4 @@ jobs:
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           bash scripts/data-branch.sh push "scanner: daily scan $(date -u +%Y-%m-%d)" \
-            public/scanner tools/stock_scanner/universe.csv tools/stock_scanner/top_liquid.csv --keep public/scanner/backtest.json
+            public/scanner tools/stock_scanner/universe.csv tools/stock_scanner/top_liquid.csv public/learn/ledger-stock.json public/learn/outcomes.json --keep public/scanner/backtest.json

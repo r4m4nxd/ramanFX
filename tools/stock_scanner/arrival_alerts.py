@@ -435,6 +435,16 @@ def symbol_pass(sym: str, views: Dict[str, View], alert_tfs: Sequence[str], area
 
 
 KIND_KEY = {'arrival': 'seen', 'watch': 'watched', 'confirm': 'confirmed'}
+LEARN_KEYS = ('kind', 'sym', 'tf', 'ltf', 'dir', 'entry', 'stop', 'target', 'target_kind', 'rr', 'lo', 'hi', 'prox', 'dist',
+              'n_removed', 'digits', 'id', 'area_id', 'date', 'price', 'wl')
+
+
+def learn_items(cands: Dict[str, List[Dict]], now: dt.datetime) -> Dict:
+    """This run's ideas with a plan (confirmations + arrivals with entry / stop), whether sent or not: the input of the
+    live outcome tracker (tools/learn/outcomes.py), which runs after the scan and dedupes them in its ledger."""
+    items = [{k: c[k] for k in LEARN_KEYS if c.get(k) is not None}
+             for c in cands.get('confirm', []) + cands.get('arrival', []) if c.get('entry') is not None and c.get('stop') is not None]
+    return {'at': now.strftime('%Y-%m-%dT%H:%M:%SZ'), 'items': items}
 
 
 def finalize(st: Dict, cands: Dict[str, List[Dict]], market: str, prefs: Optional[Dict], send, own_key: str, path: str,
@@ -461,6 +471,7 @@ def finalize(st: Dict, cands: Dict[str, List[Dict]], market: str, prefs: Optiona
             (st.get(KIND_KEY[c['kind']]) or {}).pop(c['id'], None)
             if c['kind'] == 'confirm' and c.get('area_id') in (st.get('areas') or {}):
                 st['areas'][c['area_id']]['confirmed'] = None
+    st['last_items'] = learn_items(cands, now)
     prune(st, now)
     st['updated'] = now.strftime('%Y-%m-%dT%H:%M:%SZ')
     if write:
