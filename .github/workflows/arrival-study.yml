@@ -10,11 +10,14 @@ name: Arrival study
 # volatility regime, session, stop width, exits, second-touch depth, a few pairs; walk-forward + instrument halves +
 # false-discovery check) -> docs/research/arrival_study/round3/ + public/learn/round3_summary.json. FX only (as round 2:
 # the stocks input is not used). Reuses round 2's candle / fine-window cache.
+# round = 4: tools/research/arrival_study/round4.py (benchmark of simple published strategies on the same instruments,
+# D1 bars and spread costs: time-series momentum, Donchian breakout, RSI(2) mean reversion, vs round 3's zone baselines
+# read from public/learn/round3_summary.json) -> docs/research/arrival_study/round4/ + public/learn/round4_summary.json.
 on:
   workflow_dispatch:
     inputs:
       round:
-        description: 'Study round (1 = arrival study, 2 = Kevin calls + filters / management / LTF confirmation, 3 = outside-evidence hypotheses)'
+        description: 'Study round (1 = arrival study, 2 = Kevin calls + filters / management / LTF confirmation, 3 = outside-evidence hypotheses, 4 = benchmark strategies vs the zone method)'
         required: false
         default: '1'
       fx:
@@ -68,7 +71,7 @@ jobs:
           python -m unittest discover -s tools/research/arrival_study/tests
 
       - name: Study
-        if: ${{ github.event.inputs.round != '2' && github.event.inputs.round != '3' }}
+        if: ${{ github.event.inputs.round != '2' && github.event.inputs.round != '3' && github.event.inputs.round != '4' }}
         timeout-minutes: 300
         run: |
           python tools/research/arrival_study/study.py --fx "${IN_FX:-0}" --stocks "${IN_STOCKS:-100}" --budget-min 240 \
@@ -106,6 +109,17 @@ jobs:
           FX_WATCHLIST: ${{ secrets.FX_WATCHLIST }}
           IN_FX: ${{ github.event.inputs.fx }}
 
+      - name: Study, round 4
+        if: ${{ github.event.inputs.round == '4' }}
+        timeout-minutes: 120
+        run: |
+          python tools/research/arrival_study/round4.py --fx "${IN_FX:-0}" --budget-min 90 \
+            --out docs/research/arrival_study/round4 --json public/learn/round4_summary.json
+        env:
+          OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
+          FX_WATCHLIST: ${{ secrets.FX_WATCHLIST }}
+          IN_FX: ${{ github.event.inputs.fx }}
+
       - name: Save candle cache
         if: ${{ always() && hashFiles('tools/fx_scanner/.cache/**') != '' }}
         uses: actions/cache/save@v4
@@ -123,7 +137,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Commit results
-        if: ${{ !cancelled() && github.event.inputs.round != '2' && github.event.inputs.round != '3' && hashFiles('docs/research/arrival_study/Arrival_Study.md') != '' }}
+        if: ${{ !cancelled() && github.event.inputs.round != '2' && github.event.inputs.round != '3' && github.event.inputs.round != '4' && hashFiles('docs/research/arrival_study/Arrival_Study.md') != '' }}
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -148,4 +162,13 @@ jobs:
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           bash scripts/data-branch.sh push "research: arrival study round 3 $(date -u +%Y-%m-%dT%H:%MZ)" docs/research/arrival_study/round3 public/learn/round3_summary.json \
+            || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }
+
+      # Round 4: only its own folder + its own learner file.
+      - name: Commit round-4 results
+        if: ${{ !cancelled() && github.event.inputs.round == '4' && hashFiles('docs/research/arrival_study/round4/Round4.md') != '' }}
+        run: |
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "research: arrival study round 4 $(date -u +%Y-%m-%dT%H:%MZ)" docs/research/arrival_study/round4 public/learn/round4_summary.json \
             || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }
