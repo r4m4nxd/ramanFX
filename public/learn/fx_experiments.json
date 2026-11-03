@@ -1,0 +1,720 @@
+{
+ "schema": 1,
+ "market": "fx",
+ "generated_at": "2026-11-03T07:32:25Z",
+ "period": {
+  "start": "2005-11-18T12:00:00",
+  "end": "2026-11-03T00:00:00",
+  "split": "2020-07-20T15:36:00"
+ },
+ "baseline": "loose",
+ "variants": {
+  "loose": {
+   "group": "baseline",
+   "desc": "The live rules with the top-down nesting (location) and spread rules ignored.",
+   "is": {
+    "n": 67,
+    "win": 0.119,
+    "exp_r": -0.506,
+    "ci": [
+     -0.815,
+     -0.177
+    ],
+    "pf": 0.426,
+    "avg_mfe_r": 0.961,
+    "avg_mae_r": 0.936,
+    "avg_bars": 10.49,
+    "max_dd_r": 33.883
+   },
+   "oos": {
+    "n": 21,
+    "win": 0.238,
+    "exp_r": -0.058,
+    "ci": [
+     -0.692,
+     0.749
+    ],
+    "pf": 0.924,
+    "avg_mfe_r": 1.503,
+    "avg_mae_r": 0.884,
+    "avg_bars": 16.43,
+    "max_dd_r": 6.0
+   }
+  },
+  "be_1r": {
+   "group": "exit",
+   "desc": "Move the stop to the entry once the trade has been +1R in profit.",
+   "is": {
+    "n": 67,
+    "win": 0.104,
+    "exp_r": -0.331,
+    "ci": [
+     -0.608,
+     -0.005
+    ],
+    "pf": 0.496,
+    "avg_mfe_r": 0.877,
+    "avg_mae_r": 0.822,
+    "avg_bars": 8.37,
+    "max_dd_r": 22.193
+   },
+   "oos": {
+    "n": 21,
+    "win": 0.238,
+    "exp_r": 0.228,
+    "ci": [
+     -0.417,
+     0.983
+    ],
+    "pf": 1.478,
+    "avg_mfe_r": 1.462,
+    "avg_mae_r": 0.737,
+    "avg_bars": 12.52,
+    "max_dd_r": 4.0
+   }
+  },
+  "be_2r": {
+   "group": "exit",
+   "desc": "Move the stop to the entry once the trade has been +2R in profit.",
+   "is": {
+    "n": 67,
+    "win": 0.104,
+    "exp_r": -0.436,
+    "ci": [
+     -0.715,
+     -0.105
+    ],
+    "pf": 0.428,
+    "avg_mfe_r": 0.931,
+    "avg_mae_r": 0.879,
+    "avg_bars": 9.57,
+    "max_dd_r": 29.187
+   },
+   "oos": {
+    "n": 21,
+    "win": 0.238,
+    "exp_r": 0.085,
+    "ci": [
+     -0.583,
+     0.855
+    ],
+    "pf": 1.137,
+    "avg_mfe_r": 1.462,
+    "avg_mae_r": 0.782,
+    "avg_bars": 14.19,
+    "max_dd_r": 6.0
+   }
+  },
+  "be_struct": {
+   "group": "exit",
+   "desc": "After +1.5R, move the stop to the lowest low (buy) / highest high (sell) since the fill, only ever tightening.",
+   "is": {
+    "n": 67,
+    "win": 0.119,
+    "exp_r": -0.436,
+    "ci": [
+     -0.742,
+     -0.115
+    ],
+    "pf": 0.463,
+    "avg_mfe_r": 0.961,
+    "avg_mae_r": 0.866,
+    "avg_bars": 10.33,
+    "max_dd_r": 29.194
+   },
+   "oos": {
+    "n": 21,
+    "win": 0.238,
+    "exp_r": 0.081,
+    "ci": [
+     -0.575,
+     0.844
+    ],
+    "pf": 1.13,
+    "avg_mfe_r": 1.462,
+    "avg_mae_r": 0.745,
+    "avg_bars": 14.52,
+    "max_dd_r": 5.22
+   }
+  },
+  "time_stop": {
+   "group": "exit",
+   "desc": "Close the trade at the bar close if it has not reached +1R within 10 entry-timeframe bars after the fill.",
+   "is": {
+    "n": 67,
+    "win": 0.119,
+    "exp_r": -0.493,
+    "ci": [
+     -0.799,
+     -0.16
+    ],
+    "pf": 0.432,
+    "avg_mfe_r": 0.961,
+    "avg_mae_r": 0.932,
+    "avg_bars": 10.48,
+    "max_dd_r": 33.052
+   },
+   "oos": {
+    "n": 21,
+    "win": 0.286,
+    "exp_r": -0.075,
+    "ci": [
+     -0.702,
+     0.705
+    ],
+    "pf": 0.895,
+    "avg_mfe_r": 1.403,
+    "avg_mae_r": 0.854,
+    "avg_bars": 15.05,
+    "max_dd_r": 7.479
+   }
+  },
+  "tp_fixed3": {
+   "group": "exit",
+   "desc": "Target exactly 3R instead of the next opposite zone.",
+   "is": {
+    "n": 64,
+    "win": 0.141,
+    "exp_r": -0.438,
+    "ci": [
+     -0.75,
+     -0.063
+    ],
+    "pf": 0.491,
+    "avg_mfe_r": 0.923,
+    "avg_mae_r": 0.924,
+    "avg_bars": 10.64,
+    "max_dd_r": 28.031
+   },
+   "oos": {
+    "n": 21,
+    "win": 0.238,
+    "exp_r": -0.048,
+    "ci": [
+     -0.619,
+     0.714
+    ],
+    "pf": 0.938,
+    "avg_mfe_r": 1.419,
+    "avg_mae_r": 0.857,
+    "avg_bars": 13.33,
+    "max_dd_r": 6.0
+   }
+  },
+  "tp_zone": {
+   "group": "exit",
+   "desc": "Target just before the nearest opposite zone of the entry timeframe or higher; skip the trade if that is under 2.5R.",
+   "is": {
+    "n": 0,
+    "win": null,
+    "exp_r": null,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": null,
+    "avg_mae_r": null,
+    "avg_bars": null,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 0,
+    "win": null,
+    "exp_r": null,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": null,
+    "avg_mae_r": null,
+    "avg_bars": null,
+    "max_dd_r": 0.0
+   }
+  },
+  "fresh_body": {
+   "group": "freshness",
+   "desc": "A zone counts as used only after a candle body went inside it; wick-only touches keep it fresh.",
+   "is": {
+    "n": 67,
+    "win": 0.119,
+    "exp_r": -0.506,
+    "ci": [
+     -0.815,
+     -0.177
+    ],
+    "pf": 0.426,
+    "avg_mfe_r": 0.961,
+    "avg_mae_r": 0.936,
+    "avg_bars": 10.49,
+    "max_dd_r": 33.883
+   },
+   "oos": {
+    "n": 21,
+    "win": 0.238,
+    "exp_r": -0.058,
+    "ci": [
+     -0.692,
+     0.749
+    ],
+    "pf": 0.924,
+    "avg_mfe_r": 1.503,
+    "avg_mae_r": 0.884,
+    "avg_bars": 16.43,
+    "max_dd_r": 6.0
+   }
+  },
+  "fresh_depth25": {
+   "group": "freshness",
+   "desc": "A zone counts as used only after price went at least 25% of the zone height inside it.",
+   "is": {
+    "n": 67,
+    "win": 0.119,
+    "exp_r": -0.506,
+    "ci": [
+     -0.815,
+     -0.177
+    ],
+    "pf": 0.426,
+    "avg_mfe_r": 0.961,
+    "avg_mae_r": 0.936,
+    "avg_bars": 10.49,
+    "max_dd_r": 33.883
+   },
+   "oos": {
+    "n": 21,
+    "win": 0.238,
+    "exp_r": -0.058,
+    "ci": [
+     -0.692,
+     0.749
+    ],
+    "pf": 0.924,
+    "avg_mfe_r": 1.503,
+    "avg_mae_r": 0.884,
+    "avg_bars": 16.43,
+    "max_dd_r": 6.0
+   }
+  },
+  "cont_off": {
+   "group": "continuation",
+   "desc": "Never trade continuation zones (rally-base-rally / drop-base-drop).",
+   "is": {
+    "n": 41,
+    "win": 0.146,
+    "exp_r": -0.418,
+    "ci": [
+     -0.809,
+     0.06
+    ],
+    "pf": 0.511,
+    "avg_mfe_r": 1.148,
+    "avg_mae_r": 0.918,
+    "avg_bars": 13.29,
+    "max_dd_r": 17.682
+   },
+   "oos": {
+    "n": 14,
+    "win": 0.286,
+    "exp_r": 0.172,
+    "ci": [
+     -0.765,
+     1.315
+    ],
+    "pf": 1.24,
+    "avg_mfe_r": 1.692,
+    "avg_mae_r": 0.828,
+    "avg_bars": 17.0,
+    "max_dd_r": 5.0
+   }
+  },
+  "cont_nested": {
+   "group": "continuation",
+   "desc": "Trade a continuation zone only when its proximal lies inside a same-side zone of the next higher timeframe.",
+   "is": {
+    "n": 41,
+    "win": 0.146,
+    "exp_r": -0.418,
+    "ci": [
+     -0.809,
+     0.06
+    ],
+    "pf": 0.511,
+    "avg_mfe_r": 1.148,
+    "avg_mae_r": 0.918,
+    "avg_bars": 13.29,
+    "max_dd_r": 17.682
+   },
+   "oos": {
+    "n": 14,
+    "win": 0.286,
+    "exp_r": 0.172,
+    "ci": [
+     -0.765,
+     1.315
+    ],
+    "pf": 1.24,
+    "avg_mfe_r": 1.692,
+    "avg_mae_r": 0.828,
+    "avg_bars": 17.0,
+    "max_dd_r": 5.0
+   }
+  },
+  "cont_htf": {
+   "group": "continuation",
+   "desc": "Trade continuation zones only on the daily timeframe and higher.",
+   "is": {
+    "n": 53,
+    "win": 0.151,
+    "exp_r": -0.375,
+    "ci": [
+     -0.721,
+     0.04
+    ],
+    "pf": 0.558,
+    "avg_mfe_r": 1.07,
+    "avg_mae_r": 0.919,
+    "avg_bars": 11.57,
+    "max_dd_r": 21.698
+   },
+   "oos": {
+    "n": 17,
+    "win": 0.235,
+    "exp_r": -0.035,
+    "ci": [
+     -0.807,
+     0.878
+    ],
+    "pf": 0.954,
+    "avg_mfe_r": 1.64,
+    "avg_mae_r": 0.858,
+    "avg_bars": 17.24,
+    "max_dd_r": 7.0
+   }
+  },
+  "stop_atr": {
+   "group": "stop",
+   "desc": "Stop at the wider of the current stop and the distal plus 1x the 14-bar ATR of the zone timeframe.",
+   "is": {
+    "n": 66,
+    "win": 0.121,
+    "exp_r": -0.498,
+    "ci": [
+     -0.815,
+     -0.149
+    ],
+    "pf": 0.433,
+    "avg_mfe_r": 0.976,
+    "avg_mae_r": 0.935,
+    "avg_bars": 10.56,
+    "max_dd_r": 32.883
+   },
+   "oos": {
+    "n": 21,
+    "win": 0.238,
+    "exp_r": -0.058,
+    "ci": [
+     -0.692,
+     0.749
+    ],
+    "pf": 0.924,
+    "avg_mfe_r": 1.503,
+    "avg_mae_r": 0.884,
+    "avg_bars": 16.43,
+    "max_dd_r": 6.0
+   }
+  },
+  "arrive_stair": {
+   "group": "filter",
+   "desc": "Skip the trade when price crawled into the zone (small candles or two or more basing pauses in the last 10 bars).",
+   "is": {
+    "n": 13,
+    "win": 0.154,
+    "exp_r": -0.352,
+    "ci": [
+     -1.0,
+     0.612
+    ],
+    "pf": 0.583,
+    "avg_mfe_r": 1.327,
+    "avg_mae_r": 0.9,
+    "avg_bars": 11.38,
+    "max_dd_r": 6.0
+   },
+   "oos": {
+    "n": 7,
+    "win": 0.571,
+    "exp_r": 1.357,
+    "ci": [
+     -0.126,
+     3.011
+    ],
+    "pf": 4.167,
+    "avg_mfe_r": 2.533,
+    "avg_mae_r": 0.766,
+    "avg_bars": 23.71,
+    "max_dd_r": 1.0
+   }
+  },
+  "curve_top3": {
+   "group": "filter",
+   "desc": "No buys in the top third and no sells in the bottom third of the last 2 years of monthly range.",
+   "is": {
+    "n": 67,
+    "win": 0.119,
+    "exp_r": -0.506,
+    "ci": [
+     -0.815,
+     -0.177
+    ],
+    "pf": 0.426,
+    "avg_mfe_r": 0.961,
+    "avg_mae_r": 0.936,
+    "avg_bars": 10.49,
+    "max_dd_r": 33.883
+   },
+   "oos": {
+    "n": 21,
+    "win": 0.238,
+    "exp_r": -0.058,
+    "ci": [
+     -0.692,
+     0.749
+    ],
+    "pf": 0.924,
+    "avg_mfe_r": 1.503,
+    "avg_mae_r": 0.884,
+    "avg_bars": 16.43,
+    "max_dd_r": 6.0
+   }
+  },
+  "cancel_50": {
+   "group": "filter",
+   "desc": "Cancel the pending order once price has moved half way from the entry to the target without filling.",
+   "is": {
+    "n": 52,
+    "win": 0.077,
+    "exp_r": -0.671,
+    "ci": [
+     -0.923,
+     -0.338
+    ],
+    "pf": 0.274,
+    "avg_mfe_r": 0.866,
+    "avg_mae_r": 0.956,
+    "avg_bars": 10.77,
+    "max_dd_r": 34.867
+   },
+   "oos": {
+    "n": 20,
+    "win": 0.25,
+    "exp_r": -0.011,
+    "ci": [
+     -0.674,
+     0.807
+    ],
+    "pf": 0.986,
+    "avg_mfe_r": 1.515,
+    "avg_mae_r": 0.878,
+    "avg_bars": 15.75,
+    "max_dd_r": 6.0
+   }
+  },
+  "volreg_half": {
+   "group": "size",
+   "desc": "Half size when the entry-timeframe ATR is in the top 10% of its last 250 values.",
+   "is": {
+    "n": 67,
+    "win": 0.119,
+    "exp_r": -0.506,
+    "ci": [
+     -0.815,
+     -0.177
+    ],
+    "pf": 0.426,
+    "avg_mfe_r": 0.961,
+    "avg_mae_r": 0.936,
+    "avg_bars": 10.49,
+    "max_dd_r": 33.883
+   },
+   "oos": {
+    "n": 21,
+    "win": 0.238,
+    "exp_r": -0.058,
+    "ci": [
+     -0.692,
+     0.749
+    ],
+    "pf": 0.924,
+    "avg_mfe_r": 1.503,
+    "avg_mae_r": 0.884,
+    "avg_bars": 16.43,
+    "max_dd_r": 6.0
+   }
+  },
+  "ct_half": {
+   "group": "size",
+   "desc": "Half size when the trade goes against the trend of the next higher timeframe.",
+   "is": {
+    "n": 67,
+    "win": 0.119,
+    "exp_r": -0.506,
+    "ci": [
+     -0.815,
+     -0.177
+    ],
+    "pf": 0.426,
+    "avg_mfe_r": 0.961,
+    "avg_mae_r": 0.936,
+    "avg_bars": 10.49,
+    "max_dd_r": 33.883
+   },
+   "oos": {
+    "n": 21,
+    "win": 0.238,
+    "exp_r": -0.058,
+    "ci": [
+     -0.692,
+     0.749
+    ],
+    "pf": 0.924,
+    "avg_mfe_r": 1.503,
+    "avg_mae_r": 0.884,
+    "avg_bars": 16.43,
+    "max_dd_r": 6.0
+   }
+  },
+  "split_entry": {
+   "group": "size",
+   "desc": "Half the position at the proximal, half at the middle of the zone, same stop and target.",
+   "is": {
+    "n": 67,
+    "win": 0.119,
+    "exp_r": -0.533,
+    "ci": [
+     -0.821,
+     -0.2
+    ],
+    "pf": 0.388,
+    "avg_mfe_r": 0.961,
+    "avg_mae_r": 0.936,
+    "avg_bars": 10.49,
+    "max_dd_r": 35.695
+   },
+   "oos": {
+    "n": 21,
+    "win": 0.238,
+    "exp_r": 0.025,
+    "ci": [
+     -0.774,
+     0.961
+    ],
+    "pf": 1.032,
+    "avg_mfe_r": 1.503,
+    "avg_mae_r": 0.884,
+    "avg_bars": 16.43,
+    "max_dd_r": 6.0
+   }
+  }
+ },
+ "skipped": {
+  "stop_tight": "no volatility floor to remove: the stop is distal +/- fxcfg.SL_PCT % of the zone height with a fixed 3-pip minimum (fxcfg.SL_MIN_PIPS), no ATR term (zones.stop_buffer)"
+ },
+ "excursions": {
+  "mfe_r": {
+   "p25": 0.0,
+   "p50": 0.6,
+   "p75": 2.185,
+   "p90": 3.188
+  },
+  "mae_r": {
+   "p25": 1.0,
+   "p50": 1.0,
+   "p75": 1.0,
+   "p90": 1.0
+  },
+  "n": 88
+ },
+ "base_rules": "loose",
+ "bases": {
+  "current": {
+   "is": {
+    "n": 0,
+    "win": null,
+    "exp_r": null,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": null,
+    "avg_mae_r": null,
+    "avg_bars": null,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 0,
+    "win": null,
+    "exp_r": null,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": null,
+    "avg_mae_r": null,
+    "avg_bars": null,
+    "max_dd_r": 0.0
+   }
+  },
+  "no_nesting": {
+   "is": {
+    "n": 38,
+    "win": 0.105,
+    "exp_r": -0.579,
+    "ci": [
+     -0.916,
+     -0.133
+    ],
+    "pf": 0.353,
+    "avg_mfe_r": 1.037,
+    "avg_mae_r": 0.936,
+    "avg_bars": 12.47,
+    "max_dd_r": 21.992
+   },
+   "oos": {
+    "n": 14,
+    "win": 0.286,
+    "exp_r": 0.179,
+    "ci": [
+     -0.759,
+     1.322
+    ],
+    "pf": 1.25,
+    "avg_mfe_r": 1.792,
+    "avg_mae_r": 0.883,
+    "avg_bars": 22.0,
+    "max_dd_r": 4.0
+   }
+  },
+  "loose": {
+   "is": {
+    "n": 67,
+    "win": 0.119,
+    "exp_r": -0.506,
+    "ci": [
+     -0.815,
+     -0.177
+    ],
+    "pf": 0.426,
+    "avg_mfe_r": 0.961,
+    "avg_mae_r": 0.936,
+    "avg_bars": 10.49,
+    "max_dd_r": 33.883
+   },
+   "oos": {
+    "n": 21,
+    "win": 0.238,
+    "exp_r": -0.058,
+    "ci": [
+     -0.692,
+     0.749
+    ],
+    "pf": 0.924,
+    "avg_mfe_r": 1.503,
+    "avg_mae_r": 0.884,
+    "avg_bars": 16.43,
+    "max_dd_r": 6.0
+   }
+  }
+ }
+}
