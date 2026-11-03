@@ -105,7 +105,7 @@ def symbol_id(sym: str) -> Optional[int]:
     """'RY.TO' / 'BBD.B.TO' -> Questrade's symbolId (None = not found). Cached per run."""
     if sym in _IDS:
         return _IDS[sym]
-    base = sym[:-3] if sym.upper().endswith('.TO') else sym
+    base = (sym[:-3] if sym.upper().endswith('.TO') else sym).replace('-', '.')     # the scan's BBD-B.TO = Questrade's BBD.B.TO
     got = _get('v1/symbols/search?' + urllib.parse.urlencode({'prefix': base}))
     want = {sym.upper(), f'{base}.TO'.upper(), base.upper()}
     hit = next((x for x in got.get('symbols') or [] if str(x.get('symbol', '')).upper() in want
