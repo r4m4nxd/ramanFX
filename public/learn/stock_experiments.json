@@ -1,0 +1,499 @@
+{
+ "schema": 1,
+ "market": "stock",
+ "generated_at": "2026-11-03T04:32:50Z",
+ "period": {
+  "start": "2017-05-05",
+  "end": "2026-06-05",
+  "split": "2024-06-28"
+ },
+ "baseline": "current",
+ "variants": {
+  "current": {
+   "group": "baseline",
+   "desc": "The live rules unchanged (the baseline every variant is compared with).",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.4899,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.5,
+    "avg_mae_r": 0.25,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 1,
+    "win": 0.0,
+    "exp_r": -1.0087,
+    "ci": null,
+    "pf": 0.0,
+    "avg_mfe_r": 2.02,
+    "avg_mae_r": 1.0,
+    "avg_bars": 80.0,
+    "max_dd_r": 1.01
+   }
+  },
+  "be_1r": {
+   "group": "exit",
+   "desc": "Move the stop to the fill price once a daily high has reached +1R.",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.4899,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.5,
+    "avg_mae_r": 0.25,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 1,
+    "win": 0.0,
+    "exp_r": -0.0087,
+    "ci": null,
+    "pf": 0.0,
+    "avg_mfe_r": 2.02,
+    "avg_mae_r": 0.408,
+    "avg_bars": 23.0,
+    "max_dd_r": 0.01
+   }
+  },
+  "be_2r": {
+   "group": "exit",
+   "desc": "Move the stop to the fill price once a daily high has reached +2R.",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.4899,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.5,
+    "avg_mae_r": 0.25,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 1,
+    "win": 0.0,
+    "exp_r": -0.0087,
+    "ci": null,
+    "pf": 0.0,
+    "avg_mfe_r": 2.02,
+    "avg_mae_r": 0.408,
+    "avg_bars": 23.0,
+    "max_dd_r": 0.01
+   }
+  },
+  "be_struct": {
+   "group": "exit",
+   "desc": "After +1.5R, raise the stop to the lowest daily low since the fill (it only ever tightens).",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.4899,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.5,
+    "avg_mae_r": 0.25,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 1,
+    "win": 0.0,
+    "exp_r": -0.4164,
+    "ci": null,
+    "pf": 0.0,
+    "avg_mfe_r": 2.02,
+    "avg_mae_r": 0.408,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.42
+   }
+  },
+  "time_stop": {
+   "group": "exit",
+   "desc": "Sell at the close of the 20th session after the fill if price has not reached +1R by then.",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.4899,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.5,
+    "avg_mae_r": 0.25,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 1,
+    "win": 0.0,
+    "exp_r": -1.0087,
+    "ci": null,
+    "pf": 0.0,
+    "avg_mfe_r": 2.02,
+    "avg_mae_r": 1.0,
+    "avg_bars": 80.0,
+    "max_dd_r": 1.01
+   }
+  },
+  "tp_fixed3": {
+   "group": "exit",
+   "desc": "Take profit at exactly 3R instead of the next supply / projection.",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.9899,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 3.0,
+    "avg_mae_r": 0.25,
+    "avg_bars": 45.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 1,
+    "win": 0.0,
+    "exp_r": -1.0087,
+    "ci": null,
+    "pf": 0.0,
+    "avg_mfe_r": 2.02,
+    "avg_mae_r": 1.0,
+    "avg_bars": 80.0,
+    "max_dd_r": 1.01
+   }
+  },
+  "tp_zone": {
+   "group": "exit",
+   "desc": "Take profit just below the nearest not-removed supply zone above (W1, MN or 3M, tested ones too); skip the trade if that is under 2.5R.",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.5142,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.524,
+    "avg_mae_r": 0.25,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 0,
+    "win": null,
+    "exp_r": null,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": null,
+    "avg_mae_r": null,
+    "avg_bars": null,
+    "max_dd_r": null
+   }
+  },
+  "fresh_body": {
+   "group": "freshness",
+   "desc": "A zone counts as used only once a daily candle CLOSED inside it (wick-only touches keep it fresh).",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.4899,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.5,
+    "avg_mae_r": 0.25,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 1,
+    "win": 0.0,
+    "exp_r": -1.0087,
+    "ci": null,
+    "pf": 0.0,
+    "avg_mfe_r": 2.02,
+    "avg_mae_r": 1.0,
+    "avg_bars": 80.0,
+    "max_dd_r": 1.01
+   }
+  },
+  "fresh_depth25": {
+   "group": "freshness",
+   "desc": "A zone counts as used only once price went at least 25% of the zone height inside it.",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.4899,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.5,
+    "avg_mae_r": 0.25,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 1,
+    "win": 0.0,
+    "exp_r": -1.0087,
+    "ci": null,
+    "pf": 0.0,
+    "avg_mfe_r": 2.02,
+    "avg_mae_r": 1.0,
+    "avg_bars": 80.0,
+    "max_dd_r": 1.01
+   }
+  },
+  "cont_off": {
+   "group": "continuation",
+   "desc": "Never buy continuation (rally-base-rally) zones.",
+   "is": {
+    "n": 0,
+    "win": null,
+    "exp_r": null,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": null,
+    "avg_mae_r": null,
+    "avg_bars": null,
+    "max_dd_r": null
+   },
+   "oos": {
+    "n": 0,
+    "win": null,
+    "exp_r": null,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": null,
+    "avg_mae_r": null,
+    "avg_bars": null,
+    "max_dd_r": null
+   }
+  },
+  "cont_nested": {
+   "group": "continuation",
+   "desc": "Buy a rally-base-rally zone only when it sits inside a touched higher-timeframe demand zone.",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 5.2302,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 5.25,
+    "avg_mae_r": 0.25,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 0,
+    "win": null,
+    "exp_r": null,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": null,
+    "avg_mae_r": null,
+    "avg_bars": null,
+    "max_dd_r": null
+   }
+  },
+  "stop_atr": {
+   "group": "stop",
+   "desc": "Stop at the wider of the current stop and the distal minus one weekly ATR14 (R recomputed; under 2R room = no trade).",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.0554,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.063,
+    "avg_mae_r": 0.098,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.1647,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.17,
+    "avg_mae_r": 0.579,
+    "avg_bars": 97.0,
+    "max_dd_r": 0.0
+   }
+  },
+  "arrive_stair": {
+   "group": "filter",
+   "desc": "Skip the trade when the last 10 sessions before the first touch were a slow stair-step approach.",
+   "is": {
+    "n": 0,
+    "win": null,
+    "exp_r": null,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": null,
+    "avg_mae_r": null,
+    "avg_bars": null,
+    "max_dd_r": null
+   },
+   "oos": {
+    "n": 1,
+    "win": 0.0,
+    "exp_r": -1.0087,
+    "ci": null,
+    "pf": 0.0,
+    "avg_mfe_r": 2.02,
+    "avg_mae_r": 1.0,
+    "avg_bars": 80.0,
+    "max_dd_r": 1.01
+   }
+  },
+  "curve_top3": {
+   "group": "filter",
+   "desc": "No buy when the entry sits in the top third of the last 2 years' range.",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.4899,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.5,
+    "avg_mae_r": 0.25,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 1,
+    "win": 0.0,
+    "exp_r": -1.0087,
+    "ci": null,
+    "pf": 0.0,
+    "avg_mfe_r": 2.02,
+    "avg_mae_r": 1.0,
+    "avg_bars": 80.0,
+    "max_dd_r": 1.01
+   }
+  },
+  "cancel_50": {
+   "group": "filter",
+   "desc": "Cancel the waiting order once price has gone half way to the target without filling it.",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.4899,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.5,
+    "avg_mae_r": 0.25,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 1,
+    "win": 0.0,
+    "exp_r": -1.0087,
+    "ci": null,
+    "pf": 0.0,
+    "avg_mfe_r": 2.02,
+    "avg_mae_r": 1.0,
+    "avg_bars": 80.0,
+    "max_dd_r": 1.01
+   }
+  },
+  "market_regime": {
+   "group": "filter",
+   "desc": "No new buy while SPY closes below its 200-day average.",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.4899,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.5,
+    "avg_mae_r": 0.25,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 1,
+    "win": 0.0,
+    "exp_r": -1.0087,
+    "ci": null,
+    "pf": 0.0,
+    "avg_mfe_r": 2.02,
+    "avg_mae_r": 1.0,
+    "avg_bars": 80.0,
+    "max_dd_r": 1.01
+   }
+  },
+  "volreg_half": {
+   "group": "size",
+   "desc": "Half size when the daily ATR14 is in the top 10% of its last 250 values.",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 2.4899,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.5,
+    "avg_mae_r": 0.25,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 1,
+    "win": 0.0,
+    "exp_r": -1.0087,
+    "ci": null,
+    "pf": 0.0,
+    "avg_mfe_r": 2.02,
+    "avg_mae_r": 1.0,
+    "avg_bars": 80.0,
+    "max_dd_r": 1.01
+   }
+  },
+  "split_entry": {
+   "group": "size",
+   "desc": "Buy half at the proximal and half at the middle of the zone (same stop and target).",
+   "is": {
+    "n": 1,
+    "win": 1.0,
+    "exp_r": 1.2449,
+    "ci": null,
+    "pf": null,
+    "avg_mfe_r": 2.5,
+    "avg_mae_r": 0.25,
+    "avg_bars": 24.0,
+    "max_dd_r": 0.0
+   },
+   "oos": {
+    "n": 1,
+    "win": 0.0,
+    "exp_r": -0.7656,
+    "ci": null,
+    "pf": 0.0,
+    "avg_mfe_r": 2.02,
+    "avg_mae_r": 1.0,
+    "avg_bars": 80.0,
+    "max_dd_r": 0.77
+   }
+  }
+ },
+ "skipped": {
+  "earnings_skip": "no historical earnings dates in the cached data: data.fetch_earnings only knows the NEXT date and the fundamentals cache keeps only the last 16 10-Q / 10-K filing dates (filed days to weeks after the release, about 4 years), so most of the test period would have no dates and the rest a proxy"
+ },
+ "excursions": {
+  "mfe_r": {
+   "p25": 2.14,
+   "p50": 2.26,
+   "p75": 2.38,
+   "p90": 2.452
+  },
+  "mae_r": {
+   "p25": 0.438,
+   "p50": 0.625,
+   "p75": 0.812,
+   "p90": 0.925
+  },
+  "n": 2
+ }
+}
