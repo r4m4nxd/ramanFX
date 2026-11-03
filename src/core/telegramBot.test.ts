@@ -44,8 +44,16 @@ describe('telegram bot', () => {
   });
 
   it('/help and /start list every command, grouped', async () => {
-    for (const t of ['/help', '/start']) {
-      const r = await handle(t, ctx());
+    const menu = await handle('/help', ctx());
+    expect(menu.text.length).toBeLessThan(600);                                  // a short menu, sections as buttons
+    expect(JSON.stringify(menu.buttons)).toContain('"callback_data":"hg:all"');
+    expect((await handle('/start', ctx())).keyboard).toBe(true);
+    expect((await handle('hi', ctx())).cmd).toBe('welcome');
+    expect((await handle('gold', ctx())).text).toContain('(XAUUSD)');
+    expect((await handle('should i buy apple stock', ctx())).text).toContain('(AAPL)');
+    expect((await handle('/chart nvda weekly', ctx())).photo).toContain('tf=W1');
+    {
+      const r = await handleCallback('hg:all', ctx());
       for (const c of COMMANDS) expect(r.text).toContain(`/${c.command}`);
       expect(r.text).toContain('<b>Markets</b>');
       expect(r.text).toContain('<b>Symbol lookup</b>');
@@ -108,7 +116,7 @@ describe('telegram bot', () => {
     const typo = await handle('/zones EURUDS', ctx());
     expect(typo.text).toContain('not found');
     expect(typo.text).toContain('/zones EURUSD');
-    expect((await handle('/zones', ctx())).text).toContain('/zones EURUSD');
+    expect(JSON.stringify((await handle('/zones', ctx())).buttons)).toContain('z:EURUSD');
   });
 
   it('/times: New York times on the Calgary clock by zone rules', async () => {

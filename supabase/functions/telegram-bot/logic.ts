@@ -18,6 +18,7 @@ import { cmdFund, earningsLine, fundButton } from './fundamentals.ts';
 import { nyseHolidays } from '../trader-coach/health.ts';
 import { cmdInsiders, insiderLine } from './insiders.ts';
 import { symbolLines } from './headlines.ts';
+import { ALIAS, GREETING, THANKS, candidates } from './understand.ts';
 import { caption as cardCaption, plainFund, plainName, trendOf, type CardData, type CardZone } from './card.ts';
 import { cmdHolders, holdersButton } from './holders.ts';
 
@@ -324,6 +325,28 @@ export function helpText(role: Role = 'owner'): string {
   return lines.join('\n');
 }
 
+const GROUP_PLAIN: Record<string, string> = { Markets: 'Markets', 'Symbol lookup': 'One market', Alerts: 'Alerts', Times: 'Times', Journal: 'Journal', Learn: 'Learn' };
+/** /help (owner UX study: the full list was a 2,800-character wall): a short menu, one button per section, [All] for the
+ *  full list. section = a GROUPS index or 'all'. */
+export function helpMenu(role: Role = 'owner', section?: string): Reply {
+  const groups = GROUPS.filter(g => COMMANDS.some(x => x.group === g && (role === 'owner' || !OWNER_ONLY.has(x.command))));
+  const btns = [...rows3(groups.map(g => ({ text: GROUP_PLAIN[g] ?? g, callback_data: `hg:${GROUPS.indexOf(g)}` }))), [{ text: 'All commands', callback_data: 'hg:all' }]];
+  if (section === 'all') return { cmd: 'help', text: helpText(role), buttons: btns };
+  const g = section != null ? GROUPS[Number(section)] : undefined;
+  if (g) {
+    const cs = COMMANDS.filter(x => x.group === g && (role === 'owner' || !OWNER_ONLY.has(x.command)));
+    return { cmd: 'help', text: [`<b>${esc(GROUP_PLAIN[g] ?? g)}</b>`, `<blockquote>${cs.map(c => `${esc(c.usage)} · ${esc(c.help)}`).join('\n')}</blockquote>`, `<i>${FOOT}</i>`].join('\n'), buttons: btns };
+  }
+  return { cmd: 'help', text: ['<b>How to use RamanFX</b>', 'Just type a market or company in plain words: <b>gold</b>, <b>apple</b>, <b>euro</b>, <b>bitcoin</b>. You get a one-page summary with buttons for more.',
+    '', 'Pick a topic below to see its commands.', `<i>${FOOT}</i>`].join('\n'), buttons: btns };
+}
+/** /start and greetings ('hi', 'menu', 'thanks'): a 3-line welcome and buttons to tap - never a dead end. */
+export function welcome(thanks = false): Reply {
+  return { cmd: 'welcome', text: [thanks ? "You're welcome." : '<b>Welcome to RamanFX</b>', 'Type any market or company in plain words, like <b>gold</b>, <b>apple</b> or <b>euro</b>, to get its one-page summary. Or tap below.',
+    `<i>/help shows everything · ${FOOT}</i>`].join('\n'),
+    buttons: [...popularButtons(), [{ text: "Today's ideas", callback_data: 'g' }, { text: 'Long-term buys', callback_data: 'm:tfsa' }, { text: 'Near a price', callback_data: 'n' }], [{ text: 'Help menu', callback_data: 'h' }]] };
+}
+
 /** /guide, /howto: a compact cheat sheet; the full how-to is the app's /guide page (src/content/guide.ts). */
 export function cmdGuide(role: Role = 'owner'): Reply {
   const text = ['📘 <b>RamanFX · quick guide</b>', 'Send a symbol (EURUSD, XAUUSD, NVDA): its zones, price and buttons.', '',
@@ -447,7 +470,8 @@ const usdShort = (v: unknown) => { const x = num(v); if (x == null) return ''; c
 /** /tfsa (owner 2026-11-02: "for the TFSA I buy at the best price: near, inside or just left a higher-timeframe zone"):
  *  long-only stocks at a W1 / MN / 3M demand zone from the stock scan - inside it, within the near band, or just left
  *  it - the biggest timeframe first, then the strongest. 'ca' = Canadian-currency listings only. */
-export async function cmdTfsa(q: string, ctx: Ctx): Promise<Reply> {
+export async function cmdTfsa(q: string, ctx: Ctx, full = false): Promise<Reply> {
+  const per = full ? 10 : 5;
   const st = obj(await ctx.load('scanner/latest.json'));
   if (!st.zone_lists) return { cmd: 'tfsa', text: NO_DATA };
   const caOnly = /^(ca|cad|canada|tsx)$/i.test(q.trim());
@@ -472,7 +496,7 @@ export async function cmdTfsa(q: string, ctx: Ctx): Promise<Reply> {
   if (top.length) {
     lines.push('', '<b>Company insiders are buying</b> (last 30 days)');
     const rowsI: string[] = [];
-    for (const r of top.slice(0, 8)) {
+    for (const r of top.slice(0, per)) {
       const c = buys.get(String(r.s))!;
       shown.push(String(r.s));
       const who = c.kind === 'cluster' ? `${num(c.n) ?? 2} insiders` : c.kind === 'early' ? '1 insider (early)' : 'big solo buy';
@@ -481,7 +505,7 @@ export async function cmdTfsa(q: string, ctx: Ctx): Promise<Reply> {
     lines.push(qb(rowsI));
   }
   for (const [, title, rows] of sections) {
-    const rs = rows.filter(r => !seen.has(r.s)).slice(0, 10);
+    const rs = rows.filter(r => !seen.has(r.s)).slice(0, per);
     rs.forEach(r => seen.add(r.s));
     if (!rs.length) continue;
     lines.push('', title);
@@ -495,14 +519,15 @@ export async function cmdTfsa(q: string, ctx: Ctx): Promise<Reply> {
   const turns = caOnly ? [] : arr(obj(await ctx.load('scanner/arrivals.json').catch(() => null)).weekly_turns);
   if (turns.length) {
     lines.push('', '<b>Turning up</b> (a new rise may be starting)');
-    lines.push(qb(turns.slice(0, 8).map(t => {
+    lines.push(qb(turns.slice(0, per).map(t => {
       shown.push(String(t.sym));
       return `▲ <b>${esc(t.sym)}</b> · weekly downtrend broken ${esc(String(t.w1_cross ?? '').slice(0, 10))} · daily buy area ${code(`${stockPx(t.d1_lo)}–${stockPx(t.d1_hi)}`)}`;
     })));
   }
   if (!shown.length) lines.push('', 'No stock is at a weekly, monthly or 3-month buy area right now.');
   lines.push('', 'Send a ticker for its full picture · /tfsa ca: Canadian listings only', footer(`checked ${when(st.generated_at)} MT`));
-  return { cmd: 'tfsa', text: fit(lines), buttons: symButtons(shown, 4) };
+  const more = full ? [] : [[{ text: 'Show more', callback_data: caOnly ? 'm:tfsaca' : 'm:tfsa' }]];
+  return { cmd: 'tfsa', text: fit(lines), buttons: [...symButtons(shown, 3), ...more] };
 }
 
 // ---- symbol lookup --------------------------------------------------------------------------------------------------
@@ -510,17 +535,18 @@ const norm = (s: string) => s.toUpperCase().replace(/^(PEPPERSTONE|OANDA|NASDAQ|
 const normStock = (s: string) => norm(s).replace(/-/g, '.');
 export interface Resolved { market: 'fx' | 'stock'; sym: string; row: J }
 
-export async function resolve(q: string, ctx: Ctx): Promise<{ hit: Resolved | null; suggest: string[] }> {
+export async function resolve(q: string, ctx: Ctx, live = true): Promise<{ hit: Resolved | null; suggest: string[] }> {
+  q = ALIAS[q.trim().toLowerCase()] ?? q;                       // 'gold' -> XAUUSD, 'apple' -> AAPL (understand.ts)
   const fx = obj(await ctx.load('fx/latest.json')), ix = obj(await ctx.load('scanner/index.json'));
   const fxRows = arr(fx.map), stRows = arr(ix.tickers);
   const k = norm(q), ks = normStock(q);
-  const f = fxRows.find(r => r.sym === k || String(r.oanda ?? '').replace(/_/g, '') === k);
+  const f = fxRows.find(r => r.sym === k || r.sym === k.replace(/-/g, '') || String(r.oanda ?? '').replace(/_/g, '') === k);
   if (f) return { hit: { market: 'fx', sym: f.sym, row: f }, suggest: [] };
   const s = stRows.find(r => String(r.s).toUpperCase() === ks || String(r.s).toUpperCase() === k || String(r.s).toUpperCase().replace(/\./g, '') === k);
   if (s) return { hit: { market: 'stock', sym: s.s, row: s }, suggest: [] };
   // 2026-11 (owner: "any ticker, like NVDA"): a ticker outside the scans is looked up live - a US stock through Alpaca, any
   // other Pepperstone symbol (shares, ETFs, futures) through cTrader - and answered from its live candles (no signals)
-  const adhoc = await adhocResolve(q, ctx);
+  const adhoc = live ? await adhocResolve(q, ctx) : null;
   if (adhoc) return { hit: adhoc, suggest: [] };
   const all: string[] = [...fxRows.map(r => String(r.sym)), ...stRows.map(r => String(r.s))];
   const scored = all.map(c => [c.startsWith(k) && k.length >= 2 ? 0.5 : lev(k, c.toUpperCase().replace(/\./g, '')), c] as const)
@@ -562,6 +588,11 @@ export function lev(a: string, b: string): number {
   }
   return d[b.length];
 }
+/** Tap-to-pick buttons under a 'not found' (owner UX study: beginners never retype a suggested command). */
+const pickButtons = (sug: string[], code = 'v'): Button[][] => [...rows3(sug.filter(x => cbOk(`${code}:${x}`)).slice(0, 6).map(x => ({ text: x, callback_data: `${code}:${x}` }))), [{ text: 'Help menu', callback_data: 'h' }]];
+const POPULAR = ['XAUUSD', 'EURUSD', 'US500', 'NVDA', 'AAPL', 'BTCUSD'];
+const POP_NAME: Record<string, string> = { XAUUSD: 'Gold', EURUSD: 'Euro vs dollar', US500: 'S&P 500', NVDA: 'Nvidia', AAPL: 'Apple', BTCUSD: 'Bitcoin' };
+const popularButtons = (code = 'v'): Button[][] => rows3(POPULAR.map(x => ({ text: POP_NAME[x] ?? x, callback_data: `${code}:${x}` })));
 const notFound = (q: string, sug: string[]) => `🔎 <b>${echo(q.toUpperCase())}</b> not found` + (sug.length ? `\nDid you mean: ${sug.map(s => `/zones ${esc(s)}`).join(' · ')}` : '\nSend a Pepperstone FX name (EURUSD, XAUUSD, US500) or a stock ticker (NVDA, BRK.B).');
 
 /** Where price is against a zone: 'in it', or the percent to its nearer edge. */
@@ -846,9 +877,9 @@ async function plainZones(hit: Resolved, ctx: Ctx): Promise<Reply> {
 }
 
 async function cmdZones(q: string, ctx: Ctx): Promise<Reply> {
-  if (!q) return { cmd: 'zones', text: 'Send a symbol after it, e.g. <b>/zones EURUSD</b> or <b>/zones NVDA</b>. Just the symbol works too.' };
+  if (!q) return { cmd: 'zones', text: 'Pick one, or send a name after it, e.g. <b>/zones gold</b> or <b>/zones NVDA</b>. Just the name works too.', buttons: popularButtons('z') };
   const { hit, suggest } = await resolve(q, ctx);
-  if (!hit) return { cmd: 'zones', text: notFound(q, suggest) };
+  if (!hit) return { cmd: 'zones', text: notFound(q, suggest), buttons: pickButtons(suggest, 'z') };
   return withLatest(hit.sym, ctx, plainZones(hit, ctx));
 }
 
@@ -960,8 +991,9 @@ const FX_TFS = ['MN', 'W1', 'D1', 'H4', 'H1'];
 const STOCK_TFS = ['3M', 'MN', 'W1', 'D1'];
 const ORDER = ['3M', 'MN', 'W1', 'D1', 'H4', 'H1', 'M15'];
 export function parseTf(s: string): string | null {
-  const t = (s || '').toUpperCase();
-  const m: Record<string, string> = { H1: 'H1', '1H': 'H1', '60': 'H1', H4: 'H4', '4H': 'H4', D1: 'D1', D: 'D1', '1D': 'D1', W1: 'W1', W: 'W1', '1W': 'W1', MN: 'MN', M: 'MN', '1M': 'MN', MN1: 'MN', '3M': '3M', Q: 'Q', M15: 'M15', '15M': 'M15', '15': 'M15' };
+  const t = (s || '').toUpperCase().replace(/[\s-]+/g, '');
+  const m: Record<string, string> = { WEEKLY: 'W1', WEEK: 'W1', DAILY: 'D1', DAY: 'D1', MONTHLY: 'MN', MONTH: 'MN', HOURLY: 'H1', HOUR: 'H1', '1HR': 'H1', '1HOUR': 'H1',
+    '4HR': 'H4', '4HOUR': 'H4', '4HOURS': 'H4', '4HOURLY': 'H4', QUARTERLY: '3M', QUARTER: '3M', '3MONTH': '3M', '3MONTHS': '3M', '15MIN': 'M15', '15MINS': 'M15', '15MINUTE': 'M15', '15MINUTES': 'M15', H1: 'H1', '1H': 'H1', '60': 'H1', H4: 'H4', '4H': 'H4', D1: 'D1', D: 'D1', '1D': 'D1', W1: 'W1', W: 'W1', '1W': 'W1', MN: 'MN', M: 'MN', '1M': 'MN', MN1: 'MN', '3M': '3M', Q: 'Q', M15: 'M15', '15M': 'M15', '15': 'M15' };
   return m[t] ?? null;
 }
 /** [📊 4 timeframes] + one button per timeframe (single large view). */
@@ -1387,14 +1419,14 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
 }
 
 async function cmdChart(q: string, tfArg: string, ctx: Ctx, mode = ''): Promise<Reply> {
-  if (!q) return { cmd: 'chart', text: 'Send a symbol after it, e.g. <b>/chart EURUSD</b> (4 timeframes) or <b>/chart EURUSD H4</b>.' };
+  if (!q) return { cmd: 'chart', text: 'Pick one, or send a name after it, e.g. <b>/chart gold</b> (4 timeframes) or <b>/chart gold weekly</b>.', buttons: popularButtons('c') };
   const tf1 = tfArg ? parseTf(tfArg.replace(/\+$/, '')) : 'Q';
   // '/chart INTC 1M 4' or '/chart INTC 1M+' = 4 views from 1M down; 'Q<TF>' from the buttons
   const four = /\+$/.test(tfArg) || /^(4|4v|q|quad|4views)$/i.test(mode);
   const view = /^Q(3M|MN|W1|D1|H4|H1|M15)$/i.test(tfArg) ? tfArg.toUpperCase() : tf1 && four && tf1 !== 'Q' ? `Q${tf1}` : tf1;
   if (!view) return { cmd: 'chart', text: `Unknown timeframe <b>${echo(tfArg)}</b>. Use MN, W1, D1, 4H, 1H${ctx.live?.fx ? ' or 15m' : ''} (stocks: 3M, MN, W1, D1${ctx.live?.stock ? ', 4H, 1H, 15m' : ''}).` };
   const { hit, suggest } = await resolve(q, ctx);
-  if (!hit) return { cmd: 'chart', text: notFound(q, suggest).replace(/\/zones /g, '/chart ') };
+  if (!hit) return { cmd: 'chart', text: notFound(q, suggest).replace(/\/zones /g, '/chart '), buttons: pickButtons(suggest, 'c') };
   if (!ctx.imageUrl) return { cmd: 'chart', text: 'Charts are not available right now.' };
   let cd = await chartData(hit.sym, view, ctx);
   if (!cd && view !== 'Q') {
@@ -1417,6 +1449,11 @@ export async function handleCallback(data: string, ctx: Ctx): Promise<Reply> {
   const nw = /^n:([A-Za-z0-9._-]{1,20})$/.exec(data ?? '');
   if (nw) return symbolNews(nw[1], ctx, FOOT);
   if (m && m[1] === 'z') return cmdZones(m[2], ctx);
+  const sv = /^v:([A-Za-z0-9._-]{1,20})$/.exec(data ?? '');
+  if (sv) { const { hit } = await resolve(sv[1], ctx); return hit ? cmdSummary(hit, ctx) : { cmd: 'summary', text: notFound(sv[1], []), buttons: pickButtons([]) }; }
+  const hg = /^hg:(\d{1,2}|all)$/.exec(data ?? '');
+  if (hg) return helpMenu(ctx.role, hg[1]);
+  if (data === 'm:tfsa' || data === 'm:tfsaca') return cmdTfsa(data === 'm:tfsaca' ? 'ca' : '', ctx, true);
   if (m && m[1] === 's' && !m[3]) return scanOne(m[2], ctx);
   if (m && m[1] === 'c') return { ...(await cmdChart(m[2], m[3] ?? '', ctx)), edit: !!m[3] };
   const fd = /^f:([A-Za-z0-9._-]{1,20})$/.exec(data ?? '');
@@ -1428,7 +1465,7 @@ export async function handleCallback(data: string, ctx: Ctx): Promise<Reply> {
   if (CB_CMDS[data]) return handle(CB_CMDS[data], ctx);
   const tap = parseTap(data ?? '');
   if (tap) return prefsTap(tap, ctx);
-  return { cmd: 'callback?', text: HINT };
+  return { cmd: 'callback?', text: HINT, buttons: welcome().buttons };
 }
 
 // ---- preferences: alerts, mutes, quiet hours, watchlist (prefs.ts) ------------------------------------------------
@@ -1643,34 +1680,42 @@ export function parseCommand(text: string): { cmd: string; arg: string; arg2: st
   return { cmd: m[1].toLowerCase(), arg: a[0] ?? '', arg2: a[1] ?? '', rest: (m[2] ?? '').trim() };
 }
 const SYMBOLISH = /^[A-Za-z][A-Za-z0-9.\/_:-]{0,14}$/;
-const HINT = 'Not sure what that means. Send /help for the list, or just a symbol like <b>EURUSD</b> or <b>NVDA</b>.';
+const HINT = 'Sorry, I did not catch that. Type a market or company like <b>gold</b>, <b>apple</b> or <b>euro</b>, tap a button below, or send /help.';
+const TRADE_Q = /\b(buy|sell|price|chart|stock|shares?|zone|area|worth|doing|going|now|today|entry|good|bullish|bearish|up|down)\b/i;
 
 export async function handle(text: string, ctx: Ctx): Promise<Reply> {
   const t = (text ?? '').trim();
   const quick = QUICK_MAP.get(t.toLowerCase());
   const c = quick ? { cmd: quick, arg: '', arg2: '', rest: '' } : parseCommand(t);
   if (c) {
+    const whole = ALIAS[c.rest.toLowerCase()], firstTwo = ALIAS[c.rest.toLowerCase().split(/\s+/).slice(0, 2).join(' ')];
+    if (whole) { c.arg = whole; c.arg2 = ''; c.rest = whole; }
+    else if (firstTwo && c.rest.split(/\s+/).length > 2) { const tail = c.rest.split(/\s+/).slice(2); c.arg = firstTwo; c.arg2 = tail[0] ?? ''; c.rest = [firstTwo, ...tail].join(' '); }
+    else if (ALIAS[c.arg.toLowerCase()]) c.arg = ALIAS[c.arg.toLowerCase()];
+    const tfw = /^(\d+)\s*(h|hr|hrs|hour|hours|min|mins|minute|minutes)$/i.exec(c.rest.split(/\s+/).slice(1, 3).join(' '));   // '/chart gold 4 hour'
+    if (tfw) c.arg2 = /^m/i.test(tfw[2]) ? `${tfw[1]}MIN` : `${tfw[1]}H`;
     switch (c.cmd) {
       case 'health': case 'status': return { cmd: 'health', text: ctx.health ? await ctx.health() : '🩺 Health status needs the database (Supabase secrets of the bot).' };
-      case 'start': case 'help': return { cmd: c.cmd, text: helpText(ctx.role), keyboard: true };
+      case 'start': return { ...welcome(), cmd: 'start', buttons: undefined, keyboard: true, text: welcome().text.replace('Or tap below.', 'Or tap a button at the bottom.') };
+      case 'help': case 'menu': return helpMenu(ctx.role);
       case 'guide': case 'howto': return cmdGuide(ctx.role);
-      case 'chart': return cmdChart(c.arg, c.arg2, ctx, c.rest.split(/\s+/)[2] ?? '');
+      case 'c': case 'chart': return cmdChart(c.arg, c.arg2, ctx, c.rest.split(/\s+/)[2] ?? '');
       case 'ask': return cmdAsk(c.rest, ctx);
       case 'news': return cmdNews(c.arg, ctx);
       case 'fx': return cmdFx(ctx);
       case 'stocks': return cmdStocks(ctx);
-      case 'signals': return cmdSignals(ctx);
+      case 'sig': case 'signals': return cmdSignals(ctx);
       case 'near': return cmdNear(ctx);
       case 'tfsa': return cmdTfsa(c.arg, ctx);
       case 'areas': case 'realign': return cmdAreas(ctx);
       case 'turns': case 'turn': return cmdTurns(ctx);
-      case 'zones': case 'zone': return cmdZones(c.arg, ctx);
+      case 'z': case 'zones': case 'zone': return cmdZones(c.arg, ctx);
       case 'times': return cmdTimes(ctx);
       case 'next': return cmdNext(ctx);
       case 'hours': return cmdHours(c.arg, ctx);
-      case 'fund': case 'fundamentals': return cmdFund(c.arg, ctx);
+      case 'f': case 'fund': case 'fundamentals': return cmdFund(c.arg, ctx);
       case 'scan': return cmdScan(c.arg, ctx);
-      case 'insiders': case 'insider': return cmdInsiders(c.arg, ctx);
+      case 'i': case 'insiders': case 'insider': return cmdInsiders(c.arg, ctx);
       case 'holders': case 'holder': return cmdHolders(c.arg, ctx);
       case 'took': return { cmd: 'took', text: 'Use: <code>/took EURUSD buy 1.0850 sl 1.0820 tp 1.0910</code>' };   // index.ts routes it to journal.ts first
       case 'alert': return cmdAlert(c.arg, c.arg2, ctx);
@@ -1682,14 +1727,27 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'watch': return cmdWatch(c.arg, ctx);
       case 'unwatch': return cmdUnwatch(c.arg, ctx);
       case 'markets': return { cmd: 'markets', text: '📬 <b>/markets</b> is for the people you share the bot with (/adduser): they pick which markets\' automatic messages they get. You get everything.' };   // guests: guests.ts
-      default: return { cmd: 'unknown', text: HINT };
+      default: return { cmd: 'unknown', text: HINT, buttons: welcome().buttons };
     }
   }
-  if (t.endsWith('?') && t.length > 3) return cmdAsk(t, ctx);
-  if (SYMBOLISH.test(t)) {
-    const { hit, suggest } = await resolve(t, ctx);
-    if (hit) return cmdSummary(hit, ctx);                 // 2026-11-03: a bare symbol = the one-stop summary card
-    if (suggest.length) return { cmd: 'symbol?', text: notFound(t, suggest) };
+  // plain words (owner UX study 2026-11-03): greetings get the welcome menu; 'gold', 'apple stock', 'should I buy tesla',
+  // 'is nvda a buy?' find the market (understand.ts); a lesson question ('what is a proximal line?') goes to /ask
+  if (GREETING.test(t)) return welcome(THANKS.test(t));
+  const question = t.endsWith('?') && t.length > 3;
+  const single = SYMBOLISH.test(t);
+  const cands = candidates(t);
+  if (single && !GREETING.test(t) && (t === t.toUpperCase() || !cands.length) && !cands.includes(t.toUpperCase()) && /[A-Z]/.test(t)) cands.unshift(t.toUpperCase());   // a typed ticker 'A', 'IT'
+  if (!cands.length && /\b(what|which|anything|any)\b.*\b(buy|trade|invest|good)\b/i.test(t)) return cmdSignals(ctx);   // 'what should I buy today'
+  if (!question || TRADE_Q.test(t)) {
+    for (const q of cands) {
+      const { hit } = await resolve(q, ctx, single);       // live lookup only for a single word (a typed ticker)
+      if (hit) return cmdSummary(hit, ctx);
+    }
   }
-  return { cmd: 'text', text: HINT };
+  if (question) return cmdAsk(t, ctx);
+  if (single && cands.length) {
+    const { suggest } = await resolve(t, ctx, false);
+    if (suggest.length) return { cmd: 'symbol?', text: notFound(t, suggest), buttons: pickButtons(suggest) };
+  }
+  return { cmd: 'text', text: HINT, buttons: welcome().buttons };
 }

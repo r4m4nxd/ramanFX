@@ -101,8 +101,7 @@ describe('telegram bot guests', () => {
       expect(r.cmd, c).toBe('owner-only');
       noOwnerData(r.text, c);
     }
-    const h = await guestMessage('/help', db.rows[0], baseCtx(owner), env);
-    expect(h.keyboard).toBe(true);
+    const h = await guestCallback('hg:all', db.rows[0], baseCtx(owner), env);
     for (const c of COMMANDS) {
       if (OWNER_ONLY.has(c.command)) expect(h.text, c.command).not.toContain(`/${c.command} `);
       else expect(h.text, c.command).toContain(`/${c.command}`);

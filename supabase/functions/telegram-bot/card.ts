@@ -18,9 +18,15 @@ const CCY: Record<string, string> = { EUR: 'Euro', USD: 'US dollar', GBP: 'Briti
   AUD: 'Australian dollar', NZD: 'New Zealand dollar', XAU: 'Gold', XAG: 'Silver', XPT: 'Platinum', XPD: 'Palladium', CNH: 'Chinese yuan', HKD: 'Hong Kong dollar',
   SGD: 'Singapore dollar', MXN: 'Mexican peso', ZAR: 'South African rand', TRY: 'Turkish lira', NOK: 'Norwegian krone', SEK: 'Swedish krona', DKK: 'Danish krone',
   PLN: 'Polish zloty', HUF: 'Hungarian forint', CZK: 'Czech koruna', THB: 'Thai baht', BTC: 'Bitcoin', ETH: 'Ether' };
+const MARKET: Record<string, string> = { US500: 'S&P 500 (US stocks)', US30: 'Dow Jones (US stocks)', NAS100: 'Nasdaq 100 (US tech stocks)', US2000: 'Russell 2000 (US small companies)',
+  GER40: 'Germany 40 (DAX)', UK100: 'UK 100 (FTSE)', FRA40: 'France 40 (CAC)', EUSTX50: 'Euro Stoxx 50', SPA35: 'Spain 35', NETH25: 'Netherlands 25', SWI20: 'Swiss 20',
+  JPN225: 'Japan 225 (Nikkei)', HK50: 'Hong Kong 50 (Hang Seng)', CHINAH: 'China H-shares', CN50: 'China 50', AUS200: 'Australia 200',
+  SPOTCRUDE: 'Crude oil (WTI)', SPOTBRENT: 'Brent oil', NATGAS: 'Natural gas', COPPER: 'Copper', CORN: 'Corn', WHEAT: 'Wheat', SUGAR: 'Sugar', SOYBEANS: 'Soybeans',
+  USDX: 'US dollar index', EURX: 'Euro index', JPYX: 'Japanese yen index', XAUXAG: 'Gold vs silver' };
 /** 'EURUSD' -> 'Euro vs US dollar', 'XAUUSD' -> 'Gold (in US dollars)'; other names unchanged. */
 export function plainName(sym: string, name: string, market: 'fx' | 'stock'): string {
   if (market === 'stock') return name || sym;
+  if (MARKET[sym]) return MARKET[sym];
   const m = /^([A-Z]{3})([A-Z]{3})$/.exec(sym);
   if (!m || !CCY[m[1]] || !CCY[m[2]]) return name && name !== 'FX' ? name : sym;
   return ['XAU', 'XAG', 'XPT', 'XPD', 'BTC', 'ETH'].includes(m[1]) ? `${CCY[m[1]]} (in ${CCY[m[2]]}s)` : `${CCY[m[1]]} vs ${CCY[m[2]]}`;

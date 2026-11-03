@@ -92,7 +92,7 @@ describe('telegram /holders', () => {
     const gm = await guestMessage('/holders XYZ', g, ctx(), env);
     expect(gm.text).toContain('<b>Top funds</b>');
     expect((await guestCallback('h:XYZ', g, ctx(), env)).text).toContain('<b>Top funds</b>');
-    expect((await guestMessage('/help', g, ctx(), env)).text).toContain('/holders NVDA');
+    expect((await guestCallback('hg:all', g, ctx(), env)).text).toContain('/holders NVDA');
   });
 
   it('shards by first letter, number formats', () => {
