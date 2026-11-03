@@ -1,0 +1,5092 @@
+{
+ "meta": {
+  "n_hypotheses": 62,
+  "fdr_q": 0.05,
+  "bonferroni_alpha": 0.0008064516129032258,
+  "half_a": [
+   "AUDCAD",
+   "AUDCHF",
+   "AUDHKD",
+   "AUDNZD",
+   "AUS200",
+   "CADCHF",
+   "CHFHKD",
+   "EURAUD",
+   "EURDKK",
+   "EURNOK",
+   "EURPLN",
+   "EURUSD",
+   "EURZAR",
+   "FRA40",
+   "GBPAUD",
+   "GBPJPY",
+   "GBPPLN",
+   "GBPSGD",
+   "GBPZAR",
+   "HK50",
+   "JPN225",
+   "NAS100",
+   "NATGAS",
+   "NETH25",
+   "NZDCAD",
+   "NZDCHF",
+   "NZDSGD",
+   "NZDUSD",
+   "SOYBEANS",
+   "SWI20",
+   "TRYJPY",
+   "US2000",
+   "US30",
+   "US500",
+   "USDCAD",
+   "USDCHF",
+   "USDCNH",
+   "USDHUF",
+   "USDJPY",
+   "USDNOK",
+   "USDPLN",
+   "USDSEK",
+   "USDSGD",
+   "USDTRY",
+   "WHEAT",
+   "XAGAUD",
+   "XAGCAD",
+   "XAGGBP",
+   "XAGSGD",
+   "XAUAUD",
+   "XAUCHF",
+   "XAUHKD",
+   "XAUNZD",
+   "XAUSGD",
+   "XAUXAG",
+   "XPTUSD",
+   "ZARJPY"
+  ],
+  "half_b": [
+   "AUDJPY",
+   "AUDSGD",
+   "AUDUSD",
+   "CADHKD",
+   "CADJPY",
+   "CADSGD",
+   "CHFJPY",
+   "CHFZAR",
+   "CHINAH",
+   "CN50",
+   "COPPER",
+   "CORN",
+   "EURCAD",
+   "EURCHF",
+   "EURCZK",
+   "EURGBP",
+   "EURHKD",
+   "EURHUF",
+   "EURJPY",
+   "EURNZD",
+   "EURSEK",
+   "EURSGD",
+   "EURTRY",
+   "EUSTX50",
+   "GBPCAD",
+   "GBPCHF",
+   "GBPHKD",
+   "GBPNZD",
+   "GBPUSD",
+   "GER40",
+   "HKDJPY",
+   "NZDHKD",
+   "NZDJPY",
+   "SGDCHF",
+   "SGDJPY",
+   "SPA35",
+   "SPOTBRENT",
+   "SPOTCRUDE",
+   "SUGAR",
+   "UK100",
+   "USDCZK",
+   "USDDKK",
+   "USDHKD",
+   "USDMXN",
+   "USDTHB",
+   "USDZAR",
+   "XAGCHF",
+   "XAGEUR",
+   "XAGHKD",
+   "XAGJPY",
+   "XAGNZD",
+   "XAGUSD",
+   "XAUCAD",
+   "XAUEUR",
+   "XAUGBP",
+   "XAUJPY",
+   "XAUUSD",
+   "XPDUSD"
+  ],
+  "split": "2020-01-01",
+  "seed": 20261103,
+  "generated": "2026-11-03 05:37 UTC",
+  "how": "GitHub Actions, OANDA practice",
+  "partial": false,
+  "selftest": false,
+  "n_fx": 115,
+  "minutes": 47.82026203473409,
+  "errors": [],
+  "requests": 22732,
+  "cached": 0,
+  "fine_errors": 73,
+  "counts": [
+   {
+    "sym": "GBPUSD",
+    "counts": {
+     "arrivals": {
+      "candidates": 91,
+      "verified": 91
+     },
+     "zone D1": {
+      "ctrl": 383,
+      "r3_second": 131,
+      "r3_unfilled": 173
+     },
+     "zone H4": {
+      "ctrl": 1901,
+      "r3_unfilled": 919,
+      "r3_second": 451
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 87
+   },
+   {
+    "sym": "USDCAD",
+    "counts": {
+     "arrivals": {
+      "candidates": 94,
+      "verified": 94
+     },
+     "zone D1": {
+      "ctrl": 367,
+      "r3_second": 122,
+      "r3_unfilled": 170
+     },
+     "zone H4": {
+      "ctrl": 1860,
+      "r3_unfilled": 898,
+      "r3_second": 433
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 93
+   },
+   {
+    "sym": "EURUSD",
+    "counts": {
+     "arrivals": {
+      "candidates": 108,
+      "verified": 108
+     },
+     "zone D1": {
+      "ctrl": 394,
+      "r3_second": 142,
+      "r3_unfilled": 181
+     },
+     "zone H4": {
+      "ctrl": 2025,
+      "r3_unfilled": 979,
+      "r3_second": 510
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 100
+   },
+   {
+    "sym": "AUDUSD",
+    "counts": {
+     "arrivals": {
+      "candidates": 105,
+      "verified": 105
+     },
+     "zone D1": {
+      "ctrl": 430,
+      "r3_unfilled": 189,
+      "r3_second": 166
+     },
+     "zone H4": {
+      "ctrl": 2027,
+      "r3_second": 495,
+      "r3_unfilled": 932
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 102
+   },
+   {
+    "sym": "USDCHF",
+    "counts": {
+     "arrivals": {
+      "candidates": 97,
+      "verified": 96,
+      "not_current": 1
+     },
+     "zone D1": {
+      "ctrl": 373,
+      "r3_unfilled": 172,
+      "r3_second": 126
+     },
+     "zone H4": {
+      "ctrl": 1867,
+      "r3_second": 454,
+      "r3_unfilled": 899
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 179
+   },
+   {
+    "sym": "USDJPY",
+    "counts": {
+     "arrivals": {
+      "candidates": 96,
+      "verified": 96
+     },
+     "zone D1": {
+      "ctrl": 382,
+      "r3_unfilled": 174,
+      "r3_second": 134
+     },
+     "zone H4": {
+      "ctrl": 1998,
+      "r3_second": 499,
+      "r3_unfilled": 943
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 186
+   },
+   {
+    "sym": "AUDCAD",
+    "counts": {
+     "arrivals": {
+      "candidates": 88,
+      "verified": 88
+     },
+     "zone D1": {
+      "ctrl": 333,
+      "r3_second": 126,
+      "r3_unfilled": 148
+     },
+     "zone H4": {
+      "ctrl": 1871,
+      "r3_unfilled": 825,
+      "r3_second": 520
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 186
+   },
+   {
+    "sym": "AUDCHF",
+    "counts": {
+     "arrivals": {
+      "candidates": 88,
+      "verified": 88
+     },
+     "zone D1": {
+      "ctrl": 389,
+      "r3_unfilled": 186,
+      "r3_second": 148
+     },
+     "zone H4": {
+      "ctrl": 1913,
+      "r3_unfilled": 864,
+      "r3_second": 548
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 187
+   },
+   {
+    "sym": "EURCHF",
+    "counts": {
+     "arrivals": {
+      "candidates": 69,
+      "verified": 69
+     },
+     "zone D1": {
+      "ctrl": 300,
+      "r3_unfilled": 158,
+      "r3_second": 92
+     },
+     "zone H4": {
+      "ctrl": 1617,
+      "r3_second": 463,
+      "r3_unfilled": 724
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 254
+   },
+   {
+    "sym": "AUDNZD",
+    "counts": {
+     "arrivals": {
+      "candidates": 88,
+      "verified": 88
+     },
+     "zone D1": {
+      "ctrl": 382,
+      "r3_second": 122,
+      "r3_unfilled": 168
+     },
+     "zone H4": {
+      "ctrl": 1634,
+      "r3_unfilled": 706,
+      "r3_second": 480
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 263
+   },
+   {
+    "sym": "EURAUD",
+    "counts": {
+     "arrivals": {
+      "candidates": 98,
+      "verified": 98
+     },
+     "zone D1": {
+      "ctrl": 401,
+      "r3_second": 149,
+      "r3_unfilled": 180
+     },
+     "zone H4": {
+      "ctrl": 2050,
+      "r3_unfilled": 926,
+      "r3_second": 523
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 278
+   },
+   {
+    "sym": "EURGBP",
+    "counts": {
+     "arrivals": {
+      "candidates": 94,
+      "verified": 94
+     },
+     "zone D1": {
+      "ctrl": 353,
+      "r3_unfilled": 142,
+      "r3_second": 133
+     },
+     "zone H4": {
+      "ctrl": 1805,
+      "r3_unfilled": 883,
+      "r3_second": 427
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 279
+   },
+   {
+    "sym": "GBPAUD",
+    "counts": {
+     "arrivals": {
+      "candidates": 70,
+      "verified": 70
+     },
+     "zone D1": {
+      "ctrl": 372,
+      "r3_unfilled": 164,
+      "r3_second": 143
+     },
+     "zone H4": {
+      "ctrl": 1950,
+      "r3_unfilled": 884,
+      "r3_second": 532
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 320
+   },
+   {
+    "sym": "GBPCHF",
+    "counts": {
+     "arrivals": {
+      "candidates": 85,
+      "verified": 85
+     },
+     "zone D1": {
+      "ctrl": 345,
+      "r3_second": 126,
+      "r3_unfilled": 153
+     },
+     "zone H4": {
+      "ctrl": 1717,
+      "r3_second": 441,
+      "r3_unfilled": 805
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 344
+   },
+   {
+    "sym": "NZDUSD",
+    "counts": {
+     "arrivals": {
+      "candidates": 79,
+      "verified": 79
+     },
+     "zone D1": {
+      "ctrl": 412,
+      "r3_unfilled": 196,
+      "r3_second": 141
+     },
+     "zone H4": {
+      "ctrl": 1964,
+      "r3_second": 504,
+      "r3_unfilled": 879
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 355
+   },
+   {
+    "sym": "AUDJPY",
+    "counts": {
+     "arrivals": {
+      "candidates": 75,
+      "verified": 74,
+      "not_current": 1
+     },
+     "zone D1": {
+      "ctrl": 378,
+      "r3_unfilled": 160,
+      "r3_second": 152
+     },
+     "zone H4": {
+      "ctrl": 1972,
+      "r3_unfilled": 914,
+      "r3_second": 521
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 350
+   },
+   {
+    "sym": "CADJPY",
+    "counts": {
+     "arrivals": {
+      "candidates": 78,
+      "verified": 78
+     },
+     "zone D1": {
+      "ctrl": 380,
+      "r3_unfilled": 184,
+      "r3_second": 118
+     },
+     "zone H4": {
+      "ctrl": 1881,
+      "r3_second": 448,
+      "r3_unfilled": 903
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 78
+   },
+   {
+    "sym": "CADCHF",
+    "counts": {
+     "arrivals": {
+      "candidates": 101,
+      "verified": 101
+     },
+     "zone D1": {
+      "ctrl": 377,
+      "r3_second": 142,
+      "r3_unfilled": 163
+     },
+     "zone H4": {
+      "ctrl": 1766,
+      "r3_second": 480,
+      "r3_unfilled": 827
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 95
+   },
+   {
+    "sym": "CHFJPY",
+    "counts": {
+     "arrivals": {
+      "candidates": 86,
+      "verified": 86
+     },
+     "zone D1": {
+      "ctrl": 357,
+      "r3_unfilled": 173,
+      "r3_second": 123
+     },
+     "zone H4": {
+      "ctrl": 1800,
+      "r3_unfilled": 839,
+      "r3_second": 487
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 84
+   },
+   {
+    "sym": "EURCAD",
+    "counts": {
+     "arrivals": {
+      "candidates": 94,
+      "verified": 94
+     },
+     "zone D1": {
+      "ctrl": 349,
+      "r3_second": 117,
+      "r3_unfilled": 164
+     },
+     "zone H4": {
+      "ctrl": 1880,
+      "r3_unfilled": 902,
+      "r3_second": 444
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 92
+   },
+   {
+    "sym": "EURJPY",
+    "counts": {
+     "arrivals": {
+      "candidates": 90,
+      "verified": 90
+     },
+     "zone D1": {
+      "ctrl": 383,
+      "r3_second": 139,
+      "r3_unfilled": 171
+     },
+     "zone H4": {
+      "ctrl": 1984,
+      "r3_unfilled": 947,
+      "r3_second": 496
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 166
+   },
+   {
+    "sym": "EURNZD",
+    "counts": {
+     "arrivals": {
+      "candidates": 96,
+      "verified": 96
+     },
+     "zone D1": {
+      "ctrl": 386,
+      "r3_unfilled": 179,
+      "r3_second": 130
+     },
+     "zone H4": {
+      "ctrl": 1905,
+      "r3_unfilled": 861,
+      "r3_second": 507
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 186
+   },
+   {
+    "sym": "GBPJPY",
+    "counts": {
+     "arrivals": {
+      "candidates": 92,
+      "verified": 92
+     },
+     "zone D1": {
+      "ctrl": 401,
+      "r3_second": 123,
+      "r3_unfilled": 184
+     },
+     "zone H4": {
+      "ctrl": 1897,
+      "r3_second": 493,
+      "r3_unfilled": 842
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 183
+   },
+   {
+    "sym": "GBPCAD",
+    "counts": {
+     "arrivals": {
+      "candidates": 116,
+      "verified": 116
+     },
+     "zone D1": {
+      "ctrl": 352,
+      "r3_second": 127,
+      "r3_unfilled": 158
+     },
+     "zone H4": {
+      "ctrl": 1819,
+      "r3_unfilled": 891,
+      "r3_second": 438
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 196
+   },
+   {
+    "sym": "NZDJPY",
+    "counts": {
+     "arrivals": {
+      "candidates": 78,
+      "verified": 78
+     },
+     "zone D1": {
+      "ctrl": 369,
+      "r3_unfilled": 168,
+      "r3_second": 131
+     },
+     "zone H4": {
+      "ctrl": 1863,
+      "r3_unfilled": 846,
+      "r3_second": 483
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 259
+   },
+   {
+    "sym": "GBPNZD",
+    "counts": {
+     "arrivals": {
+      "candidates": 102,
+      "verified": 102
+     },
+     "zone D1": {
+      "ctrl": 350,
+      "r3_unfilled": 155,
+      "r3_second": 137
+     },
+     "zone H4": {
+      "ctrl": 1858,
+      "r3_unfilled": 795,
+      "r3_second": 530
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 262
+   },
+   {
+    "sym": "EURCZK",
+    "counts": {
+     "arrivals": {
+      "candidates": 65,
+      "verified": 64,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 254
+   },
+   {
+    "sym": "AUDSGD",
+    "counts": {
+     "arrivals": {
+      "candidates": 72,
+      "verified": 72
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 253
+   },
+   {
+    "sym": "EURHUF",
+    "counts": {
+     "arrivals": {
+      "candidates": 89,
+      "verified": 89,
+      "fine_missing": 5
+     }
+    },
+    "error": null,
+    "fine_fail": 5,
+    "requests": 345
+   },
+   {
+    "sym": "EURSEK",
+    "counts": {
+     "arrivals": {
+      "candidates": 66,
+      "verified": 66,
+      "fine_missing": 6
+     }
+    },
+    "error": null,
+    "fine_fail": 6,
+    "requests": 314
+   },
+   {
+    "sym": "EURNOK",
+    "counts": {
+     "arrivals": {
+      "candidates": 84,
+      "verified": 84,
+      "fine_missing": 5
+     }
+    },
+    "error": null,
+    "fine_fail": 5,
+    "requests": 342
+   },
+   {
+    "sym": "EURPLN",
+    "counts": {
+     "arrivals": {
+      "candidates": 90,
+      "verified": 89,
+      "fine_missing": 2,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 2,
+    "requests": 340
+   },
+   {
+    "sym": "EURTRY",
+    "counts": {
+     "arrivals": {
+      "candidates": 60,
+      "verified": 60
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 60
+   },
+   {
+    "sym": "GBPSGD",
+    "counts": {
+     "arrivals": {
+      "candidates": 75,
+      "verified": 75
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 72
+   },
+   {
+    "sym": "EURSGD",
+    "counts": {
+     "arrivals": {
+      "candidates": 79,
+      "verified": 79,
+      "fine_missing": 5
+     }
+    },
+    "error": null,
+    "fine_fail": 5,
+    "requests": 75
+   },
+   {
+    "sym": "EURZAR",
+    "counts": {
+     "arrivals": {
+      "candidates": 79,
+      "verified": 79,
+      "fine_missing": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 1,
+    "requests": 75
+   },
+   {
+    "sym": "NZDCAD",
+    "counts": {
+     "arrivals": {
+      "candidates": 77,
+      "verified": 76,
+      "not_current": 1
+     },
+     "zone D1": {
+      "ctrl": 347,
+      "r3_second": 128,
+      "r3_unfilled": 153
+     },
+     "zone H4": {
+      "ctrl": 1811,
+      "r3_second": 531,
+      "r3_unfilled": 778
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 133
+   },
+   {
+    "sym": "NZDCHF",
+    "counts": {
+     "arrivals": {
+      "candidates": 80,
+      "verified": 80
+     },
+     "zone D1": {
+      "ctrl": 332,
+      "r3_unfilled": 142,
+      "r3_second": 128
+     },
+     "zone H4": {
+      "ctrl": 1773,
+      "r3_unfilled": 812,
+      "r3_second": 471
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 147
+   },
+   {
+    "sym": "USDCNH",
+    "counts": {
+     "arrivals": {
+      "candidates": 54,
+      "verified": 53,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 125
+   },
+   {
+    "sym": "SGDJPY",
+    "counts": {
+     "arrivals": {
+      "candidates": 76,
+      "verified": 76
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 149
+   },
+   {
+    "sym": "USDHKD",
+    "counts": {
+     "arrivals": {
+      "candidates": 57,
+      "verified": 57
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 202
+   },
+   {
+    "sym": "USDCZK",
+    "counts": {
+     "arrivals": {
+      "candidates": 97,
+      "verified": 97
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 224
+   },
+   {
+    "sym": "USDMXN",
+    "counts": {
+     "arrivals": {
+      "candidates": 69,
+      "verified": 68,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 217
+   },
+   {
+    "sym": "USDHUF",
+    "counts": {
+     "arrivals": {
+      "candidates": 103,
+      "verified": 103
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 221
+   },
+   {
+    "sym": "USDNOK",
+    "counts": {
+     "arrivals": {
+      "candidates": 83,
+      "verified": 83,
+      "fine_missing": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 1,
+    "requests": 282
+   },
+   {
+    "sym": "USDPLN",
+    "counts": {
+     "arrivals": {
+      "candidates": 98,
+      "verified": 98
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 318
+   },
+   {
+    "sym": "USDTHB",
+    "counts": {
+     "arrivals": {
+      "candidates": 49,
+      "verified": 49
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 46
+   },
+   {
+    "sym": "USDSEK",
+    "counts": {
+     "arrivals": {
+      "candidates": 94,
+      "verified": 94,
+      "fine_missing": 4
+     }
+    },
+    "error": null,
+    "fine_fail": 4,
+    "requests": 306
+   },
+   {
+    "sym": "USDSGD",
+    "counts": {
+     "arrivals": {
+      "candidates": 85,
+      "verified": 85,
+      "fine_missing": 5
+     }
+    },
+    "error": null,
+    "fine_fail": 5,
+    "requests": 302
+   },
+   {
+    "sym": "USDTRY",
+    "counts": {
+     "arrivals": {
+      "candidates": 41,
+      "verified": 41,
+      "fine_missing": 5
+     }
+    },
+    "error": null,
+    "fine_fail": 5,
+    "requests": 41
+   },
+   {
+    "sym": "ZARJPY",
+    "counts": {
+     "arrivals": {
+      "candidates": 78,
+      "verified": 78,
+      "fine_missing": 4
+     }
+    },
+    "error": null,
+    "fine_fail": 4,
+    "requests": 76
+   },
+   {
+    "sym": "XAGAUD",
+    "counts": {
+     "arrivals": {
+      "candidates": 94,
+      "verified": 94,
+      "fine_missing": 3
+     }
+    },
+    "error": null,
+    "fine_fail": 3,
+    "requests": 129
+   },
+   {
+    "sym": "USDZAR",
+    "counts": {
+     "arrivals": {
+      "candidates": 99,
+      "verified": 99,
+      "fine_missing": 8
+     }
+    },
+    "error": null,
+    "fine_fail": 8,
+    "requests": 140
+   },
+   {
+    "sym": "COPPER",
+    "counts": {
+     "arrivals": {
+      "candidates": 103,
+      "verified": 103,
+      "fine_missing": 8
+     }
+    },
+    "error": null,
+    "fine_fail": 8,
+    "requests": 97
+   },
+   {
+    "sym": "XAGEUR",
+    "counts": {
+     "arrivals": {
+      "candidates": 109,
+      "verified": 108,
+      "fine_missing": 5,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 5,
+    "requests": 181
+   },
+   {
+    "sym": "XAUAUD",
+    "counts": {
+     "arrivals": {
+      "candidates": 86,
+      "verified": 86,
+      "fine_missing": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 1,
+    "requests": 182
+   },
+   {
+    "sym": "XAUUSD",
+    "counts": {
+     "arrivals": {
+      "candidates": 100,
+      "verified": 100,
+      "fine_missing": 2
+     },
+     "zone D1": {
+      "ctrl": 437,
+      "r3_second": 151,
+      "r3_unfilled": 216
+     },
+     "zone H4": {
+      "ctrl": 1922,
+      "r3_unfilled": 913,
+      "r3_second": 476
+     }
+    },
+    "error": null,
+    "fine_fail": 2,
+    "requests": 238
+   },
+   {
+    "sym": "XAGUSD",
+    "counts": {
+     "arrivals": {
+      "candidates": 129,
+      "verified": 129,
+      "fine_missing": 3
+     }
+    },
+    "error": null,
+    "fine_fail": 3,
+    "requests": 255
+   },
+   {
+    "sym": "XAUCHF",
+    "counts": {
+     "arrivals": {
+      "candidates": 83,
+      "verified": 82,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 262
+   },
+   {
+    "sym": "XAUEUR",
+    "counts": {
+     "arrivals": {
+      "candidates": 72,
+      "verified": 72
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 253
+   },
+   {
+    "sym": "XAUJPY",
+    "counts": {
+     "arrivals": {
+      "candidates": 77,
+      "verified": 77
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 331
+   },
+   {
+    "sym": "XAUGBP",
+    "counts": {
+     "arrivals": {
+      "candidates": 98,
+      "verified": 98
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 333
+   },
+   {
+    "sym": "XPDUSD",
+    "counts": {
+     "arrivals": {
+      "candidates": 85,
+      "verified": 85
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 346
+   },
+   {
+    "sym": "XPTUSD",
+    "counts": {
+     "arrivals": {
+      "candidates": 114,
+      "verified": 113,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 362
+   },
+   {
+    "sym": "NATGAS",
+    "counts": {
+     "arrivals": {
+      "candidates": 86,
+      "verified": 86
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 85
+   },
+   {
+    "sym": "SPOTBRENT",
+    "counts": {
+     "arrivals": {
+      "candidates": 79,
+      "verified": 79
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 75
+   },
+   {
+    "sym": "CHINAH",
+    "counts": {
+     "arrivals": {
+      "candidates": 28,
+      "verified": 28
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 113
+   },
+   {
+    "sym": "SPOTCRUDE",
+    "counts": {
+     "arrivals": {
+      "candidates": 116,
+      "verified": 115,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 112
+   },
+   {
+    "sym": "AUS200",
+    "counts": {
+     "arrivals": {
+      "candidates": 81,
+      "verified": 81
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 76
+   },
+   {
+    "sym": "EUSTX50",
+    "counts": {
+     "arrivals": {
+      "candidates": 62,
+      "verified": 62
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 172
+   },
+   {
+    "sym": "CN50",
+    "counts": {
+     "arrivals": {
+      "candidates": 72,
+      "verified": 72
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 144
+   },
+   {
+    "sym": "FRA40",
+    "counts": {
+     "arrivals": {
+      "candidates": 57,
+      "verified": 57
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 168
+   },
+   {
+    "sym": "GER40",
+    "counts": {
+     "arrivals": {
+      "candidates": 65,
+      "verified": 65
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 141
+   },
+   {
+    "sym": "HK50",
+    "counts": {
+     "arrivals": {
+      "candidates": 74,
+      "verified": 74
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 241
+   },
+   {
+    "sym": "SPA35",
+    "counts": {
+     "arrivals": {
+      "candidates": 28,
+      "verified": 28
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 26
+   },
+   {
+    "sym": "JPN225",
+    "counts": {
+     "arrivals": {
+      "candidates": 89,
+      "verified": 88,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 230
+   },
+   {
+    "sym": "NETH25",
+    "counts": {
+     "arrivals": {
+      "candidates": 39,
+      "verified": 39
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 178
+   },
+   {
+    "sym": "NAS100",
+    "counts": {
+     "arrivals": {
+      "candidates": 78,
+      "verified": 78
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 245
+   },
+   {
+    "sym": "SWI20",
+    "counts": {
+     "arrivals": {
+      "candidates": 43,
+      "verified": 43
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 67
+   },
+   {
+    "sym": "UK100",
+    "counts": {
+     "arrivals": {
+      "candidates": 69,
+      "verified": 69
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 298
+   },
+   {
+    "sym": "US2000",
+    "counts": {
+     "arrivals": {
+      "candidates": 104,
+      "verified": 103,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 275
+   },
+   {
+    "sym": "US30",
+    "counts": {
+     "arrivals": {
+      "candidates": 84,
+      "verified": 84
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 328
+   },
+   {
+    "sym": "US500",
+    "counts": {
+     "arrivals": {
+      "candidates": 96,
+      "verified": 96
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 161
+   },
+   {
+    "sym": "CORN",
+    "counts": {
+     "arrivals": {
+      "candidates": 84,
+      "verified": 82,
+      "not_current": 2
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 78
+   },
+   {
+    "sym": "SOYBEANS",
+    "counts": {
+     "arrivals": {
+      "candidates": 71,
+      "verified": 71
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 70
+   },
+   {
+    "sym": "SUGAR",
+    "counts": {
+     "arrivals": {
+      "candidates": 51,
+      "verified": 51
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 48
+   },
+   {
+    "sym": "WHEAT",
+    "counts": {
+     "arrivals": {
+      "candidates": 95,
+      "verified": 95
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 253
+   },
+   {
+    "sym": "AUDHKD",
+    "counts": {
+     "arrivals": {
+      "candidates": 96,
+      "verified": 96
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 171
+   },
+   {
+    "sym": "CADSGD",
+    "counts": {
+     "arrivals": {
+      "candidates": 79,
+      "verified": 79
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 122
+   },
+   {
+    "sym": "CADHKD",
+    "counts": {
+     "arrivals": {
+      "candidates": 89,
+      "verified": 89
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 158
+   },
+   {
+    "sym": "EURDKK",
+    "counts": {
+     "arrivals": {
+      "candidates": 25,
+      "verified": 25
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 147
+   },
+   {
+    "sym": "CHFZAR",
+    "counts": {
+     "arrivals": {
+      "candidates": 71,
+      "verified": 71
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 241
+   },
+   {
+    "sym": "CHFHKD",
+    "counts": {
+     "arrivals": {
+      "candidates": 107,
+      "verified": 106,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 102
+   },
+   {
+    "sym": "GBPHKD",
+    "counts": {
+     "arrivals": {
+      "candidates": 90,
+      "verified": 90
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 234
+   },
+   {
+    "sym": "EURHKD",
+    "counts": {
+     "arrivals": {
+      "candidates": 113,
+      "verified": 113
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 262
+   },
+   {
+    "sym": "GBPPLN",
+    "counts": {
+     "arrivals": {
+      "candidates": 81,
+      "verified": 81
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 321
+   },
+   {
+    "sym": "GBPZAR",
+    "counts": {
+     "arrivals": {
+      "candidates": 93,
+      "verified": 93
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 187
+   },
+   {
+    "sym": "NZDHKD",
+    "counts": {
+     "arrivals": {
+      "candidates": 74,
+      "verified": 74
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 336
+   },
+   {
+    "sym": "NZDSGD",
+    "counts": {
+     "arrivals": {
+      "candidates": 61,
+      "verified": 61
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 61
+   },
+   {
+    "sym": "HKDJPY",
+    "counts": {
+     "arrivals": {
+      "candidates": 94,
+      "verified": 94
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 92
+   },
+   {
+    "sym": "SGDCHF",
+    "counts": {
+     "arrivals": {
+      "candidates": 85,
+      "verified": 85
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 267
+   },
+   {
+    "sym": "TRYJPY",
+    "counts": {
+     "arrivals": {
+      "candidates": 68,
+      "verified": 67,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 66
+   },
+   {
+    "sym": "USDDKK",
+    "counts": {
+     "arrivals": {
+      "candidates": 105,
+      "verified": 105
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 159
+   },
+   {
+    "sym": "XAGCAD",
+    "counts": {
+     "arrivals": {
+      "candidates": 111,
+      "verified": 111
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 201
+   },
+   {
+    "sym": "XAGCHF",
+    "counts": {
+     "arrivals": {
+      "candidates": 108,
+      "verified": 108
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 368
+   },
+   {
+    "sym": "XAGGBP",
+    "counts": {
+     "arrivals": {
+      "candidates": 93,
+      "verified": 93
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 153
+   },
+   {
+    "sym": "XAGHKD",
+    "counts": {
+     "arrivals": {
+      "candidates": 126,
+      "verified": 125,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 279
+   },
+   {
+    "sym": "XAGNZD",
+    "counts": {
+     "arrivals": {
+      "candidates": 84,
+      "verified": 84
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 83
+   },
+   {
+    "sym": "XAGJPY",
+    "counts": {
+     "arrivals": {
+      "candidates": 100,
+      "verified": 99,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 297
+   },
+   {
+    "sym": "XAGSGD",
+    "counts": {
+     "arrivals": {
+      "candidates": 114,
+      "verified": 114
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 263
+   },
+   {
+    "sym": "XAUCAD",
+    "counts": {
+     "arrivals": {
+      "candidates": 94,
+      "verified": 94
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 370
+   },
+   {
+    "sym": "XAUNZD",
+    "counts": {
+     "arrivals": {
+      "candidates": 85,
+      "verified": 85
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 380
+   },
+   {
+    "sym": "XAUHKD",
+    "counts": {
+     "arrivals": {
+      "candidates": 113,
+      "verified": 112,
+      "not_current": 1
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 193
+   },
+   {
+    "sym": "XAUSGD",
+    "counts": {
+     "arrivals": {
+      "candidates": 100,
+      "verified": 100
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 362
+   },
+   {
+    "sym": "XAUXAG",
+    "counts": {
+     "arrivals": {
+      "candidates": 83,
+      "verified": 83
+     }
+    },
+    "error": null,
+    "fine_fail": 0,
+    "requests": 81
+   }
+  ]
+ },
+ "hypotheses": {
+  "zone:all:2R": {
+   "label": "every setup, fixed 2R",
+   "population": "zone",
+   "family": "0 baseline",
+   "filter": "all",
+   "mgmt": "2R",
+   "counted": false,
+   "train": {
+    "n": 20783,
+    "win": 0.33118414088437664,
+    "exp_r": -0.08423298891709666,
+    "ci": [
+     -0.10665376179619979,
+     -0.06208465383644485
+    ],
+    "p": 0.9999999999999803
+   },
+   "test": {
+    "n": 14284,
+    "win": 0.332189862783534,
+    "exp_r": -0.09182971680308764,
+    "ci": [
+     -0.11790659149059142,
+     -0.06587935064597002
+    ],
+    "p": 0.9999999999980662
+   },
+   "halves": [
+    {
+     "n": 6913,
+     "win": 0.3435556198466657,
+     "exp_r": -0.05641830904048526,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 7371,
+     "win": 0.3215303215303215,
+     "exp_r": -0.1250408227402563,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": null,
+   "bonferroni": null,
+   "survives": false
+  },
+  "zone:mom12:2R": {
+   "label": "side agrees with the 12-month return, fixed 2R",
+   "population": "zone",
+   "family": "1 trend",
+   "filter": "mom12",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 10717,
+    "win": 0.3319025846785481,
+    "exp_r": -0.08078517841139067,
+    "ci": [
+     -0.11277147604520005,
+     -0.04577772195729129
+    ],
+    "p": 0.9999986459307652
+   },
+   "test": {
+    "n": 7427,
+    "win": 0.3308199811498586,
+    "exp_r": -0.0942015583535043,
+    "ci": [
+     -0.1390072547296354,
+     -0.04871130090659764
+    ],
+    "p": 0.9999852755963382
+   },
+   "halves": [
+    {
+     "n": 3585,
+     "win": 0.33695955369595537,
+     "exp_r": -0.07414986999377368,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 3842,
+     "win": 0.32509109838625716,
+     "exp_r": -0.11291194429042108,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:sma200:2R": {
+   "label": "side agrees with close vs 200-day SMA, fixed 2R",
+   "population": "zone",
+   "family": "1 trend",
+   "filter": "sma200",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 10863,
+    "win": 0.3215502163306637,
+    "exp_r": -0.11077628271284026,
+    "ci": [
+     -0.14401290903430822,
+     -0.07461660650894515
+    ],
+    "p": 0.9999999996704104
+   },
+   "test": {
+    "n": 7644,
+    "win": 0.3313710099424385,
+    "exp_r": -0.09318980128563933,
+    "ci": [
+     -0.13683497653938648,
+     -0.05028039293729381
+    ],
+    "p": 0.9999873762329843
+   },
+   "halves": [
+    {
+     "n": 3686,
+     "win": 0.3391209983722192,
+     "exp_r": -0.0696852577322693,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 3958,
+     "win": 0.3241536129358262,
+     "exp_r": -0.11507907554984398,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:mom12+sma200:2R": {
+   "label": "12-month return and 200-day SMA both agree, fixed 2R",
+   "population": "zone",
+   "family": "1 trend",
+   "filter": "mom12+sma200",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 8316,
+    "win": 0.32227032227032226,
+    "exp_r": -0.1084758645785044,
+    "ci": [
+     -0.147655641046952,
+     -0.07044755001584999
+    ],
+    "p": 0.9999999779822165
+   },
+   "test": {
+    "n": 5875,
+    "win": 0.3293617021276596,
+    "exp_r": -0.09793504517766038,
+    "ci": [
+     -0.14710461881699702,
+     -0.047588213071597066
+    ],
+    "p": 0.9999010917576031
+   },
+   "halves": [
+    {
+     "n": 2828,
+     "win": 0.3341584158415842,
+     "exp_r": -0.08211869518591239,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 3047,
+     "win": 0.3249097472924188,
+     "exp_r": -0.11261461123498342,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:rev:2R": {
+   "label": "reversal zone (DBR / RBD), fixed 2R",
+   "population": "zone",
+   "family": "2 pattern",
+   "filter": "rev",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 9941,
+    "win": 0.32662709988934713,
+    "exp_r": -0.11799510148701631,
+    "ci": [
+     -0.14775542271699682,
+     -0.08936086505633262
+    ],
+    "p": 0.9999999999999996
+   },
+   "test": {
+    "n": 6442,
+    "win": 0.32132877988202424,
+    "exp_r": -0.14612496953501133,
+    "ci": [
+     -0.18398500722323602,
+     -0.10933271613447472
+    ],
+    "p": 0.999999999999979
+   },
+   "halves": [
+    {
+     "n": 3142,
+     "win": 0.3290897517504774,
+     "exp_r": -0.12094925605727809,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 3300,
+     "win": 0.31393939393939396,
+     "exp_r": -0.17009530036744705,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:cont:2R": {
+   "label": "continuation zone (RBR / DBD), fixed 2R",
+   "population": "zone",
+   "family": "2 pattern",
+   "filter": "cont",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 10842,
+    "win": 0.33536247924737134,
+    "exp_r": -0.053276600699279704,
+    "ci": [
+     -0.08455394695754068,
+     -0.02290150756952964
+    ],
+    "p": 0.9995262916830322
+   },
+   "test": {
+    "n": 7842,
+    "win": 0.341111961234379,
+    "exp_r": -0.04722757218448876,
+    "ci": [
+     -0.08639640203532734,
+     -0.007894639775457285
+    ],
+    "p": 0.9919810288115402
+   },
+   "halves": [
+    {
+     "n": 3771,
+     "win": 0.3556085918854415,
+     "exp_r": -0.0026510760713091583,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 4071,
+     "win": 0.327683615819209,
+     "exp_r": -0.08851913859146501,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:cont+mom12:2R": {
+   "label": "continuation zone + 12-month momentum agrees, fixed 2R",
+   "population": "zone",
+   "family": "2 pattern",
+   "filter": "cont+mom12",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 5799,
+    "win": 0.3328160027590964,
+    "exp_r": -0.06012560829918452,
+    "ci": [
+     -0.1051999920286033,
+     -0.014145995360930913
+    ],
+    "p": 0.9944597646211146
+   },
+   "test": {
+    "n": 4203,
+    "win": 0.34237449440875567,
+    "exp_r": -0.042002330685962055,
+    "ci": [
+     -0.10425299808461769,
+     0.017798258956469637
+    ],
+    "p": 0.9132836696986486
+   },
+   "halves": [
+    {
+     "n": 1981,
+     "win": 0.35386168601716306,
+     "exp_r": -0.0035401061469095573,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 2222,
+     "win": 0.3321332133213321,
+     "exp_r": -0.07629290980921273,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:vol<30:2R": {
+   "label": "ATR percentile < 30 (quiet), fixed 2R",
+   "population": "zone",
+   "family": "3 volatility",
+   "filter": "vol<30",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 6598,
+    "win": 0.31615641103364656,
+    "exp_r": -0.13682679427294292,
+    "ci": [
+     -0.1731475372108918,
+     -0.09770079182911894
+    ],
+    "p": 0.9999999999998835
+   },
+   "test": {
+    "n": 4452,
+    "win": 0.3247978436657682,
+    "exp_r": -0.11916744818038964,
+    "ci": [
+     -0.16362386402084153,
+     -0.0717339504555126
+    ],
+    "p": 0.9999997367084026
+   },
+   "halves": [
+    {
+     "n": 2151,
+     "win": 0.3319386331938633,
+     "exp_r": -0.09424792333996705,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 2301,
+     "win": 0.318122555410691,
+     "exp_r": -0.14246249291387464,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:vol30-70:2R": {
+   "label": "ATR percentile 30-70, fixed 2R",
+   "population": "zone",
+   "family": "3 volatility",
+   "filter": "vol30-70",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 7603,
+    "win": 0.3303958963567013,
+    "exp_r": -0.08556381607596128,
+    "ci": [
+     -0.11841219752215017,
+     -0.05460817174994027
+    ],
+    "p": 0.9999999270519209
+   },
+   "test": {
+    "n": 5391,
+    "win": 0.3346317937302912,
+    "exp_r": -0.08260402739525774,
+    "ci": [
+     -0.12222533601384172,
+     -0.042528414590712445
+    ],
+    "p": 0.999943223899617
+   },
+   "halves": [
+    {
+     "n": 2623,
+     "win": 0.34693099504384295,
+     "exp_r": -0.04236237098454958,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 2768,
+     "win": 0.3229768786127168,
+     "exp_r": -0.12073764905901768,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:vol>70:2R": {
+   "label": "ATR percentile > 70 (volatile), fixed 2R",
+   "population": "zone",
+   "family": "3 volatility",
+   "filter": "vol>70",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 6582,
+    "win": 0.34715891826192646,
+    "exp_r": -0.029974069648375675,
+    "ci": [
+     -0.06836380802926942,
+     0.014103380565015557
+    ],
+    "p": 0.9239666220306502
+   },
+   "test": {
+    "n": 4441,
+    "win": 0.3366358928169331,
+    "exp_r": -0.07562348205998079,
+    "ci": [
+     -0.1209518177711693,
+     -0.03097858992498405
+    ],
+    "p": 0.9996160399986128
+   },
+   "halves": [
+    {
+     "n": 2139,
+     "win": 0.35109864422627396,
+     "exp_r": -0.03561289770927159,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 2302,
+     "win": 0.32319721980886185,
+     "exp_r": -0.11280099723207766,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:vol>90:2R": {
+   "label": "ATR percentile > 90, fixed 2R",
+   "population": "zone",
+   "family": "3 volatility",
+   "filter": "vol>90",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 2545,
+    "win": 0.35599214145383107,
+    "exp_r": -0.004779791238005592,
+    "ci": [
+     -0.0648584563704615,
+     0.0580344757895571
+    ],
+    "p": 0.5590253984823546
+   },
+   "test": {
+    "n": 1662,
+    "win": 0.351985559566787,
+    "exp_r": -0.02455438441131583,
+    "ci": [
+     -0.09472760191307539,
+     0.04280651343335367
+    ],
+    "p": 0.7545056951351246
+   },
+   "halves": [
+    {
+     "n": 804,
+     "win": 0.3756218905472637,
+     "exp_r": 0.042493326344857585,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 858,
+     "win": 0.3298368298368298,
+     "exp_r": -0.08738230917584199,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:asia:2R": {
+   "label": "H4 zone filled in Asia (21-07 UTC), fixed 2R",
+   "population": "zone",
+   "family": "4 session (H4)",
+   "filter": "asia",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 7441,
+    "win": 0.33248219325359496,
+    "exp_r": -0.08853677617947521,
+    "ci": [
+     -0.12255522701370822,
+     -0.052973653475678395
+    ],
+    "p": 0.9999995611413514
+   },
+   "test": {
+    "n": 5599,
+    "win": 0.34452580818003214,
+    "exp_r": -0.0617736003003936,
+    "ci": [
+     -0.10818243181563819,
+     -0.01740833967125107
+    ],
+    "p": 0.9972479994644009
+   },
+   "halves": [
+    {
+     "n": 2686,
+     "win": 0.3622486969471333,
+     "exp_r": -0.00714871273441281,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 2913,
+     "win": 0.32818400274630966,
+     "exp_r": -0.1121417595871167,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:london:2R": {
+   "label": "H4 zone filled in London (07-12 UTC), fixed 2R",
+   "population": "zone",
+   "family": "4 session (H4)",
+   "filter": "london",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 3484,
+    "win": 0.33008036739380026,
+    "exp_r": -0.09555215746416618,
+    "ci": [
+     -0.14648711002593331,
+     -0.04040141518248343
+    ],
+    "p": 0.9998157840616319
+   },
+   "test": {
+    "n": 2359,
+    "win": 0.3128444256040695,
+    "exp_r": -0.15229238534542672,
+    "ci": [
+     -0.21530538572583063,
+     -0.09433455270757818
+    ],
+    "p": 0.999999568267051
+   },
+   "halves": [
+    {
+     "n": 1185,
+     "win": 0.319831223628692,
+     "exp_r": -0.13086062822588124,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 1174,
+     "win": 0.30579216354344124,
+     "exp_r": -0.17392495109215708,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:overlap:2R": {
+   "label": "H4 zone filled in the London-NY overlap (12-16 UTC), fixed 2R",
+   "population": "zone",
+   "family": "4 session (H4)",
+   "filter": "overlap",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 4423,
+    "win": 0.3287361519330771,
+    "exp_r": -0.09933281960724681,
+    "ci": [
+     -0.14237173615242885,
+     -0.051577290583360746
+    ],
+    "p": 0.9999928275747032
+   },
+   "test": {
+    "n": 3044,
+    "win": 0.32128777923784496,
+    "exp_r": -0.1367876223653425,
+    "ci": [
+     -0.19100511309796592,
+     -0.07903763308432094
+    ],
+    "p": 0.9999987742747096
+   },
+   "halves": [
+    {
+     "n": 1421,
+     "win": 0.32371569317382126,
+     "exp_r": -0.12358164369385083,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 1623,
+     "win": 0.31916204559457795,
+     "exp_r": -0.14834997337716607,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:ny:2R": {
+   "label": "H4 zone filled in NY (16-21 UTC), fixed 2R",
+   "population": "zone",
+   "family": "4 session (H4)",
+   "filter": "ny",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 1798,
+    "win": 0.3309232480533927,
+    "exp_r": -0.09399655079018358,
+    "ci": [
+     -0.16603200824736247,
+     -0.016619603785873436
+    ],
+    "p": 0.9948209469842281
+   },
+   "test": {
+    "n": 1043,
+    "win": 0.3096836049856184,
+    "exp_r": -0.18270176573163338,
+    "ci": [
+     -0.27385179399640447,
+     -0.0816134175756123
+    ],
+    "p": 0.999938962527476
+   },
+   "halves": [
+    {
+     "n": 543,
+     "win": 0.31123388581952116,
+     "exp_r": -0.18560125363560642,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 500,
+     "win": 0.308,
+     "exp_r": -0.17955292186791869,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:all:stop0.1": {
+   "label": "every setup, stop at distal + 0.1 ATR, 2R",
+   "population": "zone",
+   "family": "5 stop width",
+   "filter": "all",
+   "mgmt": "stop0.1",
+   "counted": true,
+   "train": {
+    "n": 20783,
+    "win": 0.32160900736178605,
+    "exp_r": -0.15011385371034375,
+    "ci": [
+     -0.1717579332000453,
+     -0.13016437048658405
+    ],
+    "p": 1.0
+   },
+   "test": {
+    "n": 14297,
+    "win": 0.3292998531160383,
+    "exp_r": -0.14081961051967845,
+    "ci": [
+     -0.1677185269937499,
+     -0.11394964241473908
+    ],
+    "p": 1.0
+   },
+   "halves": [
+    {
+     "n": 6920,
+     "win": 0.3378612716763006,
+     "exp_r": -0.11081242466502039,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 7377,
+     "win": 0.3212688084587231,
+     "exp_r": -0.16896787215912998,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:all:stop0.5": {
+   "label": "every setup, stop at distal + 0.5 ATR, 2R",
+   "population": "zone",
+   "family": "5 stop width",
+   "filter": "all",
+   "mgmt": "stop0.5",
+   "counted": true,
+   "train": {
+    "n": 20783,
+    "win": 0.32723860847808306,
+    "exp_r": -0.08584662201451887,
+    "ci": [
+     -0.10764476716092981,
+     -0.06440289484882523
+    ],
+    "p": 0.9999999999999997
+   },
+   "test": {
+    "n": 14287,
+    "win": 0.3311401973822356,
+    "exp_r": -0.08323226119026211,
+    "ci": [
+     -0.11005464494149289,
+     -0.05683474700037623
+    ],
+    "p": 0.999999999709497
+   },
+   "halves": [
+    {
+     "n": 6915,
+     "win": 0.3388286334056399,
+     "exp_r": -0.058150895149232745,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 7372,
+     "win": 0.32392837764514376,
+     "exp_r": -0.1067588002805657,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:all:stop1.0": {
+   "label": "every setup, stop at distal + 1.0 ATR, 2R",
+   "population": "zone",
+   "family": "5 stop width",
+   "filter": "all",
+   "mgmt": "stop1.0",
+   "counted": true,
+   "train": {
+    "n": 20783,
+    "win": 0.3282971659529423,
+    "exp_r": -0.06461426385171454,
+    "ci": [
+     -0.08534992572292913,
+     -0.04479073897048185
+    ],
+    "p": 0.999999999757932
+   },
+   "test": {
+    "n": 14272,
+    "win": 0.33029708520179374,
+    "exp_r": -0.06328002458088194,
+    "ci": [
+     -0.08948809572362482,
+     -0.03745962780568727
+    ],
+    "p": 0.9999983409114521
+   },
+   "halves": [
+    {
+     "n": 6909,
+     "win": 0.3370965407439572,
+     "exp_r": -0.040738985569935465,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 7363,
+     "win": 0.32391688170582644,
+     "exp_r": -0.08443119102480821,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:all:time10": {
+   "label": "every setup, fixed 2R + time stop (+1R in 10 TF bars)",
+   "population": "zone",
+   "family": "6 exits",
+   "filter": "all",
+   "mgmt": "time10",
+   "counted": true,
+   "train": {
+    "n": 20783,
+    "win": 0.34302073810325745,
+    "exp_r": -0.08805331488450112,
+    "ci": [
+     -0.1084221546111601,
+     -0.06799713846238128
+    ],
+    "p": 1.0
+   },
+   "test": {
+    "n": 14288,
+    "win": 0.3482642777155655,
+    "exp_r": -0.08766277947799607,
+    "ci": [
+     -0.11094108186675815,
+     -0.06296751656488368
+    ],
+    "p": 0.9999999999990277
+   },
+   "halves": [
+    {
+     "n": 6916,
+     "win": 0.3546847888953152,
+     "exp_r": -0.057183898449605225,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 7372,
+     "win": 0.3422409115572436,
+     "exp_r": -0.11625636889638337,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:all:be2R": {
+   "label": "every setup, break-even at 2R, target 3R",
+   "population": "zone",
+   "family": "6 exits",
+   "filter": "all",
+   "mgmt": "be2R",
+   "counted": true,
+   "train": {
+    "n": 20783,
+    "win": 0.2324014819804648,
+    "exp_r": -0.07215239077395266,
+    "ci": [
+     -0.09800089385937415,
+     -0.04627609857739227
+    ],
+    "p": 0.9999999810863152
+   },
+   "test": {
+    "n": 14278,
+    "win": 0.22839333239949572,
+    "exp_r": -0.0952664427320077,
+    "ci": [
+     -0.1264412423276186,
+     -0.06419445034237914
+    ],
+    "p": 0.9999999993165368
+   },
+   "halves": [
+    {
+     "n": 6910,
+     "win": 0.2390738060781476,
+     "exp_r": -0.050912467851929356,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 7368,
+     "win": 0.2183767643865364,
+     "exp_r": -0.1368633437121029,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:all:1.5R": {
+   "label": "every setup, fixed 1.5R",
+   "population": "zone",
+   "family": "6 exits",
+   "filter": "all",
+   "mgmt": "1.5R",
+   "counted": true,
+   "train": {
+    "n": 20783,
+    "win": 0.39108887071163934,
+    "exp_r": -0.09456143241204878,
+    "ci": [
+     -0.11206198973999365,
+     -0.0760080242300803
+    ],
+    "p": 1.0
+   },
+   "test": {
+    "n": 14285,
+    "win": 0.3933496674833742,
+    "exp_r": -0.09745426306163811,
+    "ci": [
+     -0.11978891725252051,
+     -0.0751512487954178
+    ],
+    "p": 1.0
+   },
+   "halves": [
+    {
+     "n": 6913,
+     "win": 0.40358744394618834,
+     "exp_r": -0.06915084337237999,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 7372,
+     "win": 0.38374932175800325,
+     "exp_r": -0.12399543781907726,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:all:3R": {
+   "label": "every setup, fixed 3R",
+   "population": "zone",
+   "family": "6 exits",
+   "filter": "all",
+   "mgmt": "3R",
+   "counted": true,
+   "train": {
+    "n": 20783,
+    "win": 0.25804744262137325,
+    "exp_r": -0.0759340818018983,
+    "ci": [
+     -0.10183492953776435,
+     -0.04956006968078314
+    ],
+    "p": 0.9999999849846058
+   },
+   "test": {
+    "n": 14274,
+    "win": 0.2557797393862968,
+    "exp_r": -0.0978606343511689,
+    "ci": [
+     -0.1297052954394576,
+     -0.06531624208593785
+    ],
+    "p": 0.9999999979279008
+   },
+   "halves": [
+    {
+     "n": 6907,
+     "win": 0.2652381641812654,
+     "exp_r": -0.05817380932132051,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 7367,
+     "win": 0.2469119044387132,
+     "exp_r": -0.13506938967642515,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:all:swing": {
+   "label": "every setup, trail behind the entry-TF swing after 1.5R",
+   "population": "zone",
+   "family": "6 exits",
+   "filter": "all",
+   "mgmt": "swing",
+   "counted": true,
+   "train": {
+    "n": 20783,
+    "win": 0.28128759081941973,
+    "exp_r": -0.047611004286288804,
+    "ci": [
+     -0.08431828502823144,
+     -0.008919726027786483
+    ],
+    "p": 0.9926652116253877
+   },
+   "test": {
+    "n": 14276,
+    "win": 0.2797001961333707,
+    "exp_r": -0.09126070554612355,
+    "ci": [
+     -0.13254155684386945,
+     -0.048121136947871235
+    ],
+    "p": 0.9999904075638877
+   },
+   "halves": [
+    {
+     "n": 6909,
+     "win": 0.28716167317991026,
+     "exp_r": -0.0711792183816364,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 7367,
+     "win": 0.27270259264286684,
+     "exp_r": -0.11009374407190634,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:mom12+rev:2R": {
+   "label": "12-month momentum + reversal zone, fixed 2R",
+   "population": "zone",
+   "family": "8 pairs",
+   "filter": "mom12+rev",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 4918,
+    "win": 0.33082553883692556,
+    "exp_r": -0.10514565972100504,
+    "ci": [
+     -0.14851477731336282,
+     -0.06601357754618813
+    ],
+    "p": 0.999999638816065
+   },
+   "test": {
+    "n": 3224,
+    "win": 0.31575682382133996,
+    "exp_r": -0.1622516060851048,
+    "ci": [
+     -0.2150054763956032,
+     -0.10696029571833396
+    ],
+    "p": 0.9999999915048109
+   },
+   "halves": [
+    {
+     "n": 1604,
+     "win": 0.3160847880299252,
+     "exp_r": -0.16135556960763767,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 1620,
+     "win": 0.3154320987654321,
+     "exp_r": -0.16313879281958463,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:sma200+rev:2R": {
+   "label": "200-day SMA + reversal zone, fixed 2R",
+   "population": "zone",
+   "family": "8 pairs",
+   "filter": "sma200+rev",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 4912,
+    "win": 0.31881107491856675,
+    "exp_r": -0.14129204084179492,
+    "ci": [
+     -0.18088007400158854,
+     -0.09988449040330213
+    ],
+    "p": 0.9999999999864471
+   },
+   "test": {
+    "n": 3146,
+    "win": 0.3137317228226319,
+    "exp_r": -0.16820218127798015,
+    "ci": [
+     -0.22359198305941025,
+     -0.11608096408620819
+    ],
+    "p": 0.9999999997885413
+   },
+   "halves": [
+    {
+     "n": 1540,
+     "win": 0.31233766233766236,
+     "exp_r": -0.170630178832784,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 1606,
+     "win": 0.3150684931506849,
+     "exp_r": -0.1658739644446066,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:mom12+vol<30:2R": {
+   "label": "12-month momentum + quiet (ATR pct < 30), fixed 2R",
+   "population": "zone",
+   "family": "8 pairs",
+   "filter": "mom12+vol<30",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 3460,
+    "win": 0.30578034682080923,
+    "exp_r": -0.1664049125273426,
+    "ci": [
+     -0.21490154291815808,
+     -0.11578215218392295
+    ],
+    "p": 0.999999999940545
+   },
+   "test": {
+    "n": 2339,
+    "win": 0.32407011543394615,
+    "exp_r": -0.11895332321992645,
+    "ci": [
+     -0.19209484532758828,
+     -0.05293580657650093
+    ],
+    "p": 0.9996907674665721
+   },
+   "halves": [
+    {
+     "n": 1104,
+     "win": 0.3342391304347826,
+     "exp_r": -0.08276821048872385,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 1235,
+     "win": 0.31497975708502024,
+     "exp_r": -0.15130017702984358,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:mom12+vol>70:2R": {
+   "label": "12-month momentum + volatile (ATR pct > 70), fixed 2R",
+   "population": "zone",
+   "family": "8 pairs",
+   "filter": "mom12+vol>70",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 3317,
+    "win": 0.3548387096774194,
+    "exp_r": -0.006540492909589713,
+    "ci": [
+     -0.06325359534359527,
+     0.05074644259102406
+    ],
+    "p": 0.5881452945347786
+   },
+   "test": {
+    "n": 2216,
+    "win": 0.33754512635379064,
+    "exp_r": -0.07180802937362658,
+    "ci": [
+     -0.14581816377591705,
+     0.007145704548171852
+    ],
+    "p": 0.9675061159256368
+   },
+   "halves": [
+    {
+     "n": 1055,
+     "win": 0.3469194312796208,
+     "exp_r": -0.045555594358656235,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 1161,
+     "win": 0.3290267011197244,
+     "exp_r": -0.09566360124338863,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:rev+vol>70:2R": {
+   "label": "reversal zone + volatile (ATR pct > 70), fixed 2R",
+   "population": "zone",
+   "family": "8 pairs",
+   "filter": "rev+vol>70",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 3076,
+    "win": 0.3368010403120936,
+    "exp_r": -0.06995826043898426,
+    "ci": [
+     -0.12965824991804076,
+     -0.013796323041628379
+    ],
+    "p": 0.9930351222075767
+   },
+   "test": {
+    "n": 2006,
+    "win": 0.31954137587238285,
+    "exp_r": -0.13965493191318124,
+    "ci": [
+     -0.19794028630088742,
+     -0.07617287694991995
+    ],
+    "p": 0.9999961928825761
+   },
+   "halves": [
+    {
+     "n": 968,
+     "win": 0.32644628099173556,
+     "exp_r": -0.11678867588396512,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 1038,
+     "win": 0.313102119460501,
+     "exp_r": -0.1609791475550707,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:mom12:time10": {
+   "label": "side agrees with the 12-month return, fixed 2R + time stop (+1R in 10 TF bars)",
+   "population": "zone",
+   "family": "8 pairs",
+   "filter": "mom12",
+   "mgmt": "time10",
+   "counted": true,
+   "train": {
+    "n": 10717,
+    "win": 0.3441261547074741,
+    "exp_r": -0.08587417438161833,
+    "ci": [
+     -0.11542158550405081,
+     -0.04976498118933904
+    ],
+    "p": 0.9999999607666844
+   },
+   "test": {
+    "n": 7428,
+    "win": 0.3463920301561659,
+    "exp_r": -0.09284577251511128,
+    "ci": [
+     -0.1331922284186492,
+     -0.05256367729394048
+    ],
+    "p": 0.999996709208004
+   },
+   "halves": [
+    {
+     "n": 3586,
+     "win": 0.3485778025655326,
+     "exp_r": -0.0748507409407953,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 3842,
+     "win": 0.34435190005205624,
+     "exp_r": -0.10964175982002984,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:mom12:stop1.0": {
+   "label": "side agrees with the 12-month return, stop at distal + 1.0 ATR, 2R",
+   "population": "zone",
+   "family": "8 pairs",
+   "filter": "mom12",
+   "mgmt": "stop1.0",
+   "counted": true,
+   "train": {
+    "n": 10717,
+    "win": 0.32555752542689187,
+    "exp_r": -0.07154183997785193,
+    "ci": [
+     -0.10665338848453691,
+     -0.034970576972740884
+    ],
+    "p": 0.9999268267825924
+   },
+   "test": {
+    "n": 7423,
+    "win": 0.3304593829987876,
+    "exp_r": -0.06348390075931191,
+    "ci": [
+     -0.11472231210721238,
+     -0.011249719387035584
+    ],
+    "p": 0.9933850442120152
+   },
+   "halves": [
+    {
+     "n": 3585,
+     "win": 0.33417015341701534,
+     "exp_r": -0.04915239855742999,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 3838,
+     "win": 0.3269932256383533,
+     "exp_r": -0.07687067392078838,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:mom12:swing": {
+   "label": "side agrees with the 12-month return, trail behind the entry-TF swing after 1.5R",
+   "population": "zone",
+   "family": "8 pairs",
+   "filter": "mom12",
+   "mgmt": "swing",
+   "counted": true,
+   "train": {
+    "n": 10717,
+    "win": 0.28039563310627974,
+    "exp_r": -0.05879927259385875,
+    "ci": [
+     -0.10676754951283482,
+     -0.007686803144665042
+    ],
+    "p": 0.9894343967395335
+   },
+   "test": {
+    "n": 7424,
+    "win": 0.2856950431034483,
+    "exp_r": -0.0711808915407829,
+    "ci": [
+     -0.14328150615595558,
+     0.0013188992486438819
+    ],
+    "p": 0.9760297395309762
+   },
+   "halves": [
+    {
+     "n": 3583,
+     "win": 0.2877476974602289,
+     "exp_r": -0.05621556076201147,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 3841,
+     "win": 0.28378026555584485,
+     "exp_r": -0.08514100093425805,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "zone:anti-mom12:2R": {
+   "label": "side against the 12-month return, fixed 2R",
+   "population": "zone",
+   "family": "0 reference",
+   "filter": "anti-mom12",
+   "mgmt": "2R",
+   "counted": false,
+   "train": {
+    "n": 10066,
+    "win": 0.33041923306179216,
+    "exp_r": -0.08790378021350546,
+    "ci": [
+     -0.1224013992669097,
+     -0.05308752960750438
+    ],
+    "p": 0.999999686238607
+   },
+   "test": {
+    "n": 6857,
+    "win": 0.33367361820037916,
+    "exp_r": -0.089260711816221,
+    "ci": [
+     -0.13290865244220568,
+     -0.04782298761436343
+    ],
+    "p": 0.9999827778231729
+   },
+   "halves": [
+    {
+     "n": 3328,
+     "win": 0.3506610576923077,
+     "exp_r": -0.0373174538669459,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 3529,
+     "win": 0.3176537262680646,
+     "exp_r": -0.1382454560653532,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": null,
+   "bonferroni": null,
+   "survives": false
+  },
+  "zone:anti-sma200:2R": {
+   "label": "side against the 200-day SMA, fixed 2R",
+   "population": "zone",
+   "family": "0 reference",
+   "filter": "anti-sma200",
+   "mgmt": "2R",
+   "counted": false,
+   "train": {
+    "n": 9920,
+    "win": 0.34173387096774194,
+    "exp_r": -0.055166476769600396,
+    "ci": [
+     -0.09559935746458649,
+     -0.015265969090283304
+    ],
+    "p": 0.9972224971407323
+   },
+   "test": {
+    "n": 6640,
+    "win": 0.33313253012048194,
+    "exp_r": -0.09026398099215012,
+    "ci": [
+     -0.13516740698622767,
+     -0.043643787025081864
+    ],
+    "p": 0.9999477885350112
+   },
+   "halves": [
+    {
+     "n": 3227,
+     "win": 0.3486210102262163,
+     "exp_r": -0.04126430443003718,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 3413,
+     "win": 0.31848813360679756,
+     "exp_r": -0.13659329721422409,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": null,
+   "bonferroni": null,
+   "survives": false
+  },
+  "arrival:all:2R": {
+   "label": "every setup, fixed 2R",
+   "population": "arrival",
+   "family": "0 baseline",
+   "filter": "all",
+   "mgmt": "2R",
+   "counted": false,
+   "train": {
+    "n": 2174,
+    "win": 0.34774609015639374,
+    "exp_r": -0.08058729291519283,
+    "ci": [
+     -0.1430183810534519,
+     -0.015830090789001456
+    ],
+    "p": 0.993580969207714
+   },
+   "test": {
+    "n": 1488,
+    "win": 0.3272849462365591,
+    "exp_r": -0.11461792567052204,
+    "ci": [
+     -0.19073953343307576,
+     -0.031903862777790865
+    ],
+    "p": 0.9973651263537966
+   },
+   "halves": [
+    {
+     "n": 738,
+     "win": 0.3130081300813008,
+     "exp_r": -0.16287826303103348,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 750,
+     "win": 0.3413333333333333,
+     "exp_r": -0.0671297537077788,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": null,
+   "bonferroni": null,
+   "survives": false
+  },
+  "arrival:mom12:2R": {
+   "label": "side agrees with the 12-month return, fixed 2R",
+   "population": "arrival",
+   "family": "1 trend",
+   "filter": "mom12",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 1004,
+    "win": 0.3645418326693227,
+    "exp_r": -0.030020793973758897,
+    "ci": [
+     -0.11857725321786117,
+     0.06077603033535007
+    ],
+    "p": 0.7409704455053541
+   },
+   "test": {
+    "n": 678,
+    "win": 0.35103244837758113,
+    "exp_r": -0.04741405960944548,
+    "ci": [
+     -0.15487417362750466,
+     0.06319078223740812
+    ],
+    "p": 0.79527486828974
+   },
+   "halves": [
+    {
+     "n": 351,
+     "win": 0.3475783475783476,
+     "exp_r": -0.07054472706236965,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 327,
+     "win": 0.3547400611620795,
+     "exp_r": -0.022585728490251637,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:sma200:2R": {
+   "label": "side agrees with close vs 200-day SMA, fixed 2R",
+   "population": "arrival",
+   "family": "1 trend",
+   "filter": "sma200",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 1025,
+    "win": 0.3551219512195122,
+    "exp_r": -0.0536725666460585,
+    "ci": [
+     -0.14220336166369243,
+     0.03772834452667488
+    ],
+    "p": 0.8739311688984774
+   },
+   "test": {
+    "n": 702,
+    "win": 0.33618233618233617,
+    "exp_r": -0.08195965009729576,
+    "ci": [
+     -0.19643226583829268,
+     0.04491703072327538
+    ],
+    "p": 0.9100486975305874
+   },
+   "halves": [
+    {
+     "n": 349,
+     "win": 0.30945558739255014,
+     "exp_r": -0.1658503352035622,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 353,
+     "win": 0.3626062322946176,
+     "exp_r": 0.0009804323448770096,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:mom12+sma200:2R": {
+   "label": "12-month return and 200-day SMA both agree, fixed 2R",
+   "population": "arrival",
+   "family": "1 trend",
+   "filter": "mom12+sma200",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 765,
+    "win": 0.3686274509803922,
+    "exp_r": -0.014313464871163629,
+    "ci": [
+     -0.1211023887208918,
+     0.08780738951627268
+    ],
+    "p": 0.6031616748912845
+   },
+   "test": {
+    "n": 510,
+    "win": 0.3509803921568627,
+    "exp_r": -0.041046539773989706,
+    "ci": [
+     -0.16958732598225584,
+     0.09726313567567724
+    ],
+    "p": 0.7313386015842848
+   },
+   "halves": [
+    {
+     "n": 261,
+     "win": 0.32950191570881227,
+     "exp_r": -0.11371765308119879,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 249,
+     "win": 0.37349397590361444,
+     "exp_r": 0.03512679586127765,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:rev:2R": {
+   "label": "reversal zone (DBR / RBD), fixed 2R",
+   "population": "arrival",
+   "family": "2 pattern",
+   "filter": "rev",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 923,
+    "win": 0.3391115926327194,
+    "exp_r": -0.1408749401394562,
+    "ci": [
+     -0.23076335569088963,
+     -0.05007526436126261
+    ],
+    "p": 0.9985991523546671
+   },
+   "test": {
+    "n": 588,
+    "win": 0.3486394557823129,
+    "exp_r": -0.09294265815436602,
+    "ci": [
+     -0.21141225098306898,
+     0.04116607713449993
+    ],
+    "p": 0.9243802221195283
+   },
+   "halves": [
+    {
+     "n": 301,
+     "win": 0.34551495016611294,
+     "exp_r": -0.10923066548732757,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 287,
+     "win": 0.3519163763066202,
+     "exp_r": -0.07586011387833316,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:cont:2R": {
+   "label": "continuation zone (RBR / DBD), fixed 2R",
+   "population": "arrival",
+   "family": "2 pattern",
+   "filter": "cont",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 1251,
+    "win": 0.35411670663469225,
+    "exp_r": -0.03610647885604408,
+    "ci": [
+     -0.12217700345541775,
+     0.04594001538274174
+    ],
+    "p": 0.8032296681712888
+   },
+   "test": {
+    "n": 900,
+    "win": 0.31333333333333335,
+    "exp_r": -0.12877910044774396,
+    "ci": [
+     -0.23562424383221242,
+     -0.019639566740135266
+    ],
+    "p": 0.9885543843187525
+   },
+   "halves": [
+    {
+     "n": 437,
+     "win": 0.2906178489702517,
+     "exp_r": -0.19983004074420388,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 463,
+     "win": 0.3347732181425486,
+     "exp_r": -0.06171806176620406,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:cont+mom12:2R": {
+   "label": "continuation zone + 12-month momentum agrees, fixed 2R",
+   "population": "arrival",
+   "family": "2 pattern",
+   "filter": "cont+mom12",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 615,
+    "win": 0.3642276422764228,
+    "exp_r": -0.007223706963990786,
+    "ci": [
+     -0.1341416845407517,
+     0.11573086454571811
+    ],
+    "p": 0.544940894711808
+   },
+   "test": {
+    "n": 399,
+    "win": 0.3283208020050125,
+    "exp_r": -0.09662473716529818,
+    "ci": [
+     -0.24372973261728798,
+     0.05595840121407744
+    ],
+    "p": 0.8937045503052012
+   },
+   "halves": [
+    {
+     "n": 199,
+     "win": 0.31155778894472363,
+     "exp_r": -0.1556784164496736,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 200,
+     "win": 0.345,
+     "exp_r": -0.03786632627734466,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:vol<30:2R": {
+   "label": "ATR percentile < 30 (quiet), fixed 2R",
+   "population": "arrival",
+   "family": "3 volatility",
+   "filter": "vol<30",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 623,
+    "win": 0.34991974317817015,
+    "exp_r": -0.07696439984052675,
+    "ci": [
+     -0.20765370612141024,
+     0.043591585608720146
+    ],
+    "p": 0.8786888899638153
+   },
+   "test": {
+    "n": 403,
+    "win": 0.3052109181141439,
+    "exp_r": -0.18450763257268396,
+    "ci": [
+     -0.3250983352209177,
+     -0.03668409707499925
+    ],
+    "p": 0.9931906341209538
+   },
+   "halves": [
+    {
+     "n": 206,
+     "win": 0.24271844660194175,
+     "exp_r": -0.37389290637052025,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 197,
+     "win": 0.37055837563451777,
+     "exp_r": 0.013529760332667668,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:vol30-70:2R": {
+   "label": "ATR percentile 30-70, fixed 2R",
+   "population": "arrival",
+   "family": "3 volatility",
+   "filter": "vol30-70",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 852,
+    "win": 0.3392018779342723,
+    "exp_r": -0.11138990426845535,
+    "ci": [
+     -0.21621155560686148,
+     -0.014579087473262389
+    ],
+    "p": 0.9859309126215816
+   },
+   "test": {
+    "n": 610,
+    "win": 0.34098360655737703,
+    "exp_r": -0.06729219671270667,
+    "ci": [
+     -0.19493381499551368,
+     0.05446712104498161
+    ],
+    "p": 0.8545146326285747
+   },
+   "halves": [
+    {
+     "n": 294,
+     "win": 0.3435374149659864,
+     "exp_r": -0.06481284754375662,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 316,
+     "win": 0.33860759493670883,
+     "exp_r": -0.06959893296483109,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:vol>70:2R": {
+   "label": "ATR percentile > 70 (volatile), fixed 2R",
+   "population": "arrival",
+   "family": "3 volatility",
+   "filter": "vol>70",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 656,
+    "win": 0.3490853658536585,
+    "exp_r": -0.07407110637271702,
+    "ci": [
+     -0.19117785363101567,
+     0.041798016055877865
+    ],
+    "p": 0.8951145179271348
+   },
+   "test": {
+    "n": 469,
+    "win": 0.3304904051172708,
+    "exp_r": -0.10729338473968214,
+    "ci": [
+     -0.23468794751711397,
+     0.033797925168108124
+    ],
+    "p": 0.9449425711368535
+   },
+   "halves": [
+    {
+     "n": 233,
+     "win": 0.33905579399141633,
+     "exp_r": -0.09476606748196548,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 236,
+     "win": 0.3220338983050847,
+     "exp_r": -0.119661456439038,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:vol>90:2R": {
+   "label": "ATR percentile > 90, fixed 2R",
+   "population": "arrival",
+   "family": "3 volatility",
+   "filter": "vol>90",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 249,
+    "win": 0.3614457831325301,
+    "exp_r": -0.03355794035784069,
+    "ci": [
+     -0.20742553649595735,
+     0.1498157716322325
+    ],
+    "p": 0.6434807142946032
+   },
+   "test": {
+    "n": 183,
+    "win": 0.31693989071038253,
+    "exp_r": -0.13004638726418574,
+    "ci": [
+     -0.33356867830486775,
+     0.09359911533427161
+    ],
+    "p": 0.883166905445604
+   },
+   "halves": [
+    {
+     "n": 99,
+     "win": 0.30303030303030304,
+     "exp_r": -0.18139394243602022,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 84,
+     "win": 0.3333333333333333,
+     "exp_r": -0.06952962581166654,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:asia:2R": {
+   "label": "H4 zone filled in Asia (21-07 UTC), fixed 2R",
+   "population": "arrival",
+   "family": "4 session (H4)",
+   "filter": "asia",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 394,
+    "win": 0.3604060913705584,
+    "exp_r": -0.07901815772999386,
+    "ci": [
+     -0.2150407700485118,
+     0.05899817464148693
+    ],
+    "p": 0.867730114832954
+   },
+   "test": {
+    "n": 299,
+    "win": 0.36454849498327757,
+    "exp_r": -0.012244094034223307,
+    "ci": [
+     -0.1823041859624301,
+     0.16320059538199685
+    ],
+    "p": 0.5537491008459331
+   },
+   "halves": [
+    {
+     "n": 149,
+     "win": 0.3288590604026846,
+     "exp_r": -0.13366694328580486,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 150,
+     "win": 0.4,
+     "exp_r": 0.10836926955568103,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:london:2R": {
+   "label": "H4 zone filled in London (07-12 UTC), fixed 2R",
+   "population": "arrival",
+   "family": "4 session (H4)",
+   "filter": "london",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 437,
+    "win": 0.34782608695652173,
+    "exp_r": -0.08944569724826511,
+    "ci": [
+     -0.22650528593567204,
+     0.06801890063038618
+    ],
+    "p": 0.8863059731891896
+   },
+   "test": {
+    "n": 293,
+    "win": 0.27303754266211605,
+    "exp_r": -0.2915073233681503,
+    "ci": [
+     -0.4656025827848412,
+     -0.13583476022818547
+    ],
+    "p": 0.9997400051721349
+   },
+   "halves": [
+    {
+     "n": 130,
+     "win": 0.26153846153846155,
+     "exp_r": -0.34870690575285357,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 163,
+     "win": 0.2822085889570552,
+     "exp_r": -0.24588802453372435,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:overlap:2R": {
+   "label": "H4 zone filled in the London-NY overlap (12-16 UTC), fixed 2R",
+   "population": "arrival",
+   "family": "4 session (H4)",
+   "filter": "overlap",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 567,
+    "win": 0.3439153439153439,
+    "exp_r": -0.10625374230920337,
+    "ci": [
+     -0.23178809459992056,
+     0.014480027227611486
+    ],
+    "p": 0.9468019372364415
+   },
+   "test": {
+    "n": 482,
+    "win": 0.3132780082987552,
+    "exp_r": -0.17815392890782986,
+    "ci": [
+     -0.31098878953362435,
+     -0.054932006640608225
+    ],
+    "p": 0.9966468224833059
+   },
+   "halves": [
+    {
+     "n": 243,
+     "win": 0.32098765432098764,
+     "exp_r": -0.16524876177429673,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 239,
+     "win": 0.3054393305439331,
+     "exp_r": -0.19127508210217525,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:ny:2R": {
+   "label": "H4 zone filled in NY (16-21 UTC), fixed 2R",
+   "population": "arrival",
+   "family": "4 session (H4)",
+   "filter": "ny",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 306,
+    "win": 0.3300653594771242,
+    "exp_r": -0.1457490838896316,
+    "ci": [
+     -0.2948489114804021,
+     0.024664687906358437
+    ],
+    "p": 0.9601325911299253
+   },
+   "test": {
+    "n": 148,
+    "win": 0.34459459459459457,
+    "exp_r": -0.0554810909632627,
+    "ci": [
+     -0.2949413989255246,
+     0.20188101842269374
+    ],
+    "p": 0.6695627025061018
+   },
+   "halves": [
+    {
+     "n": 76,
+     "win": 0.3026315789473684,
+     "exp_r": -0.18358068828249996,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 72,
+     "win": 0.3888888888888889,
+     "exp_r": 0.07973515065148776,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:all:stop0.1": {
+   "label": "every setup, stop at distal + 0.1 ATR, 2R",
+   "population": "arrival",
+   "family": "5 stop width",
+   "filter": "all",
+   "mgmt": "stop0.1",
+   "counted": true,
+   "train": {
+    "n": 2174,
+    "win": 0.34406623735050595,
+    "exp_r": -0.1969302922247625,
+    "ci": [
+     -0.2651423799968633,
+     -0.12882674047384662
+    ],
+    "p": 0.9999999945778536
+   },
+   "test": {
+    "n": 1491,
+    "win": 0.32193158953722334,
+    "exp_r": -0.2009316038491158,
+    "ci": [
+     -0.2814987750862966,
+     -0.11588682417228843
+    ],
+    "p": 0.9999991850197819
+   },
+   "halves": [
+    {
+     "n": 740,
+     "win": 0.32432432432432434,
+     "exp_r": -0.21143767631367,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 751,
+     "win": 0.3195739014647137,
+     "exp_r": -0.1905794152688627,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:all:stop0.5": {
+   "label": "every setup, stop at distal + 0.5 ATR, 2R",
+   "population": "arrival",
+   "family": "5 stop width",
+   "filter": "all",
+   "mgmt": "stop0.5",
+   "counted": true,
+   "train": {
+    "n": 2174,
+    "win": 0.3532658693652254,
+    "exp_r": -0.07200897690125106,
+    "ci": [
+     -0.13469218933188234,
+     -0.007407892500410607
+    ],
+    "p": 0.9858268273273795
+   },
+   "test": {
+    "n": 1489,
+    "win": 0.3331094694425789,
+    "exp_r": -0.09785369037657943,
+    "ci": [
+     -0.18252707674319277,
+     -0.011617566904329362
+    ],
+    "p": 0.9854007438167897
+   },
+   "halves": [
+    {
+     "n": 738,
+     "win": 0.3265582655826558,
+     "exp_r": -0.12610881501466822,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 751,
+     "win": 0.3395472703062583,
+     "exp_r": -0.07008766909440958,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:all:stop1.0": {
+   "label": "every setup, stop at distal + 1.0 ATR, 2R",
+   "population": "arrival",
+   "family": "5 stop width",
+   "filter": "all",
+   "mgmt": "stop1.0",
+   "counted": true,
+   "train": {
+    "n": 2174,
+    "win": 0.34130634774609014,
+    "exp_r": -0.07052497280178668,
+    "ci": [
+     -0.13372298044739994,
+     -0.0017870051531688237
+    ],
+    "p": 0.9809173396971868
+   },
+   "test": {
+    "n": 1487,
+    "win": 0.3503698722259583,
+    "exp_r": -0.014707781249444262,
+    "ci": [
+     -0.09976217776230782,
+     0.07442746566870723
+    ],
+    "p": 0.6255391053061644
+   },
+   "halves": [
+    {
+     "n": 737,
+     "win": 0.33921302578018997,
+     "exp_r": -0.0528445000394277,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 750,
+     "win": 0.36133333333333334,
+     "exp_r": 0.02276790108151279,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:all:time10": {
+   "label": "every setup, fixed 2R + time stop (+1R in 10 TF bars)",
+   "population": "arrival",
+   "family": "6 exits",
+   "filter": "all",
+   "mgmt": "time10",
+   "counted": true,
+   "train": {
+    "n": 2174,
+    "win": 0.359245630174793,
+    "exp_r": -0.07636380802595316,
+    "ci": [
+     -0.1356047191054722,
+     -0.01518364788409842
+    ],
+    "p": 0.9931068822002364
+   },
+   "test": {
+    "n": 1491,
+    "win": 0.3427230046948357,
+    "exp_r": -0.10383643864744464,
+    "ci": [
+     -0.1763850089686146,
+     -0.021788138236828136
+    ],
+    "p": 0.9964829497610654
+   },
+   "halves": [
+    {
+     "n": 740,
+     "win": 0.3310810810810811,
+     "exp_r": -0.12748482177669948,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 751,
+     "win": 0.35419440745672437,
+     "exp_r": -0.08053443662927079,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:all:be2R": {
+   "label": "every setup, break-even at 2R, target 3R",
+   "population": "arrival",
+   "family": "6 exits",
+   "filter": "all",
+   "mgmt": "be2R",
+   "counted": true,
+   "train": {
+    "n": 2174,
+    "win": 0.24517019319227232,
+    "exp_r": -0.06925045162127293,
+    "ci": [
+     -0.14380311353245326,
+     0.008099050286551076
+    ],
+    "p": 0.9627242105750549
+   },
+   "test": {
+    "n": 1487,
+    "win": 0.22797579018157363,
+    "exp_r": -0.10754189360365377,
+    "ci": [
+     -0.19592532959457876,
+     -0.007500719798959333
+    ],
+    "p": 0.9874518679458407
+   },
+   "halves": [
+    {
+     "n": 737,
+     "win": 0.2198100407055631,
+     "exp_r": -0.15061798722667097,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 750,
+     "win": 0.236,
+     "exp_r": -0.06521245227010218,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:all:1.5R": {
+   "label": "every setup, fixed 1.5R",
+   "population": "arrival",
+   "family": "6 exits",
+   "filter": "all",
+   "mgmt": "1.5R",
+   "counted": true,
+   "train": {
+    "n": 2174,
+    "win": 0.4181232750689972,
+    "exp_r": -0.06845945795554888,
+    "ci": [
+     -0.12412121919344206,
+     -0.01178865971097557
+    ],
+    "p": 0.9917790549387405
+   },
+   "test": {
+    "n": 1489,
+    "win": 0.39422431161853594,
+    "exp_r": -0.10650736167353865,
+    "ci": [
+     -0.17580352509173444,
+     -0.030354967470359158
+    ],
+    "p": 0.9982166630815078
+   },
+   "halves": [
+    {
+     "n": 739,
+     "win": 0.38159675236806495,
+     "exp_r": -0.14338131727689735,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 750,
+     "win": 0.4066666666666667,
+     "exp_r": -0.07017422408569586,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:all:3R": {
+   "label": "every setup, fixed 3R",
+   "population": "arrival",
+   "family": "6 exits",
+   "filter": "all",
+   "mgmt": "3R",
+   "counted": true,
+   "train": {
+    "n": 2174,
+    "win": 0.2704691812327507,
+    "exp_r": -0.08225972952050269,
+    "ci": [
+     -0.15736102229141677,
+     -0.005226456304550671
+    ],
+    "p": 0.9808507024966693
+   },
+   "test": {
+    "n": 1486,
+    "win": 0.2496635262449529,
+    "exp_r": -0.12539212050722037,
+    "ci": [
+     -0.22132225333675792,
+     -0.017617651705562395
+    ],
+    "p": 0.9936232311652428
+   },
+   "halves": [
+    {
+     "n": 736,
+     "win": 0.24456521739130435,
+     "exp_r": -0.15618243112085428,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 750,
+     "win": 0.25466666666666665,
+     "exp_r": -0.09517656235837432,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:all:swing": {
+   "label": "every setup, trail behind the entry-TF swing after 1.5R",
+   "population": "arrival",
+   "family": "6 exits",
+   "filter": "all",
+   "mgmt": "swing",
+   "counted": true,
+   "train": {
+    "n": 2174,
+    "win": 0.30726770929162833,
+    "exp_r": -0.08124850165519885,
+    "ci": [
+     -0.17636422051606365,
+     0.02069674323821079
+    ],
+    "p": 0.9508606359264586
+   },
+   "test": {
+    "n": 1485,
+    "win": 0.2781144781144781,
+    "exp_r": -0.10269510147308374,
+    "ci": [
+     -0.21167005535550096,
+     0.026502561014913998
+    ],
+    "p": 0.9543618792183937
+   },
+   "halves": [
+    {
+     "n": 736,
+     "win": 0.266304347826087,
+     "exp_r": -0.1357692634913385,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 749,
+     "win": 0.2897196261682243,
+     "exp_r": -0.07019499033098024,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:mom12+rev:2R": {
+   "label": "12-month momentum + reversal zone, fixed 2R",
+   "population": "arrival",
+   "family": "8 pairs",
+   "filter": "mom12+rev",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 389,
+    "win": 0.36503856041131105,
+    "exp_r": -0.0660624610971712,
+    "ci": [
+     -0.20341639230622888,
+     0.08268298338203967
+    ],
+    "p": 0.8062693868828993
+   },
+   "test": {
+    "n": 279,
+    "win": 0.3835125448028674,
+    "exp_r": 0.022962500766128838,
+    "ci": [
+     -0.13557943348357387,
+     0.19301611395626583
+    ],
+    "p": 0.3919080843524579
+   },
+   "halves": [
+    {
+     "n": 152,
+     "win": 0.39473684210526316,
+     "exp_r": 0.0409131952275875,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 127,
+     "win": 0.3700787401574803,
+     "exp_r": 0.0014782050327294956,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:sma200+rev:2R": {
+   "label": "200-day SMA + reversal zone, fixed 2R",
+   "population": "arrival",
+   "family": "8 pairs",
+   "filter": "sma200+rev",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 414,
+    "win": 0.35507246376811596,
+    "exp_r": -0.08594921499814155,
+    "ci": [
+     -0.22219490623483099,
+     0.06711361562715326
+    ],
+    "p": 0.8861651825295542
+   },
+   "test": {
+    "n": 297,
+    "win": 0.367003367003367,
+    "exp_r": -0.015623367351055214,
+    "ci": [
+     -0.1774728697906672,
+     0.16178252302031265
+    ],
+    "p": 0.5717009089977255
+   },
+   "halves": [
+    {
+     "n": 149,
+     "win": 0.35570469798657717,
+     "exp_r": -0.05369250833425801,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 148,
+     "win": 0.3783783783783784,
+     "exp_r": 0.022702997557709766,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:mom12+vol<30:2R": {
+   "label": "12-month momentum + quiet (ATR pct < 30), fixed 2R",
+   "population": "arrival",
+   "family": "8 pairs",
+   "filter": "mom12+vol<30",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 301,
+    "win": 0.34219269102990035,
+    "exp_r": -0.09264393337752334,
+    "ci": [
+     -0.26489155841935613,
+     0.08131424301042067
+    ],
+    "p": 0.8525810802553336
+   },
+   "test": {
+    "n": 197,
+    "win": 0.3096446700507614,
+    "exp_r": -0.1713658291844513,
+    "ci": [
+     -0.37924948443535467,
+     0.02748140945479451
+    ],
+    "p": 0.9468873145965592
+   },
+   "halves": [
+    {
+     "n": 105,
+     "win": 0.2761904761904762,
+     "exp_r": -0.28207165593638833,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 92,
+     "win": 0.34782608695652173,
+     "exp_r": -0.045016787782784035,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:mom12+vol>70:2R": {
+   "label": "12-month momentum + volatile (ATR pct > 70), fixed 2R",
+   "population": "arrival",
+   "family": "8 pairs",
+   "filter": "mom12+vol>70",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 283,
+    "win": 0.40636042402826855,
+    "exp_r": 0.10591987190806959,
+    "ci": [
+     -0.08452722906076214,
+     0.28502931534818915
+    ],
+    "p": 0.13530237513309548
+   },
+   "test": {
+    "n": 188,
+    "win": 0.3829787234042553,
+    "exp_r": 0.03475595442573554,
+    "ci": [
+     -0.16664470174179516,
+     0.23480138381687715
+    ],
+    "p": 0.3715690174270962
+   },
+   "halves": [
+    {
+     "n": 99,
+     "win": 0.3838383838383838,
+     "exp_r": 0.013057098154029645,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 89,
+     "win": 0.38202247191011235,
+     "exp_r": 0.05889288443583537,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:rev+vol>70:2R": {
+   "label": "reversal zone + volatile (ATR pct > 70), fixed 2R",
+   "population": "arrival",
+   "family": "8 pairs",
+   "filter": "rev+vol>70",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 282,
+    "win": 0.375886524822695,
+    "exp_r": -0.03720520369299424,
+    "ci": [
+     -0.22753190502176004,
+     0.14477714614282036
+    ],
+    "p": 0.6545663476041305
+   },
+   "test": {
+    "n": 183,
+    "win": 0.3551912568306011,
+    "exp_r": -0.08465732740989265,
+    "ci": [
+     -0.31394378869529305,
+     0.15698808527119057
+    ],
+    "p": 0.7599601049198172
+   },
+   "halves": [
+    {
+     "n": 91,
+     "win": 0.4065934065934066,
+     "exp_r": 0.048545638785624255,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 92,
+     "win": 0.30434782608695654,
+     "exp_r": -0.21641243527719742,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:mom12:time10": {
+   "label": "side agrees with the 12-month return, fixed 2R + time stop (+1R in 10 TF bars)",
+   "population": "arrival",
+   "family": "8 pairs",
+   "filter": "mom12",
+   "mgmt": "time10",
+   "counted": true,
+   "train": {
+    "n": 1004,
+    "win": 0.37749003984063745,
+    "exp_r": -0.03979539998831859,
+    "ci": [
+     -0.12042046368788223,
+     0.04645527015834636
+    ],
+    "p": 0.8207322227540979
+   },
+   "test": {
+    "n": 679,
+    "win": 0.36082474226804123,
+    "exp_r": -0.0742126356515523,
+    "ci": [
+     -0.1696248833618323,
+     0.02639505667382603
+    ],
+    "p": 0.9310025719472442
+   },
+   "halves": [
+    {
+     "n": 351,
+     "win": 0.358974358974359,
+     "exp_r": -0.06637650542913186,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 328,
+     "win": 0.3628048780487805,
+     "exp_r": -0.08259825061517906,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:mom12:stop1.0": {
+   "label": "side agrees with the 12-month return, stop at distal + 1.0 ATR, 2R",
+   "population": "arrival",
+   "family": "8 pairs",
+   "filter": "mom12",
+   "mgmt": "stop1.0",
+   "counted": true,
+   "train": {
+    "n": 1004,
+    "win": 0.3555776892430279,
+    "exp_r": -0.02163855102384636,
+    "ci": [
+     -0.11441147711353838,
+     0.07745821124175681
+    ],
+    "p": 0.665435121457869
+   },
+   "test": {
+    "n": 678,
+    "win": 0.3805309734513274,
+    "exp_r": 0.07339577474777279,
+    "ci": [
+     -0.05191522564876443,
+     0.19361180379451404
+    ],
+    "p": 0.12913848601014186
+   },
+   "halves": [
+    {
+     "n": 351,
+     "win": 0.3732193732193732,
+     "exp_r": 0.04803474861374034,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 327,
+     "win": 0.38837920489296635,
+     "exp_r": 0.10061816059806448,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:mom12:swing": {
+   "label": "side agrees with the 12-month return, trail behind the entry-TF swing after 1.5R",
+   "population": "arrival",
+   "family": "8 pairs",
+   "filter": "mom12",
+   "mgmt": "swing",
+   "counted": true,
+   "train": {
+    "n": 1004,
+    "win": 0.3247011952191235,
+    "exp_r": -0.027154970796467896,
+    "ci": [
+     -0.1745860264102061,
+     0.1334951016574282
+    ],
+    "p": 0.6329478887792833
+   },
+   "test": {
+    "n": 677,
+    "win": 0.2998522895125554,
+    "exp_r": -0.013995189744486042,
+    "ci": [
+     -0.1784451101589937,
+     0.16474193454803104
+    ],
+    "p": 0.5626547814795417
+   },
+   "halves": [
+    {
+     "n": 350,
+     "win": 0.29714285714285715,
+     "exp_r": -0.0011760907274399703,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 327,
+     "win": 0.30275229357798167,
+     "exp_r": -0.027715937927868688,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "arrival:anti-mom12:2R": {
+   "label": "side against the 12-month return, fixed 2R",
+   "population": "arrival",
+   "family": "0 reference",
+   "filter": "anti-mom12",
+   "mgmt": "2R",
+   "counted": false,
+   "train": {
+    "n": 1166,
+    "win": 0.3319039451114923,
+    "exp_r": -0.12827302928671724,
+    "ci": [
+     -0.22120995775262436,
+     -0.03463111752553349
+    ],
+    "p": 0.997100117829787
+   },
+   "test": {
+    "n": 808,
+    "win": 0.30816831683168316,
+    "exp_r": -0.16641148638496844,
+    "ci": [
+     -0.29071962888743375,
+     -0.04230893605444425
+    ],
+    "p": 0.9962870741386417
+   },
+   "halves": [
+    {
+     "n": 387,
+     "win": 0.28165374677002586,
+     "exp_r": -0.24662263286307737,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 421,
+     "win": 0.332541567695962,
+     "exp_r": -0.09267819971744312,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": null,
+   "bonferroni": null,
+   "survives": false
+  },
+  "arrival:anti-sma200:2R": {
+   "label": "side against the 200-day SMA, fixed 2R",
+   "population": "arrival",
+   "family": "0 reference",
+   "filter": "anti-sma200",
+   "mgmt": "2R",
+   "counted": false,
+   "train": {
+    "n": 1146,
+    "win": 0.3403141361256545,
+    "exp_r": -0.10732377626301216,
+    "ci": [
+     -0.2013731366923189,
+     -0.020338043199469174
+    ],
+    "p": 0.9899398499774893
+   },
+   "test": {
+    "n": 785,
+    "win": 0.3197452229299363,
+    "exp_r": -0.1404286464962613,
+    "ci": [
+     -0.25889034508176956,
+     -0.03134981409503054
+    ],
+    "p": 0.9936939736620337
+   },
+   "halves": [
+    {
+     "n": 389,
+     "win": 0.3161953727506427,
+     "exp_r": -0.160211802392955,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 396,
+     "win": 0.32323232323232326,
+     "exp_r": -0.12099519285026679,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": null,
+   "bonferroni": null,
+   "survives": false
+  },
+  "second:all:2R": {
+   "label": "every setup, fixed 2R",
+   "population": "second",
+   "family": "0 baseline",
+   "filter": "all",
+   "mgmt": "2R",
+   "counted": false,
+   "train": {
+    "n": 7127,
+    "win": 0.3291707590851691,
+    "exp_r": -0.08250842342353423,
+    "ci": [
+     -0.11542928873314615,
+     -0.04908370424704625
+    ],
+    "p": 0.9999993801344901
+   },
+   "test": {
+    "n": 5041,
+    "win": 0.33366395556437217,
+    "exp_r": -0.07353261756293394,
+    "ci": [
+     -0.11359014996409153,
+     -0.03430527039945312
+    ],
+    "p": 0.9998441514009159
+   },
+   "halves": [
+    {
+     "n": 2439,
+     "win": 0.3505535055350554,
+     "exp_r": -0.02512148625991348,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 2602,
+     "win": 0.3178324365872406,
+     "exp_r": -0.11891107615173752,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": null,
+   "bonferroni": null,
+   "survives": false
+  },
+  "second:depth>=25:2R": {
+   "label": "second touch, first return >= 25% deep, fixed 2R",
+   "population": "second",
+   "family": "7 freshness",
+   "filter": "depth>=25",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 4803,
+    "win": 0.32687903393712264,
+    "exp_r": -0.0934845339286399,
+    "ci": [
+     -0.13158971598976504,
+     -0.0522197909686827
+    ],
+    "p": 0.999997962548528
+   },
+   "test": {
+    "n": 3394,
+    "win": 0.3338243959929287,
+    "exp_r": -0.07534191593123293,
+    "ci": [
+     -0.12454210600082054,
+     -0.030423783050206942
+    ],
+    "p": 0.9986359313000814
+   },
+   "halves": [
+    {
+     "n": 1637,
+     "win": 0.3567501527183873,
+     "exp_r": -0.011734957545832423,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 1757,
+     "win": 0.3124644280022766,
+     "exp_r": -0.1346046312851889,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  },
+  "second:depth<25:2R": {
+   "label": "second touch, first return < 25% deep, fixed 2R",
+   "population": "second",
+   "family": "7 freshness",
+   "filter": "depth<25",
+   "mgmt": "2R",
+   "counted": true,
+   "train": {
+    "n": 2324,
+    "win": 0.33390705679862304,
+    "exp_r": -0.05982414685037482,
+    "ci": [
+     -0.11585315795550745,
+     -0.001908162831283412
+    ],
+    "p": 0.9782068914885067
+   },
+   "test": {
+    "n": 1647,
+    "win": 0.3333333333333333,
+    "exp_r": -0.06980416664489704,
+    "ci": [
+     -0.1375326992905898,
+     0.0032310131693606557
+    ],
+    "p": 0.9775583672033602
+   },
+   "halves": [
+    {
+     "n": 802,
+     "win": 0.33790523690773067,
+     "exp_r": -0.05244536095436572,
+     "ci": null,
+     "p": null
+    },
+    {
+     "n": 845,
+     "win": 0.3289940828402367,
+     "exp_r": -0.08627962482691612,
+     "ci": null,
+     "p": null
+    }
+   ],
+   "bh": false,
+   "bonferroni": false,
+   "survives": false
+  }
+ }
+}
