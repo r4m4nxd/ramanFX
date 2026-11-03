@@ -4,8 +4,10 @@ name: Stock backtest
 # stock scanner's CURRENT rules (W1 / MN / 3M zones, top-down nesting, ATH rule, 250% projection, W1 5% / MN 3% / 3M 2% stops) on Alpaca daily data, weekly cadence, 52-week holding,
 # ablations (no nesting, no ATH rule), a seeded random-entry baseline and SPY buy-and-hold.
 # Plus the experiment variants of tools/stock_scanner/experiments.py (each = the current rules with one change), shared
-# signals, in-sample / out-of-sample. Writes public/scanner/backtest.json, public/learn/stock_experiments.json (the
-# auto-learner's input) + docs/research/Stock_Backtest.md and commits them to the `data` branch.
+# signals, in-sample / out-of-sample, on three bases (current / no_nesting / loose), and the TFSA buy-and-hold zone study
+# (tools/stock_scanner/tfsa_study.py). Writes public/scanner/backtest.json, public/learn/stock_experiments.json (the
+# auto-learner's input: the chosen base), stock_experiments_all.json (every base), tfsa_study.json +
+# docs/research/Stock_Backtest.md and commits them to the `data` branch.
 # A scheduled run has no inputs: the defaults below (10 years, every ticker) apply.
 on:
   schedule:
@@ -70,7 +72,8 @@ jobs:
           if [ -n "$IN_TICKERS" ]; then ARGS+=(--tickers "$IN_TICKERS"); fi
           python tools/stock_scanner/backtest.py "${ARGS[@]}" --workers "$(nproc)" --budget-min 260 --experiments all \
             --public public/scanner/backtest.json --md docs/research/Stock_Backtest.md \
-            --experiments-json public/learn/stock_experiments.json | tee backtest_log.txt
+            --experiments-json public/learn/stock_experiments.json --experiments-all-json public/learn/stock_experiments_all.json \
+            --tfsa-json public/learn/tfsa_study.json | tee backtest_log.txt
         env:
           ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
@@ -99,6 +102,8 @@ jobs:
           path: |
             public/scanner/backtest.json
             public/learn/stock_experiments.json
+            public/learn/stock_experiments_all.json
+            public/learn/tfsa_study.json
             docs/research/Stock_Backtest.md
           if-no-files-found: ignore
 
@@ -107,6 +112,7 @@ jobs:
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # public/learn: only this job's own file (learn.yml owns policy.json / report.md, fx-backtest.yml fx_experiments.json)
-          bash scripts/data-branch.sh push "scanner: stock backtest $(date -u +%Y-%m-%d)" public/scanner/backtest.json docs/research/Stock_Backtest.md public/learn/stock_experiments.json \
+          # public/learn: only this job's own files (learn.yml owns policy.json / report.md, fx-backtest.yml fx_experiments.json)
+          bash scripts/data-branch.sh push "scanner: stock backtest $(date -u +%Y-%m-%d)" public/scanner/backtest.json docs/research/Stock_Backtest.md \
+            public/learn/stock_experiments.json public/learn/stock_experiments_all.json public/learn/tfsa_study.json \
             || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }

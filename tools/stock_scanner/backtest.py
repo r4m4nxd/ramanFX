@@ -58,6 +58,7 @@ sys.path.insert(0, HERE)
 
 import data as DATA  # noqa: E402
 import experiments as E  # noqa: E402
+import tfsa_study as TS  # noqa: E402
 import scan  # noqa: E402
 import zones as Z  # noqa: E402
 from zones import RAJA, Bar  # noqa: E402
@@ -218,6 +219,18 @@ def rule_variant(variant: str):
             return lc if lc.ok else dataclasses.replace(lc, ok=True, text='nesting rule off: ' + lc.text)
         saved.append((scan, 'loc_of', orig))
         scan.loc_of = loose
+    elif variant == 'loose':
+        orig_rules = scan.zone_rules
+
+        def rules(an, z, x, earnings):
+            out = orig_rules(an, z, x, earnings)
+            for r in out:
+                if r.status == scan.FAIL and r.ref in LOOSE_REFS:
+                    r.status = scan.WARN
+                    r.text = 'rule off (loose base): ' + r.text
+            return out
+        saved.append((scan, 'zone_rules', orig_rules))
+        scan.zone_rules = rules
     elif variant != 'current':
         raise ValueError(f'unknown variant {variant}')
     try:
@@ -225,6 +238,22 @@ def rule_variant(variant: str):
     finally:
         for mod, name, fn in saved:
             setattr(mod, name, fn)
+
+
+# Experiment BASES: the variant matrix runs on each; the strictest base with enough in-sample trades feeds the learner.
+# 'loose' switches off the gates that block most live candidates (public/scanner/latest.json `blocked`, the first
+# failing rule of the stocks within 5% of a demand zone, 2026-11-03: HTF location 114 of 216, curve 52, zone type 21,
+# direction 19, sideways 5, tested 5): the top-down location, the curve rule (incl. the ATH exception) and the
+# direction (HTF align). The zone type (ARR / WOW / STR) stays: it defines a tradeable Raja zone.
+BASES = ('current', 'no_nesting', 'loose')
+LOOSE_REFS = ('owner · L7', 'L4', 'L4 · owner', 'L7 · L8 · L3')
+BASE_RULES = {
+    'current': 'The live rules unchanged.',
+    'no_nesting': 'The live rules without the top-down location rule (a zone need not sit inside a touched higher-timeframe demand).',
+    'loose': 'The live rules without the top-down location rule, the curve rule (and its ATH exception) and the direction rule '
+             '(HTF align): the three gates that block most live candidates. Zone type, freshness, room, sideways, CP and overlap rules stay.',
+}
+MIN_BASE_IS = 150
 
 
 # ---- order + exit simulation ----------------------------------------------------------------------------------------
@@ -349,11 +378,12 @@ LOOSE = ('fresh_body', 'fresh_depth25')
 def backtest_ticker(sym: str, bars: List[Bar], sector: str = '', filings: Optional[List[str]] = None, cost_bps: float = 5.0,
                     indexes: str = 'SPX', index_bars: Optional[List[Bar]] = None, variants=('current',), start: str = '',
                     slip_bps: float = 0.0, random_k: int = RANDOM_K, seed: int = 7, experiments=(),
-                    spy_bars: Optional[List[Bar]] = None) -> List[Dict]:
+                    spy_bars: Optional[List[Bar]] = None, bases=('current',)) -> List[Dict]:
     """Every BUY of one ticker per variant, evaluated weekly. Trades carry 'variant'; random baseline rows too.
-    experiments (experiments.VARIANTS ids): rows 'x:<id>' from the SAME analysis + signals of each evaluation day
-    (computed once, shared by every variant); each experiment keeps its own one-position-per-ticker state and only
-    re-runs the cheap plan / order / exit simulation (wick stop, the live plan)."""
+    experiments (experiments.VARIANTS ids) x bases (BASES): rows 'x:<base>:<id>' from the SAME analysis of each
+    evaluation day (computed once) and the base's signals (once per base and day), shared by every variant; each
+    (base, variant) keeps its own one-position-per-ticker state and only re-runs the cheap plan / order / exit
+    simulation (wick stop, the live plan)."""
     if len(bars) < WARMUP + 50:
         return []
     w1, w_upto = htf_index(bars, 'W1')
@@ -364,7 +394,8 @@ def backtest_ticker(sym: str, bars: List[Bar], sector: str = '', filings: Option
     ends = week_ends(bars)
     eval_days = sorted(d for d in ends if d >= WARMUP and bars[d].d >= start)
     st = {v: {'evals': defaultdict(int), 'done': set(), 'busy': -1} for v in variants}
-    xs = {v: {'evals': defaultdict(int), 'done': set(), 'busy': -1} for v in exps}
+    bases = tuple(b for b in bases if b in BASES) if exps else ()
+    xs = {(b, v): {'evals': defaultdict(int), 'done': set(), 'busy': -1} for b in bases for v in exps}
     spy_d = [b.d for b in spy_bars] if spy_bars else []
     spy_c = [b.c for b in spy_bars] if spy_bars else []
     cost_side = (cost_bps + slip_bps) / 1e4
@@ -384,10 +415,11 @@ def backtest_ticker(sym: str, bars: List[Bar], sector: str = '', filings: Option
                 ans[akey] = an
             return ans[akey]
 
-        def base_signals() -> List[Dict]:
-            if 'current' not in sig_memo:
-                sig_memo['current'] = scan.symbol_signals(analysis('base'), None)
-            return sig_memo['current']
+        def base_signals(rule: str = 'current') -> List[Dict]:
+            if rule not in sig_memo:
+                with rule_variant(rule):                   # no_ath changes analyse() itself: build it inside
+                    sig_memo[rule] = scan.symbol_signals(analysis('no_ath' if rule == 'no_ath' else 'base'), None)
+            return sig_memo[rule]
 
         def known_now() -> E.Known:
             if not known:
@@ -404,12 +436,7 @@ def backtest_ticker(sym: str, bars: List[Bar], sector: str = '', filings: Option
                 continue
             for z in zids:
                 S['evals'][z] += 1
-            akey = 'no_ath' if v == 'no_ath' else 'base'
-            with rule_variant(v):
-                if v == 'current':
-                    sigs = base_signals()
-                else:
-                    sigs = scan.symbol_signals(analysis(akey), None)
+            sigs = base_signals(v)
             for s in sigs:
                 zid = f"{s['tf']}:D:{s['base_start']}"
                 if s['kind'] != 'BUY' or zid in S['done']:
@@ -433,19 +460,19 @@ def backtest_ticker(sym: str, bars: List[Bar], sector: str = '', filings: Option
                     if v == 'current' and random_k:
                         trades += random_entries(sym, bars, t, eval_days, cost_bps, slip_bps, random_k, seed)
                 break
-        for v in exps:
-            S = xs[v]
+        for (bk, v), S in xs.items():
             pool = (loose_c or {}).get(d, []) if v in LOOSE else base_z
             zids = [z for z in pool if z not in S['done'] and S['evals'][z] < MAX_EVALS]
             if not zids or d <= S['busy']:
                 continue
             for z in zids:
                 S['evals'][z] += 1
-            sigs = base_signals()
+            sigs = base_signals(bk)
             if v in LOOSE:
-                if v not in sig_memo:
-                    sig_memo[v] = E.promote_fresh(sigs, known_now().bars, v) if any(s.get('watch') == 'tested' for s in sigs) else sigs
-                sigs = sig_memo[v]
+                mk = f'{bk}|{v}'
+                if mk not in sig_memo:
+                    sig_memo[mk] = E.promote_fresh(sigs, known_now().bars, v) if any(s.get('watch') == 'tested' for s in sigs) else sigs
+                sigs = sig_memo[mk]
             for s in sigs:
                 zid = f"{s['tf']}:D:{s['base_start']}"
                 if s['kind'] != 'BUY' or zid in S['done']:
@@ -457,7 +484,7 @@ def backtest_ticker(sym: str, bars: List[Bar], sector: str = '', filings: Option
                 sim = E.simulate(bars, d, p, cost_side)
                 if sim is None:
                     continue
-                trades.append({'variant': 'x:' + v, 'symbol': sym, 'signal_date': bars[d].d, 'tf': s['tf'], 'zone_type': s['zone_type'],
+                trades.append({'variant': f'x:{bk}:{v}', 'symbol': sym, 'signal_date': bars[d].d, 'tf': s['tf'], 'zone_type': s['zone_type'],
                                'pattern': s['pattern'], 'loc': s.get('loc'), 'entry': p['entry'], **sim,
                                **({'promoted': True} if s.get('promoted') else {})})
                 if sim['status'] == 'filled':
@@ -479,11 +506,17 @@ def spy_cached(offline: bool) -> Optional[List[Bar]]:
 
 
 def _worker(args):
-    sym, sector, offline, cost, indexes, variants, start, slip, random_k, exps = args
+    sym, sector, offline, cost, indexes, variants, start, slip, random_k, exps, bases, tfsa = args
     try:
         bars, _ = DATA.fetch_daily(sym, offline=offline)
     except Exception as e:  # noqa: BLE001
-        return sym, [], str(e)
+        return sym, [], str(e), []
+    events: List[Dict] = []
+    if tfsa:
+        try:
+            events = TS.ticker_events(sym, bars, start=start)
+        except Exception as e:  # noqa: BLE001
+            print(f'{sym}: tfsa study error {e!r}', file=sys.stderr)
     filings = None
     try:
         import fundamentals as F
@@ -495,9 +528,10 @@ def _worker(args):
         filings = None
     try:
         return sym, backtest_ticker(sym, bars, sector, filings, cost, indexes, composite_cached(offline), variants, start, slip, random_k,
-                                    experiments=exps, spy_bars=spy_cached(offline) if 'market_regime' in exps else None), ''
+                                    experiments=exps, spy_bars=spy_cached(offline) if 'market_regime' in exps else None,
+                                    bases=bases), '', events
     except Exception as e:  # noqa: BLE001
-        return sym, [], f'backtest error: {e!r}'
+        return sym, [], f'backtest error: {e!r}', events
 
 
 # ---- statistics ---------------------------------------------------------------------------------------------------
@@ -667,22 +701,23 @@ def _pctl(xs: List[float], q: float) -> Optional[float]:
     return round(s[i] + (s[min(i + 1, len(s) - 1)] - s[i]) * (k - i), 3)
 
 
-def experiments_json(trades: List[Dict], exps, start: str = '', end: str = '') -> Dict:
-    """The auto-learner's input: every experiment variant's in-sample (older 70% of the signal dates of the
-    `current` experiment's fills) and out-of-sample (newest 30%) STATS, the skipped ones with a reason, and the MFE /
-    MAE distribution of the `current` trades."""
+def experiments_json(trades: List[Dict], exps, start: str = '', end: str = '', base: str = 'current') -> Dict:
+    """One base's experiment set (the auto-learner's input): every variant's in-sample (older 70% of the signal dates
+    of the base's own fills) and out-of-sample (newest 30%) STATS, the skipped ones with a reason, and the MFE / MAE
+    distribution of the base's trades. The unchanged run is keyed by the base id (= "baseline")."""
     rows = defaultdict(list)
+    pre = f'x:{base}:'
     for t in trades:
         v = t.get('variant') or ''
-        if v.startswith('x:'):
-            rows[v[2:]].append(t)
+        if v.startswith(pre):
+            rows[v[len(pre):]].append(t)
     cur = rows.get('current', [])
     split = _split_date(cur)
     sig_dates = [t['signal_date'] for r in rows.values() for t in r]
     out = {'schema': 1, 'market': 'stock', 'generated_at': dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
            'period': {'start': min(sig_dates) if sig_dates else (start or None), 'end': max(sig_dates) if sig_dates else (end or None),
                       'split': split or None},
-           'baseline': 'current', 'variants': {}, 'skipped': {}}
+           'baseline': base, 'base_rules': BASE_RULES.get(base, base), 'variants': {}, 'skipped': {}}
     for vid, meta in E.VARIANTS.items():
         if vid in E.SKIPPED:
             out['skipped'][vid] = E.SKIPPED[vid]
@@ -691,13 +726,38 @@ def experiments_json(trades: List[Dict], exps, start: str = '', end: str = '') -
             out['skipped'][vid] = 'not run in this backtest (--experiments)'
             continue
         sc = [t for t in rows.get(vid, []) if t.get('status') == 'filled' and t.get('why') != 'open']
-        out['variants'][vid] = {'group': meta['group'], 'desc': meta['desc'],
+        key, group, desc = (base, 'baseline', BASE_RULES.get(base, meta['desc'])) if vid == 'current' else (vid, meta['group'], meta['desc'])
+        out['variants'][key] = {'group': group, 'desc': desc,
                                 'is': xstats([t for t in sc if split and t['signal_date'] < split]),
                                 'oos': xstats([t for t in sc if not split or t['signal_date'] >= split])}
     sc = [t for t in cur if t.get('status') == 'filled' and t.get('why') != 'open']
     q = lambda k: {f'p{int(p * 100)}': _pctl([t[k] for t in sc], p) for p in (0.25, 0.5, 0.75, 0.9)}  # noqa: E731
     out['excursions'] = {'mfe_r': q('mfe_r'), 'mae_r': q('mae_r'), 'n': len(sc)}
     return out
+
+
+def choose_base(sets: Dict[str, Dict], min_is: int = MIN_BASE_IS) -> Optional[str]:
+    """The strictest base (BASES order) whose unchanged run has in-sample n >= min_is; else the one with most trades."""
+    ids = [b for b in BASES if b in sets]
+    if not ids:
+        return None
+    n = lambda b, h: ((sets[b]['variants'].get(b) or {}).get(h) or {}).get('n') or 0  # noqa: E731
+    return next((b for b in ids if n(b, 'is') >= min_is), None) or max(ids, key=lambda b: (n(b, 'is') + n(b, 'oos'), -ids.index(b)))
+
+
+def experiments_outputs(trades: List[Dict], exps, bases, start: str = '', end: str = '') -> Tuple[Optional[Dict], Optional[Dict]]:
+    """(the chosen base's set + "bases": {id: {is, oos}} of every base's unchanged run, every set)."""
+    sets = {b: experiments_json(trades, exps, start, end, b) for b in bases}
+    chosen = choose_base(sets)
+    if chosen is None:
+        return None, None
+    summary = {b: {'is': x['variants'][b]['is'], 'oos': x['variants'][b]['oos'], 'base_rules': x['base_rules']}
+               for b, x in sets.items() if b in x['variants']}
+    main = {**sets[chosen], 'bases': {b: {'is': v['is'], 'oos': v['oos']} for b, v in summary.items()},
+            'base_choice': f'strictest base with in-sample n >= {MIN_BASE_IS}, else the one with most trades'}
+    allj = {'schema': 1, 'market': 'stock', 'generated_at': main['generated_at'], 'chosen': chosen, 'min_is_n': MIN_BASE_IS,
+            'base_rules': {b: BASE_RULES[b] for b in sets}, 'bases': summary, 'sets': sets}
+    return main, allj
 
 
 def summarize(trades: List[Dict], spy: Optional[List[Bar]] = None) -> Dict:
@@ -841,14 +901,26 @@ def render_experiments(exp: Optional[Dict]) -> List[str]:
     """The experiments section: a short section per variant (definition + in-sample / out-of-sample results)."""
     exp = exp or {}
     per = exp.get('period') or {}
+    base = exp.get('baseline') or 'current'
     L = ['## Experiments (auto-learner input, `public/learn/stock_experiments.json`)', '',
-         'Each variant = the current rules with ONE change (`tools/stock_scanner/experiments.py`, the same functions the live '
+         'Each variant = the base rules with ONE change (`tools/stock_scanner/experiments.py`, the same functions the live '
          'scanner will import when a variant is adopted). Same walk-forward, the same signals of each evaluation day (computed '
          'once and shared), wick stop (the live plan), the same costs, one position per ticker per variant (free again after '
          'its wick exit; the main report\'s current rules also wait for the close-stop exit, so its trade list can differ '
          'slightly). In sample = signals '
-         f"before {per.get('split') or 'the split'} (older 70% of the current fills), out of sample = from then on. "
-         'Expectancy in R after costs, bootstrap 95% CI. MFE / MAE = best / worst price move from the fill to the exit in R.', '']
+         f"before {per.get('split') or 'the split'} (older 70% of the base's own fills), out of sample = from then on. "
+         'Expectancy in R after costs, bootstrap 95% CI. MFE / MAE = best / worst price move from the fill to the exit in R.', '',
+         f'Bases: the matrix runs on each of {", ".join(BASES)}; the learner file holds the strictest base with in-sample n >= '
+         f'{MIN_BASE_IS} (else the one with most trades); every set is in `public/learn/stock_experiments_all.json`.', '']
+    for b, txt in BASE_RULES.items():
+        L.append(f'- `{b}`: {txt}')
+    L.append('')
+    bs = exp.get('bases') or {}
+    if bs:
+        L += [f'Chosen base: **`{base}`**.', '']
+        for b, v in bs.items():
+            L += [f"- `{b}` in sample: {_xrow(v.get('is'))}", f"- `{b}` out of sample: {_xrow(v.get('oos'))}"]
+        L.append('')
     ex = exp.get('excursions') or {}
     if ex.get('n'):
         L += [f"Current trades' excursions (n {ex['n']}): MFE p25 / p50 / p75 / p90 = "
@@ -857,8 +929,9 @@ def render_experiments(exp: Optional[Dict]) -> List[str]:
     vs = exp.get('variants') or {}
     for vid, meta in E.VARIANTS.items():
         L += [f'### `{vid}` ({meta["group"]})', '', meta['desc'], '', f'Rule: {E.DEFINITIONS.get(vid, "")}', '']
-        if vid in vs:
-            L += [f"- In sample: {_xrow(vs[vid].get('is'))}", f"- Out of sample: {_xrow(vs[vid].get('oos'))}", '']
+        key = base if vid == 'current' else vid
+        if key in vs:
+            L += [f"- In sample: {_xrow(vs[key].get('is'))}", f"- Out of sample: {_xrow(vs[key].get('oos'))}", '']
         elif vid in (exp.get('skipped') or {}) or vid in E.SKIPPED:
             L += [f"Not run: {(exp.get('skipped') or {}).get(vid) or E.SKIPPED.get(vid)}.", '']
         else:
@@ -866,7 +939,7 @@ def render_experiments(exp: Optional[Dict]) -> List[str]:
     return L
 
 
-def render_md(summary: Dict, params: Dict, exp: Optional[Dict] = None) -> str:
+def render_md(summary: Dict, params: Dict, exp: Optional[Dict] = None, tfsa: Optional[Dict] = None) -> str:
     s = summary
     L = ['# Stock scanner backtest (real data, walk-forward)', '',
          f"Generated {dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC by `.github/workflows/stock-backtest.yml` "
@@ -931,6 +1004,8 @@ def render_md(summary: Dict, params: Dict, exp: Optional[Dict] = None) -> str:
               f"max drawdown {_fmt(bm['max_dd_pct'], 1, pct=True)} ({bm['note']}).", '']
     if exp is not None:
         L += render_experiments(exp)
+    if tfsa is not None:
+        L += TS.render_md(tfsa)
     L += ['## How to read this', '',
           '- Avg R = expectancy per trade in units of the planned risk; trust needs the out-of-sample 95% CI above zero.',
           '- Win rate below 100% means losing signals exist: no rule set gives zero false signals. Plan the size so the '
@@ -984,7 +1059,10 @@ def main(argv=None) -> int:
     ap.add_argument('--public', help='also write the public JSON here (e.g. public/scanner/backtest.json)')
     ap.add_argument('--md', help='also write the Markdown report here (e.g. docs/research/Stock_Backtest.md)')
     ap.add_argument('--experiments', default='all', help=f"experiment variants: 'all', 'none' or a comma list of {tuple(E.VARIANTS)}")
-    ap.add_argument('--experiments-json', help='write the experiments here (e.g. public/learn/stock_experiments.json)')
+    ap.add_argument('--experiments-json', help='write the chosen base\'s experiments here (e.g. public/learn/stock_experiments.json)')
+    ap.add_argument('--experiments-all-json', help='write every base\'s experiments here (e.g. public/learn/stock_experiments_all.json)')
+    ap.add_argument('--bases', default=','.join(BASES), help=f'experiment bases, comma list of {BASES}')
+    ap.add_argument('--tfsa-json', help='also run the TFSA buy-and-hold zone study (tfsa_study.py) and write it here')
     a = ap.parse_args(argv)
     t0 = time.time()
     variants = tuple(v for v in (x.strip() for x in a.variants.split(',')) if v)
@@ -1001,6 +1079,11 @@ def main(argv=None) -> int:
             ap.error(f'unknown experiment variants {bad}')
     if exps and 'current' not in exps:
         exps = ('current',) + exps
+    bases = tuple(b.strip() for b in a.bases.split(',') if b.strip())
+    if any(b not in BASES for b in bases) or not bases:
+        ap.error(f'--bases: comma list of {BASES}')
+    tfsa = bool(a.tfsa_json)
+    events: List[Dict] = []
     start = (dt.date.today() - dt.timedelta(days=int(a.years * 365.25))).isoformat() if a.years else ''
     trades: List[Dict] = []
     spy: List[Bar] = []
@@ -1013,8 +1096,11 @@ def main(argv=None) -> int:
         spy = synth.ticker(101)
         asked = done = a.limit or 12
         for seed in range(asked):
-            trades += backtest_ticker(f'FX{seed}', synth.ticker(seed), 'Synthetic', None, a.cost_bps, ['SPX', 'NDX', 'DJI', 'TSX'][seed % 4],
-                                      comp, variants, start, a.slip_bps, a.random_k, experiments=exps, spy_bars=spy)
+            b_ = synth.ticker(seed)
+            trades += backtest_ticker(f'FX{seed}', b_, 'Synthetic', None, a.cost_bps, ['SPX', 'NDX', 'DJI', 'TSX'][seed % 4],
+                                      comp, variants, start, a.slip_bps, a.random_k, experiments=exps, spy_bars=spy, bases=bases)
+            if tfsa:
+                events += TS.ticker_events(f'FX{seed}', b_, start=start)
     else:
         import universe as U
         if a.universes:
@@ -1038,15 +1124,16 @@ def main(argv=None) -> int:
             spy = DATA.fetch_daily('SPY', offline=offline)[0]
         except Exception as e:  # noqa: BLE001
             print(f'SPY: {e}', file=sys.stderr)
-        jobs = [(u['symbol'], u['sector'], offline, a.cost_bps, u.get('indexes') or 'SPX', variants, start, a.slip_bps, a.random_k, exps)
-                for u in uni]
+        jobs = [(u['symbol'], u['sector'], offline, a.cost_bps, u.get('indexes') or 'SPX', variants, start, a.slip_bps, a.random_k, exps,
+                 bases, tfsa) for u in uni]
         pool = Pool(a.workers)
         try:
-            for k, (sym, ts, err) in enumerate(pool.imap_unordered(_worker, jobs)):
+            for k, (sym, ts, err, evs) in enumerate(pool.imap_unordered(_worker, jobs)):
                 done = k + 1
                 if err:
                     print(f'{sym}: {err}', file=sys.stderr)
                 trades += ts
+                events += evs
                 if done % 25 == 0:
                     print(f'{done}/{len(jobs)} tickers, {len(trades)} rows, {(time.time() - t0) / 60:.0f} min', file=sys.stderr, flush=True)
                 if a.budget_min and time.time() - t0 > a.budget_min * 60 and done < len(jobs):
@@ -1061,12 +1148,14 @@ def main(argv=None) -> int:
               'cadence': 'weekly', 'order_life_sessions': ORDER_LIFE, 'hold_weeks': 52, 'random_k': a.random_k,
               'tickers_asked': asked, 'tickers_done': done, 'partial': partial, 'fixture': a.fixture, 'experiments': list(exps),
               'runtime_min': round((time.time() - t0) / 60, 1)}
-    exp = experiments_json(trades, exps, start, spy[-1].d if spy else '') if exps else None
+    exp, exp_all = experiments_outputs(trades, exps, bases, start, spy[-1].d if spy else '') if exps else (None, None)
+    study = TS.summarize(events, spy or None, fixture=a.fixture) if tfsa else None
     write(trades, s, a.out)
-    if a.experiments_json and exp is not None:
-        os.makedirs(os.path.dirname(os.path.abspath(a.experiments_json)), exist_ok=True)
-        with open(a.experiments_json, 'w') as f:
-            json.dump(exp, f, indent=1)
+    for path, js in ((a.experiments_json, exp), (a.experiments_all_json, exp_all), (a.tfsa_json, study)):
+        if path and js is not None:
+            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+            with open(path, 'w') as f:
+                json.dump(js, f, indent=1, allow_nan=False)
     if a.public:
         os.makedirs(os.path.dirname(os.path.abspath(a.public)), exist_ok=True)
         with open(a.public, 'w') as f:
@@ -1074,11 +1163,14 @@ def main(argv=None) -> int:
     if a.md:
         os.makedirs(os.path.dirname(os.path.abspath(a.md)), exist_ok=True)
         with open(a.md, 'w') as f:
-            f.write(render_md(s, params, exp))
+            f.write(render_md(s, params, exp, study))
     print_summary(s)
     print(f"\n{done}/{asked} tickers in {params['runtime_min']} min -> {os.path.join(a.out, 'trades.csv')}, summary.json"
           + (f', {a.public}' if a.public else '') + (f', {a.md}' if a.md else '')
-          + (f', {a.experiments_json}' if a.experiments_json and exp is not None else ''))
+          + (f', {a.experiments_json}' if a.experiments_json and exp is not None else '')
+          + (f', {a.tfsa_json}' if a.tfsa_json and study is not None else ''))
+    if study is not None:
+        print('\nTFSA STUDY: ' + study['verdict'])
     return 0
 
 

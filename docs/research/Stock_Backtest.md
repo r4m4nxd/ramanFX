@@ -117,7 +117,13 @@ Edge of the zones over random entries: -3.68R per trade (wick), -3.62R (close).
 
 ## Experiments (auto-learner input, `public/learn/stock_experiments.json`)
 
-Each variant = the current rules with ONE change (`tools/stock_scanner/experiments.py`, the same functions the live scanner will import when a variant is adopted). Same walk-forward, the same signals of each evaluation day (computed once and shared), wick stop (the live plan), the same costs, one position per ticker per variant (free again after its wick exit; the main report's current rules wait for the close-stop exit too, so its trade list can differ slightly). In sample = signals before the split (older 70% of the current fills), out of sample = from then on. Expectancy in R after costs, bootstrap 95% CI. MFE / MAE = best / worst price move from the fill to the exit in R.
+Each variant = the base rules with ONE change (`tools/stock_scanner/experiments.py`, the same functions the live scanner will import when a variant is adopted). Same walk-forward, the same signals of each evaluation day (computed once and shared), wick stop (the live plan), the same costs, one position per ticker per variant (free again after its wick exit; the main report's current rules also wait for the close-stop exit, so its trade list can differ slightly). In sample = signals before the split (older 70% of the base's own fills), out of sample = from then on. Expectancy in R after costs, bootstrap 95% CI. MFE / MAE = best / worst price move from the fill to the exit in R.
+
+Bases: the matrix runs on each of current, no_nesting, loose; the learner file holds the strictest base with in-sample n >= 150 (else the one with most trades); every set is in `public/learn/stock_experiments_all.json`.
+
+- `current`: The live rules unchanged.
+- `no_nesting`: The live rules without the top-down location rule (a zone need not sit inside a touched higher-timeframe demand).
+- `loose`: The live rules without the top-down location rule, the curve rule (and its ATH exception) and the direction rule (HTF align): the three gates that block most live candidates. Zone type, freshness, room, sideways, CP and overlap rules stay.
 
 ### `current` (baseline)
 
@@ -270,6 +276,18 @@ Buy half at the proximal and half at the middle of the zone (same stop and targe
 Rule: Half the shares at the proximal, half at the zone middle (proximal - 50% of the height), same stop / target; the second order lives while the first half is open (order life 40 sessions, a close under the distal cancels it). R is in units of the full position at the proximal: 0.5 x R1 + 0.5 x R2 (R2 = 0 when not filled).
 
 No results yet (the next monthly run of stock-backtest.yml fills them in).
+
+## TFSA study: buy at a demand zone and hold (no stop)
+
+**Verdict:** no results yet: the next run of `stock-backtest.yml` writes `public/learn/tfsa_study.json` and fills this section in (`tools/stock_scanner/tfsa_study.py`).
+
+What it measures (owner: "for the TFSA I buy at the best price: near, inside or just left a higher-timeframe zone"): every first touch of a W1 / MN / 3M demand zone on every ticker, the zone drawn on CLOSED candles as the live scanner draws it (known from the session after its stay-away candle closed, at most 200 candles old). Buy and hold with no stop:
+
+- **in** (headline): limit buy at the proximal on the first touch (at the open on a gap down);
+- **near**: the first close at most 3% above the proximal before any touch, bought at that close;
+- **left**: the first close back above the proximal within 3 sessions of the first touch, bought at that close.
+
+Returns after 3 / 6 / 12 months (63 / 126 / 252 sessions) to the close, against SPY over the same dates and against the same stock bought on a random day (seeded) for the same length; mean / median excess, share beating SPY, worst drop during the hold. By timeframe, by section, and with filters that read data up to the decision only: SPY above its 200-day average, the stock's 12-month return > 0, entry not in the top third of the 2-year range, and a "qualified" zone (its rally made a new high above the 20 candles before the base). Train = entries before 2022, test = 2022 on, plus two seeded random halves of the tickers. 95% CI by bootstrap resampling tickers (one stock's buys are correlated and the holds overlap). Survivorship: today's index members.
 
 ## How to read this
 

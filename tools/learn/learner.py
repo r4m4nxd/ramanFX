@@ -107,6 +107,8 @@ def decide(exp: Optional[dict], prev_market: dict, live: Optional[dict], mode: s
         out['note'] = 'no backtest results yet'
     else:
         out['source'] = exp.get('generated_at')
+        out['base_rules'] = exp.get('base_rules') or exp.get('baseline') or 'current'   # 'loose' = measured on relaxed rules
+        out['bases'] = exp.get('bases')
         verdicts = []
         for vid, v in variants.items():
             if vid == ((exp.get('baseline') or 'current')) or not isinstance(v, dict):

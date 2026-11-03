@@ -75,10 +75,10 @@ def stubbed():
         scan.analyse, scan.symbol_signals, BT.candidates = saved
 
 
-def run_stub(b, spy):
+def run_stub(b, spy, bases=('current',)):
     with stubbed():
         return BT.backtest_ticker('STUB', b, 'S', None, 5.0, variants=('current',), slip_bps=5.0, random_k=0,
-                                  experiments=E.runnable(), spy_bars=spy)
+                                  experiments=E.runnable(), spy_bars=spy, bases=bases)
 
 
 class ExitRulesTest(unittest.TestCase):
@@ -193,19 +193,26 @@ class SignalRulesTest(unittest.TestCase):
 class BacktestExperimentsTest(unittest.TestCase):
     def test_every_variant_runs_and_json_schema(self):
         b, spy = synth.ticker(42), synth.ticker(101)
-        tr = run_stub(b, spy)
-        got = {t['variant'][2:] for t in tr if t['variant'].startswith('x:')}
-        self.assertEqual(got, set(E.runnable()))
+        tr = run_stub(b, spy, BT.BASES)
+        got = {tuple(t['variant'].split(':')[1:]) for t in tr if t['variant'].startswith('x:')}
+        self.assertEqual(got, {(bk, v) for bk in BT.BASES for v in E.runnable()})
         for t in tr:
             if t.get('status') == 'filled':
                 self.assertGreater(t['fill_date'], t['signal_date'])
-        exp = BT.experiments_json(tr, E.runnable())
-        self.assertEqual(set(exp), {'schema', 'market', 'generated_at', 'period', 'baseline', 'variants', 'skipped', 'excursions'})
-        self.assertEqual((exp['schema'], exp['market'], exp['baseline']), (1, 'stock', 'current'))
+        exp, allj = BT.experiments_outputs(tr, E.runnable(), BT.BASES)
+        self.assertEqual(set(exp), {'schema', 'market', 'generated_at', 'period', 'baseline', 'variants', 'skipped', 'excursions',
+                                    'base_rules', 'bases', 'base_choice'})
+        self.assertEqual((exp['schema'], exp['market'], exp['baseline']), (1, 'stock', 'current'))   # stub: every base the same
+        self.assertEqual(set(exp['bases']), set(BT.BASES))
+        self.assertEqual(set(allj['sets']), set(BT.BASES))
+        self.assertEqual(allj['chosen'], 'current')
+        self.assertIn('loose', allj['sets']['loose']['variants'])
+        self.assertNotIn('current', allj['sets']['loose']['variants'])
         dt.datetime.strptime(exp['generated_at'], '%Y-%m-%dT%H:%M:%SZ')
         for k in ('start', 'end', 'split'):
             dt.date.fromisoformat(exp['period'][k])
         self.assertEqual(set(exp['variants']) | set(exp['skipped']), set(E.VARIANTS))
+        json.dumps(allj, allow_nan=False)
         self.assertIn('earnings_skip', exp['skipped'])
         keys = {'n', 'win', 'exp_r', 'ci', 'pf', 'avg_mfe_r', 'avg_mae_r', 'avg_bars', 'max_dd_r'}
         for vid, v in exp['variants'].items():
@@ -227,10 +234,34 @@ class BacktestExperimentsTest(unittest.TestCase):
         for vid in E.VARIANTS:
             self.assertIn(f'### `{vid}`', '\n'.join(md))
         # variants really differ from current where they should
-        by = {v: [t for t in tr if t['variant'] == 'x:' + v] for v in E.runnable()}
+        by = {v: [t for t in tr if t['variant'] == 'x:current:' + v] for v in E.runnable()}
         self.assertLess(len(by['cont_off']), len(by['current']))
         self.assertTrue(any(t.get('promoted') for t in by['fresh_body']))
         self.assertTrue(any(t['status'] == 'cancelled_half' for t in by['cancel_50']))
+
+    def test_choose_base(self):
+        mk = lambda n_is: {'variants': {'x': {'is': {'n': n_is}, 'oos': {'n': 10}}}}  # noqa: E731
+        sets = {b: {'variants': {b: {'is': {'n': n}, 'oos': {'n': 5}}}} for b, n in zip(BT.BASES, (20, 160, 400))}
+        self.assertEqual(BT.choose_base(sets), 'no_nesting')                    # the strictest with >= 150 in sample
+        sets['no_nesting']['variants']['no_nesting']['is']['n'] = 100
+        self.assertEqual(BT.choose_base(sets), 'loose')
+        sets['loose']['variants']['loose']['is']['n'] = 30
+        self.assertEqual(BT.choose_base(sets), 'no_nesting')                    # none qualifies: most trades
+        self.assertIsNotNone(mk)
+
+    def test_loose_base_switches_off_only_its_gates(self):
+        orig = scan.zone_rules
+        an = scan.analyse(*(lambda b: (b, BT.DATA.closed_htf(b, 'W1'), BT.DATA.closed_htf(b, 'MN')))(synth.ticker(693)))
+        r, z = next((r, z) for r in scan.zone_rows(an) if r.ok for z in r.zones if z.zid in an.dna)
+        live = {k.ref: k.status for k in scan.zone_rules(an, z, an.dna[z.zid], None)}
+        with BT.rule_variant('loose'):
+            loose = {k.ref: k.status for k in scan.zone_rules(an, z, an.dna[z.zid], None)}
+        self.assertIs(scan.zone_rules, orig)
+        for ref, st in live.items():
+            if ref in BT.LOOSE_REFS and st == scan.FAIL:
+                self.assertEqual(loose[ref], scan.WARN)
+            else:
+                self.assertEqual(loose[ref], st, ref)
 
     def test_no_look_ahead(self):
         """Changing the bars after day T never changes a decision taken before T: the same rows exist for every signal
@@ -275,13 +306,21 @@ class BacktestExperimentsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = os.path.join(tmp, 'learn', 'stock_experiments.json')
             BT.main(['--fixture', '--limit', '2', '--out', os.path.join(tmp, 'o'), '--experiments-json', out,
+                     '--experiments-all-json', os.path.join(tmp, 'learn', 'all.json'), '--tfsa-json', os.path.join(tmp, 'learn', 't.json'),
                      '--md', os.path.join(tmp, 'x.md')])
             with open(out) as f:
                 js = json.load(f)
             self.assertEqual(js['market'], 'stock')
-            self.assertIn('current', js['variants'])
+            self.assertIn(js['baseline'], BT.BASES)
+            self.assertIn(js['baseline'], js['variants'])
+            with open(os.path.join(tmp, 'learn', 'all.json')) as f:
+                self.assertEqual(json.load(f)['chosen'], js['baseline'])
+            with open(os.path.join(tmp, 'learn', 't.json')) as f:
+                self.assertIn('verdict', json.load(f))
             with open(os.path.join(tmp, 'x.md')) as f:
-                self.assertIn('## Experiments', f.read())
+                md = f.read()
+            self.assertIn('## Experiments', md)
+            self.assertIn('## TFSA study', md)
 
 
 if __name__ == '__main__':
