@@ -555,7 +555,7 @@ def state_path() -> str:
     return os.path.join(C.CACHE, 'state.json')
 
 
-SCHEDULE_KEYS = ('last_h1', 'last_h4', 'summary_d1', 'digest_h4', 'last_h1_crypto')
+SCHEDULE_KEYS = ('last_h1', 'last_h4', 'summary_d1', 'digest_h4', 'digest_h4_guests', 'last_h1_crypto')
 
 
 def _read(path: str) -> Dict:
@@ -1103,11 +1103,17 @@ def main(argv=None) -> int:
         new_state['summary_d1'] = d1
     # hourly scans inside the same H4 bar: the instant alert only (above, [] when nothing is new); the digest once
     # per new H4 candle, the daily summary once per new D1 candle
-    digest = bool(C.H4_DIGEST and not a.only and needs_digest(h4, state, a.force))
+    # owner 2026-11-04: the check every hour (FX_DIGEST_EVERY=H1, default) or every 4 hours (H4); guests keep H4
+    every_h1 = C.DIGEST_EVERY == 'H1' and bool(h1)
+    dkey = h1 if every_h1 else h4
+    guest_digest = bool(C.H4_DIGEST and not a.only and h4 and (a.force or h4 != state.get('digest_h4_guests', state.get('digest_h4'))))
+    digest = bool(C.H4_DIGEST and not a.only and needs_digest(dkey, state, a.force))
     if digest:
         if not summary:                                    # the daily summary already is this candle's overview
-            msgs += hush([N.digest_message(pub, ev if not bootstrap else {})])
-        new_state['digest_h4'] = h4
+            msgs += hush([N.digest_message(pub, ev if not bootstrap else {}, hourly=every_h1)])
+        new_state['digest_h4'] = dkey
+    if guest_digest:
+        new_state['digest_h4_guests'] = h4
     ok = True
     if notify and msgs:
         ok = N.send(msgs) or not telegram_configured()
@@ -1123,7 +1129,7 @@ def main(argv=None) -> int:
     if notify and ok and not a.only:
         per_sym = alert_inputs(res)
         to_guests(prefs, lambda g, fo: guest_messages(g, ev, h4, h1, pub, per_sym, new_state['fired_alerts'], fo, bootstrap,
-                                                      bool(summary), digest, bool(h1)), 'FX scan')
+                                                      bool(summary), guest_digest, bool(h1)), 'FX scan')
     if not a.only:                                       # Raja arrival / realignment alerts (own state, own day cap)
         FA.run(res, prefs, N.send, notify=notify, write=not a.no_write)
         import fxtrend as FT                             # FX 2: daily / weekly direction change (Raja L3)

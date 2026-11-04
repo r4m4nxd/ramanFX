@@ -334,11 +334,12 @@ def _overview(pub: Dict, head0: str, new: Sequence[Dict], show_close: bool = Tru
                       SN.keyboard(charts_of(shown), 'Open app', C.APP_URL), foot=foot(when))
 
 
-def digest_message(pub: Dict, ev: Dict, top: int = SN.MAX_CARDS) -> Msg:
-    """The H4 check after every new H4 candle: one message, <= 4 visible lines when nothing new happened."""
-    when = _local(pub.get('h4_close_utc') or '') or esc(pub.get('h4') or '')
+def digest_message(pub: Dict, ev: Dict, top: int = SN.MAX_CARDS, hourly: bool = False) -> Msg:
+    """The check after every new H4 candle (hourly=True: every new H1 candle): one message, <= 4 visible lines when
+    nothing new happened."""
+    when = (_local(pub.get('h1_close_utc') or '') if hourly else '') or _local(pub.get('h4_close_utc') or '') or esc(pub.get('h4') or '')
     new = list((ev or {}).get('signals') or []) + list((ev or {}).get('watch') or [])
-    return _overview(pub, '<b>Forex · 4-hour check</b>', new, show_close=False, when=when)
+    return _overview(pub, '<b>Forex · hourly check</b>' if hourly else '<b>Forex · 4-hour check</b>', new, show_close=False, when=when)
 
 
 def summary_messages(pub: Dict) -> List[Msg]:

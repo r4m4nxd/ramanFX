@@ -70,6 +70,7 @@ jobs:
       FX_SOFT_REACH_PCT: ${{ vars.FX_SOFT_REACH_PCT || '5' }}
       FX_BUDGET_MIN: '25'
       FX_H4_DIGEST: ${{ vars.FX_H4_DIGEST || 'true' }}
+      FX_DIGEST_EVERY: ${{ vars.FX_DIGEST_EVERY || 'H1' }}   # H1 = a check every hour (owner 2026-11-04), H4 = every 4 hours
       PYTHONTZPATH: ''                 # zoneinfo: the pip tzdata (step 'Current time-zone data'), never a stale system copy
     steps:
       # code: the branch tip at run time (not the commit the schedule fired on)
