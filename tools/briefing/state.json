@@ -2,19 +2,21 @@
  "lessons": {
   "cycle": 1,
   "last": {
-   "date": "2026-11-03",
-   "key": "seiden:1",
-   "title": "Probability Enhancer (Odds Enhancer Score Sheet)"
+   "date": "2026-11-04",
+   "key": "baker:1",
+   "title": "Why Baker Drops Technical Indicators"
   },
   "used": [
    "raja:1",
    "course:1",
-   "seiden:1"
+   "seiden:1",
+   "baker:1"
   ]
  },
  "sent": {
   "2026-10-30": "2026-10-30T12:00:36Z",
   "2026-11-02": "2026-11-02T12:00:32Z",
-  "2026-11-03": "2026-11-03T12:00:33Z"
+  "2026-11-03": "2026-11-03T12:00:33Z",
+  "2026-11-04": "2026-11-04T12:00:30Z"
  }
 }
