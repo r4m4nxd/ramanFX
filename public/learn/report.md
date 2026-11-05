@@ -1,6 +1,6 @@
 # What the scanners learned
 
-Updated 2026-11-03T12:18:33Z · mode: auto
+Updated 2026-11-05T17:39:12Z · mode: auto
 
 ## Currencies, metals and indices
 
@@ -28,7 +28,7 @@ Rules tested: 18 · results from 2026-11-03T07:32:25Z
 
 ## Stocks
 
-Rules tested: 17 · results from 2026-11-03T05:18:54Z
+Rules tested: 17 · results from 2026-11-03T15:25:57Z
 
 **In use** (0)
 - none
@@ -49,3 +49,5 @@ Rules tested: 17 · results from 2026-11-03T05:18:54Z
 - No buy when the entry sits in the top third of the last 2 years' range. · too few trades (78 older, 37 recent)
 - A zone counts as used only once a daily candle CLOSED inside it (wick-only touches keep it fresh). · too few trades (94 older, 40 recent)
 - A zone counts as used only once price went at least 25% of the zone height inside it. · too few trades (94 older, 40 recent)
+
+Live ideas, last 90 days: 1 · win rate 0% · -1.00R per idea

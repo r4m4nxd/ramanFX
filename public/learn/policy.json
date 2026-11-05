@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "generated_at": "2026-11-03T12:18:33Z",
+ "generated_at": "2026-11-05T17:39:12Z",
  "mode": "auto",
  "markets": {
   "fx": {
@@ -268,8 +268,12 @@
     }
    ],
    "tested": 17,
-   "source": "2026-11-03T05:18:54Z",
-   "live": null,
+   "source": "2026-11-03T15:25:57Z",
+   "live": {
+    "n": 1,
+    "exp_r": -1.0,
+    "win": 0.0
+   },
    "half_size": false,
    "base_rules": "The live rules without the top-down location rule, the curve rule (and its ATH exception) and the direction rule (HTF align): the three gates that block most live candidates. Zone type, freshness, room, sideways, CP and overlap rules stay.",
    "bases": {
