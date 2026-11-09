@@ -2,9 +2,9 @@
  "lessons": {
   "cycle": 1,
   "last": {
-   "date": "2026-11-06",
-   "key": "raja:2",
-   "title": "Weak Zones and the Confirmation Rule (Retests, Inheritance, Flip, Overlap)"
+   "date": "2026-11-09",
+   "key": "course:2",
+   "title": "Qualifying Zones"
   },
   "used": [
    "raja:1",
@@ -12,7 +12,8 @@
    "seiden:1",
    "baker:1",
    "zoom:1",
-   "raja:2"
+   "raja:2",
+   "course:2"
   ]
  },
  "sent": {
@@ -21,6 +22,7 @@
   "2026-11-03": "2026-11-03T12:00:33Z",
   "2026-11-04": "2026-11-04T12:00:30Z",
   "2026-11-05": "2026-11-05T12:00:32Z",
-  "2026-11-06": "2026-11-06T12:00:31Z"
+  "2026-11-06": "2026-11-06T12:00:31Z",
+  "2026-11-09": "2026-11-09T12:00:31Z"
  }
 }
