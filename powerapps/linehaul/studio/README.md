@@ -16,3 +16,9 @@ These are the screens as they are in Power Apps Studio. They include your hand e
   - **Lane history:** the Expiry column becomes "Expires in", coloured, with the exact date on hover.
   - **Headings:** the "Read only" hint and the 1/2/3 numbers are gone; the ✎ badge on the edit panel stays.
   - **Button:** "Edit rate" is renamed "Edit status & dates", and the multi-active warning now says the same.
+
+- **Default lane (both screens):**
+  - **Rate entry:** `entTglDefault` on the Lane key row and the `entLblDefault` note.
+  - **Saving:** stores `DefaultLane`, switches off other defaults on the route, and clears `DefaultLane` on rates that get switched off.
+  - **Rate details:** `detDefPill` in the header row, and `detEditDefRow` in the edit panel (+72 px height).
+  - **Lane history and data:** a ★ in the history pills and an `IsDef` column on `varRate` and `colLaneRates`.

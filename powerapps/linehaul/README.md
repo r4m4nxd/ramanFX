@@ -148,3 +148,29 @@ Every text control uses one of these roles. The sizes are set once at the top of
   - The colour shifts gradually: normal text from 90 days out, slate to amber between 90 and 30 days, then amber to red over the last 30 days. Expired is red.
   - Inside 30 days the text turns semibold.
   - Hovering shows the exact "Valid to" date.
+
+## Default lane
+
+**What it is:** each Origin → Destination route (for example TO → WI) can have one default rate, whatever the carrier, mode or equipment. It's the rate to use when nobody specifies otherwise.
+
+### SharePoint: add the column (one time)
+1. Open the **LinehaulRates** list → Add column → **Yes/No**.
+2. Name it exactly **`DefaultLane`** and set the default value to **No**.
+3. In Power Apps Studio → Data → `LinehaulRates` → **Refresh**, so the app sees the new column.
+4. Optional: index the column (List settings → Indexed columns).
+
+### Rules the app enforces
+- **Must be active:** only an active rate can be the default. The Default lane switch is greyed out while Active is off, and saving an inactive rate always stores `DefaultLane = No`.
+- **One per route:** after a default saves successfully, every other default on the same Origin → Destination is switched off.
+- **Confirm first:** if the route already has a default on a different carrier, mode or equipment, the save dialog says which rate it will replace.
+- **Defaults carry over:** a rate that is switched off because a newer rate replaced it also loses its default flag. When the new rate replaces the current default on the same lane, Default lane starts switched on, so the default moves across.
+- **First rate on a route:** Default lane starts switched on.
+- **Edit panel:** Edit status & dates has a Default lane switch too. It warns when saving would leave the route with no default.
+
+### Where it shows
+| Screen | What you see |
+|---|---|
+| Rate entry | A "★ Default lane" switch on the Lane key row, plus a grey note when the save will move the default or when the route has none yet. |
+| Recent entries | A ★ in the status pill of default rates, and a "★ Defaults only" filter chip. |
+| Rate details | A "★ Default lane" pill next to the status, a Default lane switch in the edit panel, and a ★ in "All rates on this lane". |
+| Bulk upload template | A `DefaultLane` column (Yes/No). The Check column flags two defaults on one route, or a default that isn't active. |

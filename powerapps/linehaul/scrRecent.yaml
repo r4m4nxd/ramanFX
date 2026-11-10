@@ -438,7 +438,7 @@ Screens:
                               DropShadow: =DropShadow.None
                               Fill: =clrClear
                               FillPortions: =0
-                              Height: =If(recBody.Width < 1180, 92, 42)
+                              Height: =If(recBody.Width < 1330, 92, 42)
                               LayoutAlignItems: =LayoutAlignItems.Center
                               LayoutDirection: =LayoutDirection.Horizontal
                               LayoutGap: =12
@@ -672,6 +672,40 @@ Screens:
                                     Size: =10
                                     Text: ="Show expired"
                                     Width: =128
+                              - recChipDef:
+                                  Control: Classic/Button@2.2.0
+                                  Properties:
+                                    BorderColor: =If(varRecDef, clrBlue, clrLine)
+                                    BorderThickness: =1
+                                    Color: =If(varRecDef, clrWhite, clrInk2)
+                                    DisabledBorderColor: =clrLine
+                                    DisabledColor: =clrInk3
+                                    DisabledFill: =clrSoft
+                                    Fill: =If(varRecDef, clrBlue, clrPanel)
+                                    FillPortions: =0
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Semibold
+                                    Height: =32
+                                    HoverBorderColor: =clrInk3
+                                    HoverColor: =If(varRecDef, clrWhite, clrInk)
+                                    HoverFill: =If(varRecDef, clrBlue, clrPanel)
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
+                                    OnSelect: =Set(varRecDef, !varRecDef)
+                                    PaddingBottom: =0
+                                    PaddingLeft: =12
+                                    PaddingRight: =12
+                                    PaddingTop: =0
+                                    PressedBorderColor: =clrInk3
+                                    PressedColor: =clrWhite
+                                    PressedFill: =clrBlue
+                                    RadiusBottomLeft: =16
+                                    RadiusBottomRight: =16
+                                    RadiusTopLeft: =16
+                                    RadiusTopRight: =16
+                                    Size: =10
+                                    Text: ="★ Defaults only"
+                                    Width: =150
                               - recBtnClear:
                                   Control: Classic/Button@2.2.0
                                   Properties:
@@ -691,7 +725,7 @@ Screens:
                                     HoverFill: =clrPanel
                                     LayoutMinHeight: =0
                                     LayoutMinWidth: =0
-                                    OnSelect: =Reset(recTxtLane); Reset(recTxtCarrier); Reset(recTxtMode); Reset(recTxtEquip); Set(varRecActive, false); Set(varRecNoFuel, false); Set(varRecExpired, false)
+                                    OnSelect: =Reset(recTxtLane); Reset(recTxtCarrier); Reset(recTxtMode); Reset(recTxtEquip); Set(varRecActive, false); Set(varRecNoFuel, false); Set(varRecExpired, false); Set(varRecDef, false)
                                     PaddingBottom: =0
                                     PaddingLeft: =12
                                     PaddingRight: =12
@@ -974,11 +1008,12 @@ Screens:
                                                       SortOrder.Descending
                                                   ),
                                                   IsOn, Upper(Trim(Active)) in ["YES", "TRUE"],
+                                                  IsDef, Coalesce(DefaultLane, false),
                                                   LH, LHCost(Base, Fuel, F_Adj, F_Discount, Adj, AdjType, Discount, DiscountType, !varRecNoFuel),
                                                   NoFSC, !varRecNoFuel && FuelMissing(Fuel),
                                                   Expired, ExpiryDate < Today()
                                               ),
-                                              (IsBlank(e) || e in Equipment) && (!varRecActive || IsOn)
+                                              (IsBlank(e) || e in Equipment) && (!varRecActive || IsOn) && (!varRecDef || IsDef)
                                           )
                                       )
                                     LayoutMinHeight: =0
@@ -1135,8 +1170,9 @@ Screens:
                                           RadiusTopLeft: =11
                                           RadiusTopRight: =11
                                           Size: =8.5
-                                          Text: =If(ThisItem.Expired, "Expired", ThisItem.IsOn, "Active", "Inactive")
-                                          Width: =74
+                                          Text: =If(ThisItem.IsDef, "★ ", "") & If(ThisItem.Expired, "Expired", ThisItem.IsOn, "Active", "Inactive")
+                                          Tooltip: =If(ThisItem.IsDef, "Default rate for " & ThisItem.Title & " → " & ThisItem.Destination, "")
+                                          Width: =84
                                           X: =Parent.TemplateWidth * 0.69 + 8
                                           Y: =12
                                     - recRowValid:

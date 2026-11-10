@@ -7,7 +7,7 @@ Screens:
         ClearCollect(
             colLaneRates,
             Sort(
-                AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false,
+                AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false, IsDef, Coalesce(DefaultLane, false),
                            Expired, ExpiryDate < Today()),
                 Timestamp,
                 SortOrder.Descending
@@ -337,7 +337,7 @@ Screens:
                               HoverFill: =clrBlue
                               LayoutMinHeight: =0
                               LayoutMinWidth: =0
-                              OnSelect: =Set(varEditRate, true); Reset(detTglEditActive); Reset(detDteEditEff); Reset(detDteEditExp); Reset(detTxtEditNotes)
+                              OnSelect: =Set(varEditRate, true); Reset(detTglEditActive); Reset(detDteEditEff); Reset(detDteEditExp); Reset(detTxtEditNotes); Reset(detTglEditDefault)
                               PaddingBottom: =0
                               PaddingLeft: =12
                               PaddingRight: =12
@@ -558,6 +558,37 @@ Screens:
                                     Size: =8.5
                                     Text: =If(varRate.ExpiryDate < Today(), "Expired", varRate.IsOn, "Active", "Inactive")
                                     Width: =90
+                              - detDefPill:
+                                  Control: Classic/Button@2.2.0
+                                  Properties:
+                                    BorderColor: =clrClear
+                                    BorderThickness: =0
+                                    Color: =clrWhite
+                                    Fill: =clrBlue
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Bold
+                                    Height: =26
+                                    HoverBorderColor: =clrClear
+                                    HoverColor: =clrWhite
+                                    HoverFill: =clrBlue
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
+                                    PaddingBottom: =0
+                                    PaddingLeft: =10
+                                    PaddingRight: =10
+                                    PaddingTop: =0
+                                    PressedBorderColor: =clrClear
+                                    PressedColor: =clrWhite
+                                    PressedFill: =clrBlue
+                                    RadiusBottomLeft: =11
+                                    RadiusBottomRight: =11
+                                    RadiusTopLeft: =11
+                                    RadiusTopRight: =11
+                                    Size: =8.5
+                                    Text: ="★ Default lane"
+                                    Tooltip: ="The default rate for this origin → destination"
+                                    Visible: =varRate.IsDef
+                                    Width: =120
                               - detLblSubmitted:
                                   Control: Label@2.5.1
                                   Properties:
@@ -1570,7 +1601,7 @@ Screens:
                                           DropShadow: =DropShadow.None
                                           Fill: =clrPanel
                                           FillPortions: =0
-                                          Height: =302 + If(detLblEditErr.Visible, 68, 0) + If(detLblEditWarn.Visible, 86, 0)
+                                          Height: =374 + If(detLblEditErr.Visible, 68, 0) + If(detLblEditWarn.Visible, 86, 0)
                                           LayoutDirection: =LayoutDirection.Vertical
                                           LayoutMinHeight: =0
                                           LayoutMinWidth: =0
@@ -1850,6 +1881,97 @@ Screens:
                                                                   LayoutMinWidth: =0
                                                                   PaddingRight: =4
                                                                   Size: =11
+                                                - detEditDefRow:
+                                                    Control: GroupContainer@1.5.0
+                                                    Variant: AutoLayout
+                                                    Properties:
+                                                      DropShadow: =DropShadow.None
+                                                      Fill: =clrClear
+                                                      FillPortions: =0
+                                                      Height: =60
+                                                      LayoutDirection: =LayoutDirection.Horizontal
+                                                      LayoutGap: =12
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
+                                                      RadiusBottomLeft: =0
+                                                      RadiusBottomRight: =0
+                                                      RadiusTopLeft: =0
+                                                      RadiusTopRight: =0
+                                                    Children:
+                                                      - detFldEditDefault:
+                                                          Control: GroupContainer@1.5.0
+                                                          Variant: AutoLayout
+                                                          Properties:
+                                                            DropShadow: =DropShadow.None
+                                                            Fill: =clrClear
+                                                            FillPortions: =0
+                                                            LayoutDirection: =LayoutDirection.Vertical
+                                                            LayoutGap: =2
+                                                            LayoutMinHeight: =0
+                                                            LayoutMinWidth: =0
+                                                            PaddingBottom: =2
+                                                            PaddingLeft: =2
+                                                            PaddingRight: =2
+                                                            PaddingTop: =2
+                                                            RadiusBottomLeft: =0
+                                                            RadiusBottomRight: =0
+                                                            RadiusTopLeft: =0
+                                                            RadiusTopRight: =0
+                                                            Width: =200
+                                                          Children:
+                                                            - detFldEditDefaultLbl:
+                                                                Control: Label@2.5.1
+                                                                Properties:
+                                                                  AlignInContainer: =AlignInContainer.Stretch
+                                                                  Color: =clrInk3
+                                                                  Font: =Font.'Segoe UI'
+                                                                  FontWeight: =FontWeight.Bold
+                                                                  Height: =18
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
+                                                                  PaddingBottom: =0
+                                                                  PaddingLeft: =0
+                                                                  PaddingRight: =0
+                                                                  PaddingTop: =0
+                                                                  Size: =9
+                                                                  Text: ="Default lane"
+                                                            - detTglEditDefault:
+                                                                Control: Classic/Toggle@2.1.0
+                                                                Properties:
+                                                                  AlignInContainer: =AlignInContainer.Start
+                                                                  Color: =clrInk
+                                                                  FalseFill: =RGBA(190, 200, 210, 1)
+                                                                  FalseHoverFill: =clrInk3
+                                                                  FalseText: ="Not default"
+                                                                  Font: =Font.'Segoe UI'
+                                                                  FontWeight: =FontWeight.Semibold
+                                                                  HandleFill: =clrWhite
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
+                                                                  Size: =10
+                                                                  TrueFill: =clrBlue
+                                                                  TrueHoverFill: =clrBlueHover
+                                                                  TrueText: ="★ Default lane"
+                                                                  Default: =varRate.IsDef
+                                                                  DisplayMode: =If(detTglEditActive.Value, DisplayMode.Edit, DisplayMode.Disabled)
+                                                                  Height: =36
+                                                                  Width: =180
+                                                      - detEditDefHint:
+                                                          Control: Label@2.5.1
+                                                          Properties:
+                                                            Color: =clrInk3
+                                                            FillPortions: =1
+                                                            Font: =Font.'Segoe UI'
+                                                            Height: =60
+                                                            LayoutMinHeight: =0
+                                                            LayoutMinWidth: =40
+                                                            PaddingBottom: =8
+                                                            PaddingLeft: =0
+                                                            PaddingRight: =0
+                                                            PaddingTop: =20
+                                                            Size: =10
+                                                            Text: ="Only one default per route (" & varRate.Title & " → " & varRate.Destination & "). An inactive rate can't be the default."
+                                                            VerticalAlign: =VerticalAlign.Top
                                                 - detFldEditNotes:
                                                     Control: GroupContainer@1.5.0
                                                     Variant: AutoLayout
@@ -1959,7 +2081,7 @@ Screens:
                                                       Size: =10
                                                       Text: |-
                                                         =With(
-                                                            {act: First(Filter(colLaneRates, ID <> varRate.ID && IsOn))},
+                                                            {act: First(Filter(colLaneRates, ID <> varRate.ID && IsOn)), dc: LookUp(AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination), IsDef, Coalesce(DefaultLane, false)), IsDef && ID <> varRate.ID)},
                                                             Trim(
                                                                 If(
                                                                     detTglEditActive.Value && !IsBlank(act),
@@ -1974,6 +2096,15 @@ Screens:
                                                                     !IsBlank(detDteEditExp.SelectedDate) && detDteEditExp.SelectedDate < Today() &&
                                                                     varRate.ExpiryDate >= Today(),
                                                                     "⚠ The new expiry has already passed, so this rate will drop off Recent entries. ", ""
+                                                                ) &
+                                                                If(
+                                                                    detTglEditActive.Value && detTglEditDefault.Value && !IsBlank(dc),
+                                                                    "★ This rate becomes the default for " & varRate.Title & " → " & varRate.Destination & ", replacing " &
+                                                                    dc.Carrier & " · " & dc.Mode & " · " & dc.Equipment & ". ", ""
+                                                                ) &
+                                                                If(
+                                                                    varRate.IsDef && !(detTglEditActive.Value && detTglEditDefault.Value),
+                                                                    "⚠ This rate is the default for " & varRate.Title & " → " & varRate.Destination & ". After saving, that route has no default. ", ""
                                                                 )
                                                             )
                                                         )
@@ -2071,6 +2202,7 @@ Screens:
                                                                               LookUp(LinehaulRates, ID = varRate.ID),
                                                                               {
                                                                                   Active: If(detTglEditActive.Value, "Yes", "No"),
+                                                                                  DefaultLane: detTglEditActive.Value && detTglEditDefault.Value,
                                                                                   EffectiveDate: detDteEditEff.SelectedDate,
                                                                                   ExpiryDate: detDteEditExp.SelectedDate,
                                                                                   Comments: detTxtEditNotes.Text
@@ -2094,7 +2226,20 @@ Screens:
                                                                                       ),
                                                                                       IsOn && ID <> r.ID
                                                                                   ) As old,
-                                                                                  Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: "No"})
+                                                                                  Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: "No", DefaultLane: false})
+                                                                              )
+                                                                          );
+                                                                          If(
+                                                                              r.DefaultLane,
+                                                                              ForAll(
+                                                                                  Filter(
+                                                                                      AddColumns(
+                                                                                          Filter(LinehaulRates, Title = r.Title && Destination = r.Destination),
+                                                                                          IsDef, Coalesce(DefaultLane, false)
+                                                                                      ),
+                                                                                      IsDef && ID <> r.ID
+                                                                                  ) As od,
+                                                                                  Patch(LinehaulRates, LookUp(LinehaulRates, ID = od.ID), {DefaultLane: false})
                                                                               )
                                                                           );
                                                                           Set(
@@ -2104,6 +2249,7 @@ Screens:
                                                                                   {
                                                                                       Active: r.Active,
                                                                                       IsOn: Upper(r.Active) = "YES",
+                                                                                      IsDef: r.DefaultLane,
                                                                                       Expired: r.ExpiryDate < Today(),
                                                                                       EffectiveDate: r.EffectiveDate,
                                                                                       ExpiryDate: r.ExpiryDate,
@@ -2114,7 +2260,7 @@ Screens:
                                                                           ClearCollect(
                                                                               colLaneRates,
                                                                               Sort(
-                                                                                  AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false,
+                                                                                  AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false, IsDef, Coalesce(DefaultLane, false),
                                                                                              Expired, ExpiryDate < Today()),
                                                                                   Timestamp,
                                                                                   SortOrder.Descending
@@ -2754,8 +2900,8 @@ Screens:
                                                             RadiusTopLeft: =11
                                                             RadiusTopRight: =11
                                                             Size: =8.5
-                                                            Text: =If(ThisItem.ExpiryDate < Today(), "Expired", ThisItem.IsOn, "Active", "Inactive")
-                                                            Width: =74
+                                                            Text: =If(ThisItem.IsDef, "★ ", "") & If(ThisItem.ExpiryDate < Today(), "Expired", ThisItem.IsOn, "Active", "Inactive")
+                                                            Width: =84
                                                             X: =12
                                                             Y: =11
                                                       - detLaneRowBase:
@@ -2994,6 +3140,7 @@ Screens:
                                       LookUp(LinehaulRates, ID = varRate.ID),
                                       {
                                           Active: If(detTglEditActive.Value, "Yes", "No"),
+                                          DefaultLane: detTglEditActive.Value && detTglEditDefault.Value,
                                           EffectiveDate: detDteEditEff.SelectedDate,
                                           ExpiryDate: detDteEditExp.SelectedDate,
                                           Comments: detTxtEditNotes.Text
@@ -3017,7 +3164,20 @@ Screens:
                                               ),
                                               IsOn && ID <> r.ID
                                           ) As old,
-                                          Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: "No"})
+                                          Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: "No", DefaultLane: false})
+                                      )
+                                  );
+                                  If(
+                                      r.DefaultLane,
+                                      ForAll(
+                                          Filter(
+                                              AddColumns(
+                                                  Filter(LinehaulRates, Title = r.Title && Destination = r.Destination),
+                                                  IsDef, Coalesce(DefaultLane, false)
+                                              ),
+                                              IsDef && ID <> r.ID
+                                          ) As od,
+                                          Patch(LinehaulRates, LookUp(LinehaulRates, ID = od.ID), {DefaultLane: false})
                                       )
                                   );
                                   Set(
@@ -3027,6 +3187,7 @@ Screens:
                                           {
                                               Active: r.Active,
                                               IsOn: Upper(r.Active) = "YES",
+                                              IsDef: r.DefaultLane,
                                               Expired: r.ExpiryDate < Today(),
                                               EffectiveDate: r.EffectiveDate,
                                               ExpiryDate: r.ExpiryDate,
@@ -3037,7 +3198,7 @@ Screens:
                                   ClearCollect(
                                       colLaneRates,
                                       Sort(
-                                          AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false,
+                                          AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false, IsDef, Coalesce(DefaultLane, false),
                                                      Expired, ExpiryDate < Today()),
                                           Timestamp,
                                           SortOrder.Descending

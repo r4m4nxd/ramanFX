@@ -8,7 +8,7 @@ Screens:
             colLaneRates,
             Sort(
                 AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false,
-                           Expired, ExpiryDate < Today()),
+                           Expired, ExpiryDate < Today(), IsDef, Coalesce(DefaultLane, false)),
                 Timestamp,
                 SortOrder.Descending
             )
@@ -2963,7 +2963,7 @@ Screens:
                                                                               colLaneRates,
                                                                               Sort(
                                                                                   AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false,
-                                                                                             Expired, ExpiryDate < Today()),
+                                                                                             Expired, ExpiryDate < Today(), IsDef, Coalesce(DefaultLane, false)),
                                                                                   Timestamp,
                                                                                   SortOrder.Descending
                                                                               )
@@ -3644,7 +3644,7 @@ Screens:
                                       colLaneRates,
                                       Sort(
                                           AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false,
-                                                     Expired, ExpiryDate < Today()),
+                                                     Expired, ExpiryDate < Today(), IsDef, Coalesce(DefaultLane, false)),
                                           Timestamp,
                                           SortOrder.Descending
                                       )
