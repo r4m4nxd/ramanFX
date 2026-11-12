@@ -1,6 +1,8 @@
 // "Ask your mentors": semantic search over every lesson, on-device. The passages were embedded at build time
 // (scripts/build-ask-index.mjs); here only the question is embedded, with the same model, via transformers.js (WASM).
 // transformers.js and the model load lazily, only on this page, and the browser caches the model after the first visit.
+import ortMjsUrl from '@ort/ort-wasm-simd-threaded.jsep.mjs?url';
+import ortWasmUrl from '@ort/ort-wasm-simd-threaded.jsep.wasm?url';
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Badge, Card, cx, Page } from '@/ui/kit';
@@ -30,6 +32,10 @@ function loadModel(onProgress: (loaded: number, total: number) => void): Promise
   embedP ??= (async () => {
     const tf = await import('@huggingface/transformers');
     tf.env.allowLocalModels = false;
+    // the ONNX Runtime engine (.mjs + .wasm) from our own origin: the default jsdelivr CDN is blocked by the site's CSP
+    // ("Importing a module script failed" / "no available backend", seen on iPhone 2026-11-12), like the Listen page
+    const onnx = tf.env.backends.onnx as { wasm?: { wasmPaths?: unknown } };
+    if (onnx.wasm) onnx.wasm.wasmPaths = { mjs: new URL(ortMjsUrl, location.href).href, wasm: new URL(ortWasmUrl, location.href).href };
     const files = new Map<string, { loaded: number; total: number }>();
     const fe = await tf.pipeline('feature-extraction', ASK_MODEL, {
       dtype: ASK_DTYPE, device: 'wasm',

@@ -119,8 +119,18 @@ Deno.serve(async (req) => {
     if (m && !m[1] && m[2]) { a = Math.max(0, f.size - +m[2]); b = f.size - 1; }
     if (a >= f.size) return new Response(null, { status: 416, headers: { ...h, 'Content-Range': `bytes */${f.size}` } });
     b = Math.min(b, a + CHUNK - 1, f.size - 1);
-    const d = await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`, { headers: { Authorization: `Bearer ${await google()}`, Range: `bytes=${a}-${b}` } });
-    if (!d.ok) return new Response('drive ' + d.status, { status: 502, headers: h });
+    // Drive can refuse a burst of range requests (403 rate limit / 429) or a stale token (401): log why, then retry
+    // with a fresh token and a short pause (2026-11-12: iPhone playback failed on bare 502s)
+    let d: Response | null = null;
+    for (let i = 0; i < 3; i++) {
+      if (i) { if (d && d.status === 401) gTok = null; await new Promise(r => setTimeout(r, 400 * i)); }
+      d = await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`, { headers: { Authorization: `Bearer ${await google()}`, Range: `bytes=${a}-${b}` } });
+      if (d.ok) break;
+      const why = (await d.text().catch(() => '')).slice(0, 300).replace(/\s+/g, ' ');
+      console.error(JSON.stringify({ ev: 'drive_fail', k, try: i + 1, status: d.status, range: `${a}-${b}`, why }));
+      if (![401, 403, 429, 500, 502, 503].includes(d.status)) break;
+    }
+    if (!d || !d.ok) return new Response('drive ' + (d?.status ?? 0), { status: 502, headers: h });
     return new Response(d.body, {
       status: 206,
       headers: { ...h, 'Content-Type': 'audio/mp4', 'Accept-Ranges': 'bytes', 'Content-Range': `bytes ${a}-${b}/${f.size}`,
