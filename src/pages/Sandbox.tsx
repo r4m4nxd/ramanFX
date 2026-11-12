@@ -6,7 +6,9 @@ import { useStore } from '@/data/store';
 import html from '@/sandbox/index.html?raw';
 // ?inline: Vite runs Tailwind on it with the sandbox's own config (see @config in sandbox.css).
 import css from '@/sandbox/sandbox.css?inline';
-import lucide from '@/sandbox/lucide.min.js?raw';
+// scripts as same-origin files (the CSP allows 'self', blocks inline); data as inert JSON (2026-11-12 fix)
+import lucideUrl from '@/sandbox/lucide.min.js?url';
+import appUrl from '@/sandbox/app.js?url';
 import p001 from '@/sandbox/charts_p001.json';
 import p081 from '@/sandbox/charts_p081.json';
 import p161 from '@/sandbox/charts_p161.json';
@@ -39,7 +41,8 @@ function buildDoc(embed: boolean): string {
     // a blob: document has no usable base URL, so chart images (/lessons/…) resolve against the app's origin
     .replace('<meta charset="utf-8">', () => `<meta charset="utf-8">\n<base href="${location.origin}/">`)
     .replace('<link rel="stylesheet" href="sandbox.css">', () => `<style>${css}</style>`)
-    .replace('<script src="lucide.min.js"></script>', () => `<script>${lucide}</script>\n<script>window.__SANDBOX_DATA__ = ${safeJson([p001, p081, p161, p241, p321, p401])};</script>`)
+    .replace('<script src="lucide.min.js"></script>', () => `<script type="application/json" id="sandbox-data">${safeJson([p001, p081, p161, p241, p321, p401])}</script>\n<script src="${new URL(lucideUrl, location.href).href}"></script>`)
+    .replace('<script src="app.js"></script>', () => `<script src="${new URL(appUrl, location.href).href}"></script>`)
     .replace('</head>', () => `<style id="app-tokens">${tokenCss()}</style>\n</head>`);
 }
 
