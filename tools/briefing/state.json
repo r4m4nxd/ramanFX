@@ -2,9 +2,9 @@
  "lessons": {
   "cycle": 1,
   "last": {
-   "date": "2026-11-11",
-   "key": "baker:2",
-   "title": "Candlesticks: Only the Doji, Hammer and Shooting Star"
+   "date": "2026-11-12",
+   "key": "zoom:2",
+   "title": "EURUSD daily chain analysis, borderline zones and following homework instructions"
   },
   "used": [
    "raja:1",
@@ -15,7 +15,8 @@
    "raja:2",
    "course:2",
    "seiden:5",
-   "baker:2"
+   "baker:2",
+   "zoom:2"
   ]
  },
  "sent": {
@@ -27,6 +28,7 @@
   "2026-11-06": "2026-11-06T12:00:31Z",
   "2026-11-09": "2026-11-09T12:00:31Z",
   "2026-11-10": "2026-11-10T12:00:31Z",
-  "2026-11-11": "2026-11-11T12:00:32Z"
+  "2026-11-11": "2026-11-11T12:00:32Z",
+  "2026-11-12": "2026-11-12T12:00:31Z"
  }
 }
