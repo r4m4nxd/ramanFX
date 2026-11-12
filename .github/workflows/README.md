@@ -58,6 +58,7 @@ steps:
 | `fx-backtest.yml`, `stock-backtest.yml`, `backtest-publish.yml` | manual | `public/{fx,scanner}/backtest.json`, `docs/research/{FX,Stock}_Backtest.md` | `universe.csv`, the scans |
 | `arrival-study.yml` | manual | `docs/research/arrival_study/` (report, trades.json, PNG charts; also an artifact) | `top_liquid.csv` |
 | `telegram-preview.yml` | manual | nothing | the published scans |
+| `app-check.yml` | daily (live site) + on app pushes / PRs (local build, nothing pushed) | `public/health/app_check.json` (the last live result: Telegram only when it changes) | that file |
 | `market-hours.yml` | manual / research code push | **main** (the only exception): `public/research/*` is bundled into the app, so it must deploy | `universe.csv` |
 | `training-export.yml` | manual | nothing: `src/core/training/fixtures/marks.json` comes back as an artifact, committed by hand (it is a test fixture) | Supabase `rfx_training_marks` (service key secret `SUPABASE_SERVICE_ROLE_KEY`) |
 | `qa-bars.yml` | manual | `qa/bars/<SYM>/<TF>.json` + `index.json`: long-history BID bars (MN since 2005 ... M15 6 weeks, MT5 server-time labels) for chart QA, read by `scripts/qa-bars.ts` from a local checkout of `data`; `pull` skips it (`PULL_SKIP`) | nothing |

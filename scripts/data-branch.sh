@@ -32,6 +32,7 @@ DATA_PATHS=(
   public/insiders
   public/holders
   public/learn
+  public/health
   tools/reminders/events.json
   tools/reminders/state.json
   tools/briefing/state.json

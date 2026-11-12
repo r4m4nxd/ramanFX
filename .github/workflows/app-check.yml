@@ -1,0 +1,137 @@
+name: App check
+
+# Opens every page of the app the way the owner does (WebKit with the iPhone 13 profile, and desktop Chromium) and
+# reports in plain English what broke: script errors, console errors, failed requests, CSP violations, HTTP >= 400 on
+# our own files, blank pages; deep checks: /ask loads the on-device search model, lesson audio streams.
+# tools/app_check/check.mjs (unit tests: tools/app_check/lib.test.mjs, part of `npx vitest run`).
+#
+#   preview  every push to main / pull request touching the app: `npx vite build`, dist/ served by a local server
+#            that sends the SAME headers as vercel.json (CSP included), all pages checked; the job fails on a problem.
+#   live     daily (~7:37 AM Calgary) and on demand: the deployed site. Telegram (ONE message) only when a problem
+#            appears or everything recovers; the last result is kept on the data branch (public/health/app_check.json).
+#
+# Optional secrets: APP_CHECK_EMAIL / APP_CHECK_PASSWORD (a test account; in lesson-audio's ALLOWED_USERS for the
+# audio streaming check). Without them the pages are checked with a stand-in signed-in session and an empty journal
+# (Supabase auth / table calls answered by the check itself, nothing written), and lesson audio only checks the
+# function is up.
+on:
+  schedule:
+    - cron: '37 13 * * *'           # 13:37 UTC = 7:37 AM MDT / 6:37 AM MST in Calgary
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'live = the deployed site, preview = build this commit and serve it locally with the vercel.json headers'
+        type: choice
+        options: [live, preview]
+        default: live
+      base_url:
+        description: 'Site to check (live mode)'
+        type: string
+        default: 'https://raman-fx.vercel.app'
+      notify:
+        description: 'Telegram when the result changed (live mode)'
+        type: boolean
+        default: true
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'vercel.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'tools/app_check/**'
+      - '.github/workflows/app-check.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'vercel.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'tools/app_check/**'
+      - '.github/workflows/app-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'preview') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: app-check-preview-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install
+        run: |
+          npm ci
+          npm install --no-save playwright@1.63.0
+          npx playwright install --with-deps chromium webkit
+      - name: App check (local build, vercel.json headers)
+        run: node tools/app_check/check.mjs --mode preview --fail-on-problems
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: app-check-preview-${{ github.run_id }}
+          retention-days: 7
+          path: tools/app_check/out/
+
+  live:
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write               # public/health/app_check.json on the data branch
+    concurrency:
+      group: app-check-live
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull          # the last result: public/health/app_check.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install
+        run: |
+          npm ci
+          npm install --no-save playwright@1.63.0
+          npx playwright install --with-deps chromium webkit
+      - name: App check (live site)
+        env:
+          BASE_URL: ${{ inputs.base_url || 'https://raman-fx.vercel.app' }}
+          NOTIFY: ${{ github.event_name == 'schedule' || inputs.notify }}
+          APP_CHECK_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          APP_CHECK_EMAIL: ${{ secrets.APP_CHECK_EMAIL }}
+          APP_CHECK_PASSWORD: ${{ secrets.APP_CHECK_PASSWORD }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          args=(--mode live --base "$BASE_URL" --state public/health/app_check.json)
+          if [ "$NOTIFY" = "true" ]; then args+=(--notify); fi
+          node tools/app_check/check.mjs "${args[@]}"
+      - name: Keep the result (data branch)
+        if: ${{ !cancelled() && hashFiles('public/health/app_check.json') != '' }}
+        run: |
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "app-check: $(date -u +%Y-%m-%dT%H:%MZ)" public/health \
+            || { echo "::error::app check result not pushed"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: app-check-live-${{ github.run_id }}
+          retention-days: 7
+          path: tools/app_check/out/
