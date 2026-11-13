@@ -2,9 +2,9 @@
  "lessons": {
   "cycle": 1,
   "last": {
-   "date": "2026-11-12",
-   "key": "zoom:2",
-   "title": "EURUSD daily chain analysis, borderline zones and following homework instructions"
+   "date": "2026-11-13",
+   "key": "raja:3",
+   "title": "Change of Direction: Trendline Cross + Two Opposite Zones"
   },
   "used": [
    "raja:1",
@@ -16,7 +16,8 @@
    "course:2",
    "seiden:5",
    "baker:2",
-   "zoom:2"
+   "zoom:2",
+   "raja:3"
   ]
  },
  "sent": {
@@ -29,6 +30,7 @@
   "2026-11-09": "2026-11-09T12:00:31Z",
   "2026-11-10": "2026-11-10T12:00:31Z",
   "2026-11-11": "2026-11-11T12:00:32Z",
-  "2026-11-12": "2026-11-12T12:00:31Z"
+  "2026-11-12": "2026-11-12T12:00:31Z",
+  "2026-11-13": "2026-11-13T12:00:35Z"
  }
 }
