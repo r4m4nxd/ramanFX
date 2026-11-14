@@ -582,17 +582,21 @@ body:has([data-listen-mini]) #main { padding-bottom: calc(max(12px, env(safe-are
 @media (min-width: 1024px) { body:has([data-listen-mini]) #main { padding-bottom: 112px; } }
 
 /* ─── Trading clock (ui/TradeClock) ─────────────────────────────────── */
-@keyframes clockWedge { from { opacity: 0; transform: scale(0.72); } }
-@keyframes clockLive { 50% { opacity: 0.55; } }
-@keyframes clockPing { from { opacity: 0.5; transform: scale(1); } to { opacity: 0; transform: scale(3.4); } }
+/* Motion: short, ease-out, transform/opacity only. Bars glide in JS (ui/TradeClock); colours cross-fade here. */
+@keyframes clockLive { 50% { opacity: 0.6; } }
+@keyframes clockPing { from { opacity: 0.45; transform: scale(1); } to { opacity: 0; transform: scale(3); } }
 @keyframes clockSweep { to { transform: rotate(360deg); } }
-.clock-wedge { transform-origin: 200px 200px; animation: clockWedge 0.5s cubic-bezier(0.23, 1, 0.32, 1) backwards; }
-.clock-live { animation: clockLive 1.8s ease-in-out infinite; }
-.clock-ping { animation: clockPing 2.2s ease-out infinite; }
+@keyframes clockFade { from { opacity: 0; } }
+@keyframes clockSwap { from { opacity: 0; transform: translateY(4px); } }
+.clock-wedge { transition: fill 0.28s ease-out, opacity 0.2s ease-out; }
+.clock-live { animation: clockLive 2s ease-in-out infinite; }
+.clock-ping { animation: clockPing 2.4s cubic-bezier(0.23, 1, 0.32, 1) infinite; }
 .clock-sweep { animation: clockSweep 60s linear infinite; }
+.clock-fade { animation: clockFade 0.26s ease-out 0.12s backwards; }
+.clock-swap { animation: clockSwap 0.22s cubic-bezier(0.23, 1, 0.32, 1) backwards; }
 .clock-hand { transition: transform 1s linear; }
 .clock-big { max-width: min(94vw, calc(100dvh - 400px)); min-width: min(94vw, 260px); }
 @media (min-width: 1024px) { .clock-big { max-width: min(58vw, calc(100dvh - 150px)); } }
-@media (prefers-reduced-motion: reduce) { .clock-ping, .clock-sweep { display: none; } .clock-hand { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .clock-ping, .clock-sweep { display: none; } .clock-hand, .clock-wedge { transition: none; } .clock-swap, .clock-fade, .clock-live { animation: none; } }
 .ses-asia { color: rgb(var(--cyan)); } .ses-london { color: var(--ses-blue, #60A5FA); } .ses-newyork { color: rgb(var(--ink)); }
 [data-theme='light'] { --ses-blue: #2563EB; }

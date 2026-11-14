@@ -1,7 +1,7 @@
 // The trading clock: a live 24-hour dial (Calgary time) of how busy each half-hour is, for one symbol or the whole
 // forex market. Outer bars = activity, rim arcs with numbers = the best times, inner arcs = the four forex sessions,
 // the hand = now. Logic: core/tradeClock.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cx } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
@@ -71,8 +71,33 @@ export function ClockDial({ data, now, className }: { data: ClockData; now: Date
   const bars = useMemo(() => data.profile.map((v, i) => {
     const lv = levelOf(v);
     const r1 = lv === 'closed' ? R_BAR0 + 3 : R_BAR0 + 6 + (R_BAR1 - R_BAR0 - 6) * Math.min(1, (v ?? 0) / max);
-    return { i, lv, d: wedge(R_BAR0, r1, i * STEP + 0.7, (i + 1) * STEP - 0.7), hit: wedge(R_BAR0 - 22, R_NUM, i * STEP, (i + 1) * STEP) };
+    return { i, lv, r1, hit: wedge(R_BAR0 - 22, R_NUM, i * STEP, (i + 1) * STEP) };
   }), [data, max]);
+
+  // Bars glide from the last market's shape to the new one (and grow in on first show): one short wave round the
+  // dial, ease-out, written straight to the paths so the once-a-second re-render never restarts it.
+  const barEls = useRef<(SVGPathElement | null)[]>([]);
+  const radii = useRef<number[]>(Array(MH_SLOTS).fill(R_BAR0));
+  useLayoutEffect(() => {
+    const from = radii.current.slice(), to = bars.map(b => b.r1);
+    const draw = (r: number[]) => r.forEach((v, i) => barEls.current[i]?.setAttribute('d', wedge(R_BAR0, Math.max(R_BAR0 + 0.5, v), i * STEP + 0.7, (i + 1) * STEP - 0.7)));
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { radii.current = to; draw(to); return; }
+    const DUR = 380, LAG = 5, t0 = performance.now();
+    let raf = 0;
+    const step = (now: number) => {
+      const r = to.map((v, i) => { const k = Math.min(1, Math.max(0, (now - t0 - i * LAG) / DUR)); return from[i] + (v - from[i]) * (1 - (1 - k) ** 3); });
+      radii.current = r; draw(r);
+      if (now - t0 < DUR + LAG * MH_SLOTS) raf = requestAnimationFrame(step);
+    };
+    draw(from);
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [bars]);
+
+  // the seconds marker runs on the browser's own clock: start it at the real second, re-sync when the tab comes back
+  const [sync, setSync] = useState(0);
+  useEffect(() => { const f = () => { if (!document.hidden) setSync(x => x + 1); }; document.addEventListener('visibilitychange', f); return () => document.removeEventListener('visibilitychange', f); }, []);
+  const sweepDelay = useMemo(() => { const d = new Date(); return -(d.getSeconds() + d.getMilliseconds() / 1000); }, [sync]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const handDeg = (minutesOf(t) / 1440) * 360;
   const shown = sel ?? state.slot;
@@ -96,14 +121,13 @@ export function ClockDial({ data, now, className }: { data: ClockData; now: Date
       {/* activity bars */}
       <g>
         {bars.map(b => (
-          <path key={b.i} d={b.d} className={cx(FILL[b.lv], 'clock-wedge', b.i === state.slot && !state.closed && sel == null && 'clock-live')}
-            style={{ animationDelay: `${b.i * 14}ms` }}
+          <path key={b.i} ref={el => { barEls.current[b.i] = el; }} className={cx(FILL[b.lv], 'clock-wedge', b.i === state.slot && !state.closed && sel == null && 'clock-live')}
             opacity={b.lv === 'quiet' ? 0.5 : b.lv === 'closed' ? 0.8 : sel != null && sel !== b.i ? 0.55 : 0.95} />
         ))}
       </g>
 
       {/* the best times: rim arcs with their rank */}
-      {data.windows.map(w => {
+      <g key={data.key} className="clock-fade">{data.windows.map(w => {
         const a0 = w.from * STEP + 0.8, a1 = (w.from + slotSpan(w.from, w.to)) * STEP - 0.8;
         const on = state.inside === w;
         const [bx, by] = pt(R_RIM, (a0 + a1) / 2);
@@ -114,7 +138,7 @@ export function ClockDial({ data, now, className }: { data: ClockData; now: Date
             <text x={bx} y={by} textAnchor="middle" dominantBaseline="central" className="fill-on-accent num" fontSize={10.5} fontWeight={700}>{w.rank}</text>
           </g>
         );
-      })}
+      })}</g>
 
       {/* forex sessions */}
       {sess.map(s => {
@@ -144,13 +168,14 @@ export function ClockDial({ data, now, className }: { data: ClockData; now: Date
         <circle cx={C} cy={C - R_RIM + 2} r={4} className="fill-ink" />
         <circle cx={C} cy={C - R_RIM + 2} r={4} className="fill-ink clock-ping" style={{ transformOrigin: `${C}px ${C - R_RIM + 2}px` }} />
       </g>
-      {/* one lap a minute: the clock is alive */}
-      <g className="clock-sweep pointer-events-none" style={{ transformOrigin: `${C}px ${C}px`, animationDelay: `-${t.s}s` }} key={t.m}>
-        <circle cx={C} cy={C - 70} r={2} className="fill-accent" />
-      </g>
-
-      {/* centre */}
+      {/* centre; its rim is the seconds track: a small comet, one lap a minute */}
       <circle cx={C} cy={C} r={66} className="fill-surface stroke-line" strokeWidth={1} />
+      <g key={sync} className="clock-sweep pointer-events-none" style={{ transformOrigin: `${C}px ${C}px`, animationDelay: `${sweepDelay.toFixed(3)}s` }}>
+        <path d={arc(66, -34, 0)} fill="none" className="stroke-accent" strokeWidth={1.5} strokeLinecap="round" opacity={0.18} />
+        <path d={arc(66, -18, 0)} fill="none" className="stroke-accent" strokeWidth={1.5} strokeLinecap="round" opacity={0.35} />
+        <path d={arc(66, -7, 0)} fill="none" className="stroke-accent" strokeWidth={1.5} strokeLinecap="round" opacity={0.7} />
+        <circle cx={C} cy={C - 66} r={2.6} className="fill-accent" />
+      </g>
       <g className="pointer-events-none" textAnchor="middle">
         {sel == null ? <>
           <text x={C} y={C - 24} className="fill-ink3" fontSize={9.5} fontWeight={600} letterSpacing={1.2}>{state.dayName.toUpperCase()} · CALGARY</text>
@@ -188,14 +213,14 @@ export function TradeClock({ data, now, big }: { data: ClockData; now: Date; big
         <ClockDial data={data} now={now} />
       </div>
       <div className="min-w-0 flex flex-col gap-3.5">
-        <div aria-live="polite">
+        <div aria-live="polite" key={`h-${data.key}`} className="clock-swap">
           <div className="text-[11px] uppercase tracking-wide text-ink3 font-medium">{data.title}{data.sub ? ` · ${data.sub}` : ''}</div>
           <div className={cx('font-semibold tracking-tight mt-0.5', big ? 'text-[26px]' : 'text-[20px]', state.inside ? 'text-accent' : TEXT[state.level])}>{state.headline}</div>
           <div className="text-[13.5px] text-ink2 mt-0.5">{state.detail}</div>
           {!state.closed && <div className="text-[12px] text-ink3 mt-1">{LEVEL_HINT[state.level]}{state.activity != null ? ` (${fmtX(state.activity)} typical)` : ''}.</div>}
         </div>
         {!!data.windows.length && (
-          <ul className="flex flex-col">
+          <ul className="flex flex-col clock-swap" key={`w-${data.key}`}>
             {data.windows.map(w => {
               const on = state.inside === w;
               return (
