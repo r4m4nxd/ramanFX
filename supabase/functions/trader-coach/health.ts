@@ -274,7 +274,9 @@ export function evaluate(s: Snapshot): Check[] {
   // Keys
   for (const k of KEYS) {
     const v = s.keys[k];
-    out.push({ id: `key:${k}`, label: `${KEY_LABEL[k]} key`, status: v === 'bad' ? 'problem' : v === 'ok' ? 'ok' : 'skip', graceMs: k === 'oanda' ? OANDA_KEY_GRACE : KEY_GRACE,
+    // OANDA refuses requests for a while around the weekend close (2026-11-14): a 'bad' answer then is not a dead key
+    const quiet = k === 'oanda' && v === 'bad' && !(fxWeek(now) && fxWeek(now - 2 * HOUR));
+    out.push({ id: `key:${k}`, label: `${KEY_LABEL[k]} key`, status: quiet ? 'skip' : v === 'bad' ? 'problem' : v === 'ok' ? 'ok' : 'skip', graceMs: k === 'oanda' ? OANDA_KEY_GRACE : KEY_GRACE,
       text: v === 'bad' ? KEY_TEXT[k] : 'works again' });
   }
   // GitHub token expiry: one heads-up at 14 days, one at 3 days

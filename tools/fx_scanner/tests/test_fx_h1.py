@@ -176,5 +176,28 @@ class HourlySchedule(unittest.TestCase):
         self.assertIn('H1', shards[row['k']]['instruments']['GBPJPY']['bars'])
 
 
+
+class StartRobust(unittest.TestCase):
+    """2026-11-14: one refused OANDA answer after the Friday close failed the run and messaged the owner."""
+
+    def test_closed_hours(self):
+        import datetime as dt
+        u = lambda d, h: dt.datetime(2026, 11, d, h, tzinfo=dt.timezone.utc)
+        self.assertTrue(X.fx_closed(u(13, 21)) and X.fx_closed(u(14, 1)) and X.fx_closed(u(15, 21)))
+        self.assertFalse(X.fx_closed(u(13, 20)) or X.fx_closed(u(15, 22)) or X.fx_closed(u(11, 12)))
+
+    def test_retries_then_answers(self):
+        calls = []
+        def h4():
+            calls.append(1)
+            if len(calls) < 3:
+                raise RuntimeError('HTTP Error 401')
+            return '2026-11-12T12:00'
+        with mock.patch.object(O, 'latest_h4', side_effect=h4), mock.patch.object(O, 'latest_h1', return_value='2026-11-12T15:00'):
+            self.assertEqual(X.first_candles(sleep=lambda s: None), ('2026-11-12T12:00', '2026-11-12T15:00'))
+        with mock.patch.object(O, 'latest_h4', side_effect=RuntimeError('down')):
+            self.assertRaises(RuntimeError, X.first_candles, sleep=lambda s: None)
+
+
 if __name__ == '__main__':
     unittest.main()

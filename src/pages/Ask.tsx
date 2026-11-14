@@ -23,7 +23,7 @@ let embedP: Promise<Embed> | null = null;
 function loadIndex(): Promise<AskIndex> {
   indexP ??= Promise.all([
     fetch('/ask/passages.json').then(r => { if (!r.ok) throw new Error(`passages.json ${r.status}`); return r.json() as Promise<AskMeta>; }),
-    fetch('/ask/index.bin').then(r => { if (!r.ok) throw new Error(`index.bin ${r.status}`); return r.arrayBuffer(); }),
+    fetch('/ask/vectors.bin').then(r => { if (!r.ok) throw new Error(`vectors.bin ${r.status}`); return r.arrayBuffer(); }),
   ]).then(([meta, bin]) => parseIndex(bin, meta)).catch(e => { indexP = null; throw e; });
   return indexP;
 }

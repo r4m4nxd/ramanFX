@@ -1,5 +1,5 @@
 // "Ask your mentors" retrieval core, shared by the browser (src/pages/Ask.tsx) and the Node build / eval script.
-// Index format (public/ask/index.bin, little-endian):
+// Index format (public/ask/vectors.bin, little-endian):
 //   bytes 0-3 "ASK1" | uint32 count | uint32 dim | uint32 reserved
 //   float32 scale[count]          (vector i ≈ int8[i] * scale[i]; vectors are L2-normalised before quantising)
 //   int8 vec[count * dim]

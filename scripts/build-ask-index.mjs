@@ -1,5 +1,5 @@
 // Builds the "Ask your mentors" index: collects every lesson passage, embeds it with Xenova/multilingual-e5-small (q8 ONNX,
-// the same model the browser uses for the query) and writes public/ask/index.bin (int8 vectors) + public/ask/passages.json.
+// the same model the browser uses for the query) and writes public/ask/vectors.bin (int8 vectors) + public/ask/passages.json.
 //   npm run ask:index            rebuild the index (re-run whenever lessons change; commit the output)
 //   npm run ask:index -- --dry   only collect and count passages
 //   npm run ask:eval             run the test questions in scripts/ask/questions.json against the built index
@@ -74,15 +74,15 @@ async function build() {
   const meta = { model: search.ASK_MODEL, dim, count: passages.length, built: new Date().toISOString(), lessons, passages };
   const json = JSON.stringify(meta);
   await mkdir(OUT, { recursive: true });
-  await writeFile(path.join(OUT, 'index.bin'), bin);
+  await writeFile(path.join(OUT, 'vectors.bin'), bin);
   await writeFile(path.join(OUT, 'passages.json'), json);
   const mb = n => (n / 1024 / 1024).toFixed(2);
-  console.log(`[ask] wrote public/ask/index.bin ${mb(bin.byteLength)} MB + passages.json ${mb(Buffer.byteLength(json))} MB = ${mb(bin.byteLength + Buffer.byteLength(json))} MB`);
+  console.log(`[ask] wrote public/ask/vectors.bin ${mb(bin.byteLength)} MB + passages.json ${mb(Buffer.byteLength(json))} MB = ${mb(bin.byteLength + Buffer.byteLength(json))} MB`);
 }
 
 async function evaluate() {
   const meta = JSON.parse(await readFile(path.join(OUT, 'passages.json'), 'utf8'));
-  const bin = await readFile(path.join(OUT, 'index.bin'));
+  const bin = await readFile(path.join(OUT, 'vectors.bin'));
   const idx = search.parseIndex(bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength), meta);
   const questions = JSON.parse(await readFile(path.join(ROOT, 'scripts/ask/questions.json'), 'utf8'));
   const embed = await embedder();

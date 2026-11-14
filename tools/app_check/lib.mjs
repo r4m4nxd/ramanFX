@@ -113,6 +113,8 @@ export const EXPECTED = [
     match: p => /google-analytics|googletagmanager|telemetry\./i.test(p.url ?? '') },
   { why: 'console noise duplicated by the request / CSP collectors (same failure, already reported once)',
     match: p => p.kind === 'console' && /^Failed to load resource|^\[Report Only\]/i.test(p.text ?? '') },
+  { why: 'browser warnings about the page markup or a deprecated feature are not failures (2026-11-14: one Safari viewport warning on every page made 37 "problems")',
+    match: p => p.kind === 'console' && /^Viewport argument|not recognized and ignored|is deprecated|deprecat|^\[Intervention\]|^\[Violation\]|preloaded using link preload but not used|DevTools/i.test(p.text ?? '') },
   { why: 'the preview server proxies /fx /scanner ... data to raw.githubusercontent.com; offline that is not an app bug',
     match: p => p.mode === 'preview' && p.upstream === 'failed' },
 ];
@@ -159,22 +161,49 @@ export function problemKey(p) {
   return [p.page, p.kind, norm(p.directive), norm(p.url), p.kind === 'http' ? p.status : '', norm(p.kind === 'request' ? '' : p.text)].join('|');
 }
 
-/** Same page + same problem in several browsers -> one line naming the browsers. */
+const hostsIn = s => [...String(s ?? '').matchAll(/https?:\s*\/+([a-z0-9.-]+\.[a-z]{2,})/gi)].map(m => m[1].toLowerCase());
+const bareHost = h => h.split('.').slice(-2, -1)[0];   // api.frankfurter.app and api.frankfurter.dev = the same service
+
+/**
+ * One line per real problem (2026-11-14: 42 alert lines for 2 real problems):
+ *  - one failure is seen several ways (the failed request, the console line, the script error): on a page, console /
+ *    script lines naming a host whose request already failed are folded into that request;
+ *  - same page + same problem in several browsers -> one line naming the browsers;
+ *  - the same problem on several pages -> one line naming the pages.
+ */
 export function groupProblems(problems) {
+  const failedHosts = new Map();   // page -> hosts with a failed request / CSP block
+  for (const p of problems) if (p.kind === 'request' || p.kind === 'csp' || p.kind === 'http') {
+    const set = failedHosts.get(p.page) ?? new Set();
+    for (const h of hostsIn(`${p.url ?? ''} ${p.text ?? ''}`)) set.add(bareHost(h));
+    failedHosts.set(p.page, set);
+  }
+  const echo = p => (p.kind === 'console' || p.kind === 'pageerror') && hostsIn(p.text).some(h => failedHosts.get(p.page)?.has(bareHost(h)));
   const by = new Map();
   for (const p of problems) {
+    if (echo(p)) continue;
     const k = problemKey(p);
-    const g = by.get(k) ?? { key: k, page: p.page, browsers: [], what: describe(p), sample: p };
+    const g = by.get(k) ?? { key: k, page: p.page, pages: [p.page], browsers: [], what: describe(p), sample: p };
     if (p.kind === 'csp' && p.directive && !g.sample.directive) Object.assign(g, { what: describe(p), sample: p });   // name the directive
     if (p.browser && !g.browsers.includes(p.browser)) g.browsers.push(p.browser);
     by.set(k, g);
   }
-  return [...by.values()].map(g => ({ ...g, text: lineFor(g) }));
+  // the same problem on several pages -> one group (its key drops the page)
+  const across = new Map();
+  for (const g of by.values()) {
+    const k = g.key.slice(g.key.indexOf('|') + 1);
+    const o = across.get(k);
+    if (!o) { across.set(k, { ...g, same: k }); continue; }
+    if (!o.pages.includes(g.page)) o.pages.push(g.page);
+    for (const b of g.browsers) if (!o.browsers.includes(b)) o.browsers.push(b);
+  }
+  return [...across.values()].map(g => ({ ...g, key: g.pages.length > 1 ? `*|${g.same}` : g.key })).map(g => ({ ...g, text: lineFor(g) }));
 }
 
 function lineFor(g) {
   const where = g.browsers.length === 2 ? 'on iPhone and desktop' : g.browsers.length === 1 ? `on ${BROWSERS[g.browsers[0]] ?? g.browsers[0]}` : '';
-  return `${g.page}${where ? ` ${where}` : ''}: ${g.what}`;
+  const page = g.pages.length > 1 ? `${g.pages.length} pages (${g.pages.slice(0, 3).join(', ')}${g.pages.length > 3 ? ', …' : ''})` : g.page;
+  return `${page}${where ? ` ${where}` : ''}: ${g.what}`;
 }
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -202,7 +231,7 @@ export function decideNotify(prev, groups) {
   return { send: false, kind: null, fresh };
 }
 
-const MAX_BULLETS = 10;
+const MAX_BULLETS = 6;
 /** '<b>App check</b> · 2 problems' + plain-English bullets + an italic footer (HTML parse mode). */
 export function telegramMessage({ kind, groups, fresh = [], prev, base, runUrl }) {
   const host = (() => { try { return new URL(base).host; } catch { return base; } })();

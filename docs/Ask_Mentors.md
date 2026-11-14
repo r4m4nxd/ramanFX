@@ -4,7 +4,7 @@ Semantic search over every lesson, running on the device. Route: `/ask` (nav: He
 
 ## How it works
 
-- **Build time** (`npm run ask:index`, script `scripts/build-ask-index.mjs`): loads every lesson module through Vite's SSR loader (so `@/` aliases and `import.meta.glob` work), cuts them into passages (`scripts/ask/collect.ts`), embeds each one with [Xenova/multilingual-e5-small](https://huggingface.co/Xenova/multilingual-e5-small) (q8 ONNX, onnxruntime-node, prefix `passage: <lesson title>. <heading>. <text>`), quantises each vector to int8 with a per-vector scale and writes `public/ask/index.bin` + `public/ask/passages.json`. Both files are generated and committed; re-run after lessons change.
+- **Build time** (`npm run ask:index`, script `scripts/build-ask-index.mjs`): loads every lesson module through Vite's SSR loader (so `@/` aliases and `import.meta.glob` work), cuts them into passages (`scripts/ask/collect.ts`), embeds each one with [Xenova/multilingual-e5-small](https://huggingface.co/Xenova/multilingual-e5-small) (q8 ONNX, onnxruntime-node, prefix `passage: <lesson title>. <heading>. <text>`), quantises each vector to int8 with a per-vector scale and writes `public/ask/vectors.bin` + `public/ask/passages.json`. Both files are generated and committed; re-run after lessons change.
 - **Browser** (`src/pages/Ask.tsx`, lazy route): fetches the index (~5.3 MB), loads `@huggingface/transformers` with a dynamic import only on this page, downloads the same q8 model (~118 MB, once; the browser Cache API keeps it), embeds `query: <question>` and ranks with `src/core/ask/search.ts` (shared with the build/eval script).
 - **Ranking**: cosine on the int8 vectors + a keyword boost of up to 0.06 = 0.06 × (idf-weighted share of the question's keywords that appear in the passage as word prefixes) + 0.015 per adjacent keyword pair. Rare terms (proximal, WOW, realignment) weigh most. At most 2 passages per lesson, top 8. While the model downloads (or if it fails) the page shows keyword-only matches.
 - **Passages** (8,760 at the last build): every section point, rule, mistake, checklist item, quote, image note, figure caption, Sunday-session chart walk-through and student Q&A, the glossary, and the interactive layer (eli5, big ideas, step narrations, flashcards). Items under one heading are merged when shorter than 90 characters and split at sentence boundaries above 420 characters (average 179 characters).
@@ -20,7 +20,7 @@ Semantic search over every lesson, running on the device. Route: `/ask` (nav: He
 | Baker | 14 | 585 |
 | Glossary | 38 terms | 38 |
 
-Index size: `index.bin` 3.24 MB + `passages.json` 2.03 MB = **5.27 MB** (gzip on the wire is smaller for the JSON).
+Index size: `vectors.bin` 3.24 MB + `passages.json` 2.03 MB = **5.27 MB** (gzip on the wire is smaller for the JSON).
 
 ## Commands
 

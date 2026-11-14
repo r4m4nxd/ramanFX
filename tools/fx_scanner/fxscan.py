@@ -619,6 +619,28 @@ def notify_failure(reason: str, state: Dict, notify: bool, log=print) -> None:
         save_state(state)
 
 
+def fx_closed(t: dt.datetime) -> bool:
+    """The forex weekend: Friday 21:00 UTC to Sunday 22:00 UTC (wide enough for both summer and winter time)."""
+    wd, h = t.weekday(), t.hour
+    return (wd == 4 and h >= 21) or wd == 5 or (wd == 6 and h < 22)
+
+
+def first_candles(tries: int = 3, pause: float = 5.0, sleep=time.sleep) -> Tuple[Optional[str], Optional[str]]:
+    """(newest H4, newest H1) labels. A refused or failed answer is tried again after a short pause (the host's
+    breaker is cleared first), so one bad reply does not fail the whole run."""
+    for i in range(tries):
+        try:
+            return O.latest_h4(), O.latest_h1()
+        except O.NoToken:
+            raise
+        except Exception:  # noqa: BLE001
+            if i == tries - 1:
+                raise
+            SD.report_ok('https://' + O.host())
+            sleep(pause * (i + 1))
+    return None, None
+
+
 # ---- OANDA getter ----------------------------------------------------------------------------------------------------
 def oanda_bars(i: Dict) -> Tuple[Dict[str, List[Bar]], Optional[float]]:
     out, sp = {}, None
@@ -1007,14 +1029,23 @@ def main(argv=None) -> int:
     notify = not a.no_notify
     try:
         O.token()
-        h4 = O.latest_h4()
-        h1 = O.latest_h1()
+        h4, h1 = first_candles()
     except O.NoToken as e:
         notify_failure(str(e), state, notify)
         return 2
     except Exception as e:  # noqa: BLE001
-        notify_failure(f'OANDA not reachable ({type(e).__name__}: {str(e)[:100]})', state, notify)
+        why = f'OANDA not reachable ({type(e).__name__}: {str(e)[:100]})'
+        if fx_closed(now_utc()):
+            # 2026-11-14: OANDA answered 401 for a while after the Friday close; nothing to scan then, so no alarm
+            print(f'FX scan skipped (market closed): {why}')
+            return 0
+        streak = int(state.get('fail_streak') or 0) + 1
+        state['fail_streak'] = streak
+        save_state(state)
+        notify_failure(why, state, notify and streak >= 2)   # one bad run is a blip: tell the owner on the second
         return 2
+    if state.get('fail_streak'):
+        state['fail_streak'] = 0
     if not h4:
         print('no complete H4 candle returned')
         return 0

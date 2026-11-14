@@ -16,7 +16,7 @@ export async function loadRates(): Promise<Cache | null> {
     if (c && Date.now() - c.at < TTL) return (mem = c);
   } catch { /* ignore */ }
   try {
-    const res = await fetch('https://api.frankfurter.app/latest?from=USD');
+    const res = await fetch('https://api.frankfurter.dev/v1/latest?base=USD');
     if (!res.ok) throw new Error(String(res.status));
     const j = await res.json();
     mem = { at: Date.now(), base: 'USD', rates: { USD: 1, ...j.rates }, date: j.date };

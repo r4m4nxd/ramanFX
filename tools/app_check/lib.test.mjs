@@ -171,3 +171,23 @@ describe('problems, summary and Telegram', () => {
     expect(r.split('\n')[0]).toBe('<b>App check</b> · all fixed');
   });
 });
+
+describe('alert noise (2026-11-14: 42 lines for 2 real problems)', () => {
+  const p = (o) => ({ page: '/calculator', browser: 'webkit', mode: 'live', kind: 'console', text: '', ...o });
+  it('ignores browser warnings, folds one failure seen three ways, merges the same problem across pages', async () => {
+    const { expectedReason } = await import('./lib.mjs');
+    expect(expectedReason(p({ text: 'Viewport argument key "interactive-widget" not recognized and ignored.' }))).toBeTruthy();
+    expect(expectedReason(p({ text: 'TypeError: x is not a function' }))).toBeNull();
+    const g = groupProblems([
+      p({ kind: 'request', url: 'https://api.frankfurter.app/latest?from=USD', text: 'Cross-origin redirection denied' }),
+      p({ text: 'Cross-origin redirection to https://api.frankfurter.dev/v1/latest?from=USD denied by Cross-Origin Resource Sharing policy' }),
+      p({ kind: 'pageerror', text: 'Fetch API cannot load https: /api.frankfurter.app/latest?from=USD due to access control checks.' }),
+      p({ browser: 'chromium', text: "Access to fetch at 'https://api.frankfurter.app/latest?from=USD' from origin 'https://x' has been blocked by CORS policy" }),
+    ]);
+    expect(g.length).toBe(1);
+    expect(g[0].text).toContain('could not load api.frankfurter.app/latest');
+    const many = groupProblems(['/a', '/b', '/c', '/d'].map(page => p({ page, kind: 'pageerror', text: 'Boom' })));
+    expect(many.length).toBe(1);
+    expect(many[0].text).toMatch(/^4 pages \(\/a, \/b, \/c, …\)/);
+  });
+});
