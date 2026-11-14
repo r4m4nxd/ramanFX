@@ -12,9 +12,9 @@ const C = 200, R_BAR0 = 104, R_BAR1 = 168, R_RIM = 174, R_NUM = 190;
 const FILL: Record<Level, string> = { peak: 'fill-loss', busy: 'fill-warn', normal: 'fill-profit', quiet: 'fill-ink3', closed: 'fill-line' };
 const DOT: Record<Level, string> = { peak: 'bg-loss', busy: 'bg-warn', normal: 'bg-profit', quiet: 'bg-ink3', closed: 'bg-line' };
 const TEXT: Record<Level, string> = { peak: 'text-loss', busy: 'text-warn', normal: 'text-profit', quiet: 'text-ink2', closed: 'text-ink3' };
-/** Sessions: a thin ring outside the dial, one track each so overlapping sessions never draw on top of each other. */
-const SESSION_R: Record<string, number> = { asia: 204, london: 209.5, newyork: 215 };
-const R_SES_LABEL = 225, VB = '-36 -36 472 472';
+/** Sessions: thin rings inside the bars, one track each (they overlap in time), each with its name set into the ring. */
+const SESSION_R: Record<string, number> = { asia: 97, london: 87.5, newyork: 78 };
+const VB = '0 0 400 400';
 
 const DAY_FULL: Record<string, string> = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
 const rad = (deg: number) => ((deg - 90) * Math.PI) / 180;
@@ -118,14 +118,15 @@ export function ClockDial({ data, now, className }: { data: ClockData; now: Date
 
       {/* forex sessions */}
       {sess.map(s => {
-        const r = SESSION_R[s.id];
-        const a0 = s.from * STEP + 0.6, a1 = (s.from + slotSpan(s.from, s.to)) * STEP - 0.6, am = (((a0 + a1) / 2) % 360 + 360) % 360;
+        const r = SESSION_R[s.id], name = s.label.toUpperCase();
+        const a0 = s.from * STEP + 0.6, a1 = (s.from + slotSpan(s.from, s.to)) * STEP - 0.6, am = (a0 + a1) / 2, flip = ((am % 360) + 360) % 360;
+        const gap = (((name.length * 5.6) / 2 + 4) / r) * (180 / Math.PI);        // room for the name, in degrees
         const open = inWindow(s, state.slot) && !state.closed;
-        const [tx, ty] = pt(R_SES_LABEL, am);
+        const [tx, ty] = pt(r, am);
         return (
-          <g key={s.id} className={`ses-${s.id}`} opacity={open ? 1 : 0.4}>
-            <path d={arc(r, a0, a1)} fill="none" stroke="currentColor" strokeWidth={open ? 3.2 : 2} strokeLinecap="round" />
-            <text x={tx} y={ty} transform={`rotate(${f(am > 90 && am < 270 ? am + 180 : am)} ${f(tx)} ${f(ty)})`} textAnchor="middle" dominantBaseline="central" fill="currentColor" fontSize={8} fontWeight={700} letterSpacing={1.6}>{s.label.toUpperCase()}</text>
+          <g key={s.id} className={`ses-${s.id}`} opacity={open ? 1 : 0.45}>
+            <path d={`${arc(r, a0, am - gap)}${arc(r, am + gap, a1)}`} fill="none" stroke="currentColor" strokeWidth={open ? 3 : 2} strokeLinecap="round" />
+            <text x={tx} y={ty} transform={`rotate(${f(flip > 90 && flip < 270 ? am + 180 : am)} ${f(tx)} ${f(ty)})`} textAnchor="middle" dominantBaseline="central" fill="currentColor" fontSize={7} fontWeight={700} letterSpacing={1}>{name}</text>
           </g>
         );
       })}
@@ -139,13 +140,13 @@ export function ClockDial({ data, now, className }: { data: ClockData; now: Date
 
       {/* the hand: now */}
       <g className="clock-hand pointer-events-none" style={{ transform: `rotate(${handDeg.toFixed(3)}deg)`, transformOrigin: `${C}px ${C}px` }}>
-        <line x1={C} y1={C - 78} x2={C} y2={C - R_RIM + 2} className="stroke-ink" strokeWidth={2} strokeLinecap="round" />
+        <line x1={C} y1={C - 70} x2={C} y2={C - R_RIM + 2} className="stroke-ink" strokeWidth={2} strokeLinecap="round" />
         <circle cx={C} cy={C - R_RIM + 2} r={4} className="fill-ink" />
         <circle cx={C} cy={C - R_RIM + 2} r={4} className="fill-ink clock-ping" style={{ transformOrigin: `${C}px ${C - R_RIM + 2}px` }} />
       </g>
       {/* one lap a minute: the clock is alive */}
       <g className="clock-sweep pointer-events-none" style={{ transformOrigin: `${C}px ${C}px`, animationDelay: `-${t.s}s` }} key={t.m}>
-        <circle cx={C} cy={C - 72} r={2.2} className="fill-accent" />
+        <circle cx={C} cy={C - 70} r={2} className="fill-accent" />
       </g>
 
       {/* centre */}
