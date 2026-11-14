@@ -23,6 +23,9 @@ export interface MhSymbol {
   era: MhEra; nfp: MhEvent | null; fomc1200: MhEvent | null; fomc1230: MhEvent | null;
   /** Mon-Fri activity per Calgary half-hour (index 0 = 00:00), x typical. */
   profile: (number | null)[];
+  /** Each Calgary weekday on its own: 7 rows Mon..Sun of 48 half-hours (Saturday empty), x typical. Forex, metals and
+   *  CFDs only; null when the study has no weekday detail for this symbol. */
+  week: (number | null)[][] | null;
 }
 export interface MhFile { generated: string; synthetic: boolean; fxCount: number; stockCount: number; feed: string; fomcSource: string; nfpSource: string; symbols: MhSymbol[] }
 
@@ -56,6 +59,10 @@ export function parseSymbol(v: unknown): MhSymbol | null {
   }).filter((x): x is MhWindow => !!x);
   const profile = arr(o.p).slice(0, MH_SLOTS).map(x => { const n = num(x); return n == null ? null : n / 100; });
   while (profile.length < MH_SLOTS) profile.push(null);
+  // 'pw' = Mon..Fri then Sun (the forex week opens Sunday afternoon)
+  const pw = arr(o.pw).map(r => { const row = arr(r).slice(0, MH_SLOTS).map(x => { const n = num(x); return n == null ? null : n / 100; }); while (row.length < MH_SLOTS) row.push(null); return row; });
+  const empty = () => Array<number | null>(MH_SLOTS).fill(null);
+  const week = pw.length >= 5 ? [pw[0], pw[1], pw[2], pw[3], pw[4], empty(), pw[5] ?? empty()] : null;
   const kind = str(o.k);
   return {
     sym, name: str(o.n, sym), kind: (KINDS.includes(kind) ? kind : 'other') as MhKind, group: str(o.g), display: str(o.d), indexes: str(o.i),
@@ -64,7 +71,7 @@ export function parseSymbol(v: unknown): MhSymbol | null {
     weekday: w.length && typeof w[0] === 'string' ? { best: str(w[0]), quiet: str(w[1]), ratio: num(w[2]), ciLo: num(w[3]), ciHi: num(w[4]), rel: rel(w[5]) } : null,
     days: WEEKDAYS.map((_, i) => num(arr(o.dd)[i])),
     era: { recentVsAll: num(e[0]), prePost: num(e[1]), peakPre: hhmm(e[2]), peakPost: hhmm(e[3]), peakRecent: hhmm(e[4]), shifted: e[5] === true },
-    nfp: parseEvent(o.nfp), fomc1200: parseEvent(o.f12), fomc1230: parseEvent(o.f1230), profile,
+    nfp: parseEvent(o.nfp), fomc1200: parseEvent(o.f12), fomc1230: parseEvent(o.f1230), profile, week,
   };
 }
 

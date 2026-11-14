@@ -6,8 +6,8 @@ import {
   addMinutes, findSymbol, fmtX, isFx, KIND_LABEL, MH_SLOTS, MH_URL, nyOf, parseMarketHours, searchSymbols, slotLabel, WEEKDAYS,
   type MhEvent, type MhFile, type MhFilter, type MhSymbol, type Reliability,
 } from '@/core/marketHours';
-import { globalClock, nyAheadMin, shiftClock, shiftSlots, shiftSymbol, symbolClock } from '@/core/tradeClock';
-import { ClockStage, TradeClock, useNow } from '@/ui/TradeClock';
+import { DAY_NAMES, dayClock, globalClock, nyAheadMin, shiftClock, shiftSlots, shiftSymbol, symbolClock, todayIndex } from '@/core/tradeClock';
+import { ClockStage, TradeClock, useNow, WeekGrid } from '@/ui/TradeClock';
 
 type Load = { state: 'loading' } | { state: 'ok'; file: MhFile } | { state: 'error' };
 const FILTERS: { value: MhFilter; label: string }[] = [
@@ -192,7 +192,24 @@ export default function MarketHours() {
   const { shift, ahead } = useMemo(() => ({ shift: shiftSlots(new Date(hourKey * 3600_000)), ahead: nyAheadMin(new Date(hourKey * 3600_000)) }), [hourKey]);
   const shown = useMemo(() => (selected ? shiftSymbol(selected, shift) : null), [selected, shift]);
   const global = useMemo(() => { const g = globalClock(list); return g ? shiftClock(g, shift) : null; }, [list, shift]);
-  const clock = useMemo(() => (mode === 'global' && global ? global : shown ? symbolClock(shown) : global), [mode, global, shown]);
+  const base = useMemo(() => (mode === 'global' && global ? global : shown ? shiftClock(symbolClock(selected!), shift) : global), [mode, global, shown, selected, shift]);
+  // which weekday the dial shows: today by default (Saturday looks ahead to Monday), any weekday, or the all-week average
+  const today = todayIndex(new Date(hourKey * 3600_000));
+  const dayParam = params.get('day');
+  const dayPick = dayParam === 'avg' ? null : ['mon', 'tue', 'wed', 'thu', 'fri'].indexOf(dayParam ?? '') >= 0 ? ['mon', 'tue', 'wed', 'thu', 'fri'].indexOf(dayParam!) : today === 5 ? 0 : today;
+  const clock = useMemo(() => (base && dayPick != null && base.week ? dayClock(base, dayPick, today) : base), [base, dayPick, today]);
+  const setDay = (d: number | null) => setParam('day', d == null ? 'avg' : d === (today === 5 ? 0 : today) ? null : ['mon', 'tue', 'wed', 'thu', 'fri'][d] ?? null);
+  const dayBar = base?.week ? (
+    <div className="flex items-center gap-1.5 w-max">
+      {[0, 1, 2, 3, 4].map(d => (
+        <button key={d} type="button" onClick={() => setDay(d)} aria-pressed={dayPick === d}
+          className={cx('h-8 px-3 rounded-full border text-[12px] font-semibold shrink-0', dayPick === d ? 'border-accent text-accent' : 'border-line text-ink2')}>{d === today ? 'Today' : DAY_NAMES[d].slice(0, 3)}</button>
+      ))}
+      <button type="button" onClick={() => setDay(null)} aria-pressed={dayPick == null}
+        className={cx('h-8 px-3 rounded-full border text-[12px] font-semibold shrink-0', dayPick == null ? 'border-accent text-accent' : 'border-line text-ink2')}>Average</button>
+    </div>
+  ) : null;
+  const weekGrid = base?.week ? <WeekGrid week={base.week} selected={dayPick != null && dayPick < 5 ? dayPick : null} today={today} onPick={setDay} /> : null;
   const setParam = (k: string, v: string | null) => setParams(prev => { const n = new URLSearchParams(prev); if (v == null) n.delete(k); else n.set(k, v); return n; }, { replace: true });
   const quick = useMemo(() => {
     const out = ['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD', 'NAS100', 'US30'].map(x => findSymbol(list, x)).filter((x): x is MhSymbol => !!x);
@@ -240,11 +257,12 @@ export default function MarketHours() {
           <Card aria-label="Trading clock">
             <CardHead title="Trading clock" sub="Live, Calgary time. Tap a slice to read it." right={
               <button type="button" onClick={() => setParam('clock', '1')} className="h-9 px-3.5 rounded-full border border-line text-[12.5px] font-semibold inline-flex items-center gap-1.5 hover:bg-raised"><Icon name="clock" size={14} />Keep on screen</button>} />
-            <div className="overflow-x-auto -mx-1 px-1 mb-4">{modeSwitch}</div>
-            {!stage && <TradeClock data={clock} now={now} />}
+            <div className="overflow-x-auto -mx-1 px-1 mb-2">{modeSwitch}</div>
+            {dayBar && <div className="overflow-x-auto -mx-1 px-1 mb-4">{dayBar}</div>}
+            {!stage && <TradeClock data={clock} now={now}>{weekGrid}</TradeClock>}
           </Card>
         )}
-        {clock && stage && <ClockStage data={clock} now={now} onClose={() => setParam('clock', null)}>{modeSwitch}</ClockStage>}
+        {clock && stage && <ClockStage data={clock} now={now} onClose={() => setParam('clock', null)} extra={weekGrid}><div className="flex items-center gap-3 w-max">{modeSwitch}{dayBar}</div></ClockStage>}
         <Card>
           <div className="flex flex-col gap-3">
             <label className="relative block">

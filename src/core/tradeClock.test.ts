@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseSymbol, type MhSymbol } from './marketHours';
-import { clockNow, fmt12, fmtDur, fxWeekend, globalClock, inWindow, levelOf, nyAheadMin, sessions, shiftClock, shiftSlots, shiftSymbol, slotOf, symbolClock, topWindows, zoneTime } from './tradeClock';
+import { clockNow, fmt12, fmtDur, fxWeekend, globalClock, inWindow, levelOf, nyAheadMin, sessions, shiftClock, shiftSlots, shiftSymbol, slotOf, symbolClock, topWindows, zoneTime, dayClock, todayIndex } from './tradeClock';
 
 const row = (s: string, k: string, peak: number) => parseSymbol({
   s, n: s, k, d: s, wl: true, y: ['2005-01-02', '2026-11-03', 21], t: [['08:00', '10:00', '07:00', '09:30', 2.27], ['01:00', '03:00', '00:00', '02:00', 1.7]],
@@ -92,5 +92,28 @@ describe('trading clock', () => {
     expect([fmt12(0), fmt12(13), fmt12('15:30'), fmt12(24)]).toEqual(['12:00 AM', '6:30 AM', '3:30 PM', '12:00 PM']);
     expect([fmtDur(5), fmtDur(60), fmtDur(134)]).toEqual(['5 min', '1 h', '2 h 14 min']);
     expect(slotOf('23:30')).toBe(47);
+  });
+  it('each weekday has its own shape and best times; another day than today is a preview', () => {
+    const pw = [0, 1, 2, 3, 4, 6].map(d => Array.from({ length: 48 }, (_, i) => (d === 6 ? (i >= 30 ? 90 : null) : i === 10 + d * 4 ? 250 : 100)));
+    const s = parseSymbol({ s: 'EURUSD', n: 'EURUSD', k: 'major', t: [['08:00', '10:00', '07:00', '09:30', 2.27]], dd: [0.9, 1, 1, 1.07, 1.03], p: Array(48).fill(100), pw }) as MhSymbol;
+    expect(s.week).toHaveLength(7);
+    expect(s.week![5].every(v => v == null)).toBe(true);
+    expect(s.week![6][40]).toBeCloseTo(0.9);
+    const c = symbolClock(s), thu = at('2026-07-09T14:30:00Z');
+    expect(todayIndex(thu)).toBe(3);
+    const today = dayClock(c, 3, 3);
+    expect(today.preview).toBeUndefined();
+    expect(today.windows[0].peak).toBe(22);
+    expect(today.key).toBe('EURUSD|3');
+    const mon = dayClock(c, 0, 3), n = clockNow(mon, thu);
+    expect(mon.preview).toBe('Monday');
+    expect(n).toMatchObject({ preview: true, inside: null, headline: 'Mondays peak at 5:00 AM', dayName: 'Mon', dayFactor: 0.9 });
+    // no weekday detail (a stock): the average stays
+    expect(dayClock({ ...c, week: null }, 0, 3)).toMatchObject({ key: 'EURUSD' });
+    // a shift carries late-evening half-hours into the next weekday
+    const sh = shiftClock(c, 2);
+    expect(sh.week![0][12]).toBeCloseTo(2.5);
+    expect(sh.week![0][0]).toBeCloseTo(0.9);       // Sunday 23:00 -> Monday 00:00
+    expect(globalClock([s])!.week![2][18]).toBeCloseTo(2.5);
   });
 });

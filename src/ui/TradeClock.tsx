@@ -121,7 +121,7 @@ export function ClockDial({ data, now, className }: { data: ClockData; now: Date
       {/* activity bars */}
       <g>
         {bars.map(b => (
-          <path key={b.i} ref={el => { barEls.current[b.i] = el; }} className={cx(FILL[b.lv], 'clock-wedge', b.i === state.slot && !state.closed && sel == null && 'clock-live')}
+          <path key={b.i} ref={el => { barEls.current[b.i] = el; }} className={cx(FILL[b.lv], 'clock-wedge', b.i === state.slot && !state.closed && !state.preview && sel == null && 'clock-live')}
             opacity={b.lv === 'quiet' ? 0.5 : b.lv === 'closed' ? 0.8 : sel != null && sel !== b.i ? 0.55 : 0.95} />
         ))}
       </g>
@@ -163,7 +163,7 @@ export function ClockDial({ data, now, className }: { data: ClockData; now: Date
       ))}
 
       {/* the hand: now */}
-      <g className="clock-hand pointer-events-none" style={{ transform: `rotate(${handDeg.toFixed(3)}deg)`, transformOrigin: `${C}px ${C}px` }}>
+      <g className="clock-hand pointer-events-none" opacity={state.preview ? 0.4 : 1} style={{ transform: `rotate(${handDeg.toFixed(3)}deg)`, transformOrigin: `${C}px ${C}px` }}>
         <line x1={C} y1={C - 70} x2={C} y2={C - R_RIM + 2} className="stroke-ink" strokeWidth={2} strokeLinecap="round" />
         <circle cx={C} cy={C - R_RIM + 2} r={4} className="fill-ink" />
         <circle cx={C} cy={C - R_RIM + 2} r={4} className="fill-ink clock-ping" style={{ transformOrigin: `${C}px ${C - R_RIM + 2}px` }} />
@@ -178,14 +178,15 @@ export function ClockDial({ data, now, className }: { data: ClockData; now: Date
       </g>
       <g className="pointer-events-none" textAnchor="middle">
         {sel == null ? <>
-          <text x={C} y={C - 24} className="fill-ink3" fontSize={9.5} fontWeight={600} letterSpacing={1.2}>{state.dayName.toUpperCase()} · CALGARY</text>
+          <text x={C} y={C - 24} className="fill-ink3" fontSize={9.5} fontWeight={600} letterSpacing={1.2}>{['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][t.weekday]} · CALGARY</text>
           <text x={C} y={C + 6} className="fill-ink num" fontSize={31} fontWeight={700}>{clock}<tspan fontSize={12} dx={3} className="fill-ink3">{t.h < 12 ? 'AM' : 'PM'}</tspan></text>
         </> : <>
           <text x={C} y={C - 24} className="fill-ink3" fontSize={9.5} fontWeight={600} letterSpacing={1.2}>{fmt12(nyOf(slotLabel(shown), ahead)).toUpperCase()} NEW YORK</text>
           <text x={C} y={C + 6} className="fill-ink num" fontSize={26} fontWeight={700}>{fmt12(shown)}</text>
         </>}
-        <text x={C} y={C + 26} className={cx(TEXT[shownLv].replace('text-', 'fill-'))} fontSize={12} fontWeight={700}>{sel == null && state.closed ? state.headline : LEVEL_LABEL[shownLv]}</text>
-        <text x={C} y={C + 42} className="fill-ink3 num" fontSize={10.5}>{shownLv === 'closed' ? '' : `${fmtX(shownV)} typical`}</text>
+        <text x={C} y={C + 26} className={cx(TEXT[shownLv].replace('text-', 'fill-'))} fontSize={12} fontWeight={700}>{sel == null && state.preview ? '' : sel == null && state.closed ? state.headline : LEVEL_LABEL[shownLv]}</text>
+        {sel == null && state.preview && <text x={C} y={C + 26} className="fill-accent" fontSize={11} fontWeight={700}>Showing {data.preview}</text>}
+        <text x={C} y={C + 42} className="fill-ink3 num" fontSize={10.5}>{(sel == null && state.preview) || shownLv === 'closed' ? '' : `${fmtX(shownV)} typical`}</text>
       </g>
     </svg>
   );
@@ -202,7 +203,7 @@ function Legend({ sess, slot, closed }: { sess: Session[]; slot: number; closed:
 }
 
 /** The dial with its "now / next" read-out and the best times of the day. */
-export function TradeClock({ data, now, big }: { data: ClockData; now: Date; big?: boolean }) {
+export function TradeClock({ data, now, big, children }: { data: ClockData; now: Date; big?: boolean; children?: React.ReactNode }) {
   const state = clockNow(data, now);
   const ahead = nyAheadMin(now);
   const sess = useMemo(() => (data.roundTheClock ? sessions(now) : []), [data.roundTheClock, state.dayName, Math.floor(now.getTime() / 3600_000)]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -215,9 +216,9 @@ export function TradeClock({ data, now, big }: { data: ClockData; now: Date; big
       <div className="min-w-0 flex flex-col gap-3.5">
         <div aria-live="polite" key={`h-${data.key}`} className="clock-swap">
           <div className="text-[11px] uppercase tracking-wide text-ink3 font-medium">{data.title}{data.sub ? ` · ${data.sub}` : ''}</div>
-          <div className={cx('font-semibold tracking-tight mt-0.5', big ? 'text-[26px]' : 'text-[20px]', state.inside ? 'text-accent' : TEXT[state.level])}>{state.headline}</div>
+          <div className={cx('font-semibold tracking-tight mt-0.5', big ? 'text-[26px]' : 'text-[20px]', state.inside ? 'text-accent' : state.preview ? 'text-ink' : TEXT[state.level])}>{state.headline}</div>
           <div className="text-[13.5px] text-ink2 mt-0.5">{state.detail}</div>
-          {!state.closed && <div className="text-[12px] text-ink3 mt-1">{LEVEL_HINT[state.level]}{state.activity != null ? ` (${fmtX(state.activity)} typical)` : ''}.</div>}
+          {!state.closed && !state.preview && <div className="text-[12px] text-ink3 mt-1">{LEVEL_HINT[state.level]}{state.activity != null ? ` (${fmtX(state.activity)} typical)` : ''}.</div>}
         </div>
         {!!data.windows.length && (
           <ul className="flex flex-col clock-swap" key={`w-${data.key}`}>
@@ -230,14 +231,15 @@ export function TradeClock({ data, now, big }: { data: ClockData; now: Date; big
                     <span className="num text-[13.5px] font-semibold text-ink">{fmt12(w.from)} – {fmt12(w.to)}</span>
                     <span className="block text-[11.5px] text-ink3 num">{fmt12(nyOf(slotLabel(w.from), ahead))} New York · {fmtX(w.activity)} typical</span>
                   </span>
-                  <span className={cx('num text-[12px] text-right', on ? 'text-accent font-semibold' : 'text-ink2')}>{state.closed && data.roundTheClock && state.headline === 'Market closed' ? '–' : on ? `now · ${fmtDur(state.insideLeftMin)} left` : `in ${fmtDur(until(w.from))}`}</span>
+                  <span className={cx('num text-[12px] text-right', on ? 'text-accent font-semibold' : 'text-ink2')}>{state.preview ? '' : state.closed && data.roundTheClock && state.headline === 'Market closed' ? '–' : on ? `now · ${fmtDur(state.insideLeftMin)} left` : `in ${fmtDur(until(w.from))}`}</span>
                 </li>
               );
             })}
           </ul>
         )}
         {state.dayFactor != null && <div className="text-[12px] text-ink3">{DAY_FULL[state.dayName] ?? state.dayName}s run <b className="text-ink2 num">{fmtX(state.dayFactor)}</b> a normal day for this market.</div>}
-        <Legend sess={sess} slot={state.slot} closed={state.closed} />
+        {children}
+        <Legend sess={sess} slot={state.slot} closed={state.closed || !!state.preview} />
       </div>
     </div>
   );
@@ -260,7 +262,7 @@ function useWakeLock(on: boolean) {
 }
 
 /** Full-screen clock to leave open while trading: the screen stays awake, the page behind does not scroll. */
-export function ClockStage({ data, now, onClose, children }: { data: ClockData; now: Date; onClose: () => void; children?: React.ReactNode }) {
+export function ClockStage({ data, now, onClose, children, extra }: { data: ClockData; now: Date; onClose: () => void; children?: React.ReactNode; extra?: React.ReactNode }) {
   useWakeLock(true);
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -276,10 +278,31 @@ export function ClockStage({ data, now, onClose, children }: { data: ClockData; 
           <div className="min-w-0 flex-1 overflow-x-auto">{children}</div>
           <button type="button" onClick={onClose} aria-label="Close the clock" className="shrink-0 w-11 h-11 rounded-full border border-line grid place-items-center text-ink2 hover:bg-raised"><Icon name="x" size={18} /></button>
         </div>
-        <div className="flex-1 grid items-center"><TradeClock data={data} now={now} big /></div>
+        <div className="flex-1 grid items-center"><TradeClock data={data} now={now} big>{extra}</TradeClock></div>
         <p className="text-[11px] text-ink3 text-center">Times are Calgary ({CLOCK_TZ.split('/')[1]}). The screen stays on while this is open. It shows when the market moves, not which way.</p>
       </div>
     </div>,
     document.body,
+  );
+}
+
+/** The week at a glance: one row per weekday, 48 half-hours coloured by how busy. Tap a row to put that day on the dial. */
+export function WeekGrid({ week, selected, today, onPick }: { week: (number | null)[][]; selected: number | null; today: number; onPick: (day: number) => void }) {
+  const NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  const W = 340, x0 = 34, cw = (W - x0) / MH_SLOTS, rh = 15;
+  return (
+    <div>
+      <div className="text-[11px] uppercase tracking-wide text-ink3 font-medium mb-1.5">The week · tap a day</div>
+      <svg viewBox={`0 0 ${W} ${5 * rh + 14}`} className="block w-full h-auto" role="img" aria-label="Activity by weekday and time of day">
+        {NAMES.map((n, d) => (
+          <g key={n} onClick={() => onPick(d)} className="cursor-pointer" opacity={selected == null || selected === d ? 1 : 0.45}>
+            <rect x={0} y={d * rh} width={W} height={rh} fill="transparent" />
+            <text x={0} y={d * rh + rh / 2} dominantBaseline="central" className={cx('num', selected === d ? 'fill-accent' : d === today ? 'fill-ink' : 'fill-ink3')} fontSize={9.5} fontWeight={selected === d || d === today ? 700 : 500}>{n}{d === today ? ' •' : ''}</text>
+            {week[d].map((v, i) => { const lv = levelOf(v); return <rect key={i} x={x0 + i * cw + 0.4} y={d * rh + 2} width={cw - 0.8} height={rh - 4} rx={1.5} className={FILL[lv]} opacity={lv === 'quiet' ? 0.4 : lv === 'closed' ? 0.5 : 0.9} />; })}
+          </g>
+        ))}
+        {[0, 12, 24, 36].map(i => <text key={i} x={x0 + i * cw} y={5 * rh + 10} className="fill-ink3 num" fontSize={8.5}>{i === 0 ? '12a' : i === 12 ? '6a' : i === 24 ? '12p' : '6p'}</text>)}
+      </svg>
+    </div>
   );
 }

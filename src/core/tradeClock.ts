@@ -29,6 +29,12 @@ export interface ClockData {
   days: (number | null)[];
   /** Trades around the clock on weekdays (forex / metals / CFDs): the weekend rule and the session ring apply. */
   roundTheClock: boolean;
+  /** Each Calgary weekday on its own (7 rows Mon..Sun x 48), when the study has it. */
+  week?: (number | null)[][] | null;
+  /** Set when the dial shows one weekday that is not today: its full name ("Thursday"). */
+  preview?: string;
+  /** The weekday shown (0 = Monday), when the dial is not the all-week average. */
+  day?: number;
 }
 
 export const slotOf = (t: string): number => { const [h, m] = t.split(':').map(Number); return ((h * 2 + (m >= 30 ? 1 : 0)) % MH_SLOTS + MH_SLOTS) % MH_SLOTS; };
@@ -42,7 +48,7 @@ export function symbolClock(s: MhSymbol): ClockData {
     key: s.sym, title: s.sym, sub: s.display && s.display !== s.sym ? s.display : s.name !== s.sym ? s.name : '',
     profile: s.profile,
     windows: s.windows.slice(0, 3).map((w, i) => ({ rank: i + 1, from: slotOf(w.from), to: slotOf(w.to), peak: slotOf(w.mt), activity: w.activity })),
-    days: s.days, roundTheClock: !stock,
+    days: s.days, roundTheClock: !stock, week: s.week,
   };
 }
 
@@ -56,10 +62,13 @@ export function topWindows(profile: (number | null)[], n = 3, gap = 4): ClockWin
     if (picked.length >= n) break;
     if (picked.every(p => Math.min((o.i - p + MH_SLOTS) % MH_SLOTS, (p - o.i + MH_SLOTS) % MH_SLOTS) >= gap)) picked.push(o.i);
   }
+  // grow each peak into its neighbours, best first; a half-hour already inside a better window is never taken twice
+  const taken = new Set<number>(picked);
   return picked.map((p, k) => {
     let a = p, b = p;
-    while (span(a, b + 1) < 4 && v[(a - 1 + MH_SLOTS) % MH_SLOTS] >= 0.85 * v[p]) a = (a - 1 + MH_SLOTS) % MH_SLOTS;
-    while (span(a, b + 1) < 4 && v[(b + 1) % MH_SLOTS] >= 0.85 * v[p]) b = (b + 1) % MH_SLOTS;
+    const free = (i: number) => !taken.has(i) && v[i] >= 0.85 * v[p];
+    while (span(a, b + 1) < 4 && free((a - 1 + MH_SLOTS) % MH_SLOTS)) { a = (a - 1 + MH_SLOTS) % MH_SLOTS; taken.add(a); }
+    while (span(a, b + 1) < 4 && free((b + 1) % MH_SLOTS)) { b = (b + 1) % MH_SLOTS; taken.add(b); }
     return { rank: k + 1, from: a, to: (b + 1) % MH_SLOTS, peak: p, activity: v[p] };
   });
 }
@@ -73,6 +82,7 @@ export function globalClock(list: MhSymbol[]): ClockData | null {
   return {
     key: 'global', title: 'Forex market', sub: `Average of ${pool.length} major markets`, profile, windows: topWindows(profile),
     days: [0, 1, 2, 3, 4].map(i => mean(s => s.days[i])), roundTheClock: true,
+    week: pool.some(s => s.week) ? Array.from({ length: 7 }, (_, d) => Array.from({ length: MH_SLOTS }, (_, i) => mean(s => s.week?.[d]?.[i] ?? null))) : null,
   };
 }
 
@@ -123,7 +133,23 @@ export const shiftSlots = (at: Date): number => Math.round((120 - nyAheadMin(at)
 const rot = <T,>(a: T[], k: number): T[] => a.map((_, i) => a[(((i - k) % a.length) + a.length) % a.length]);
 const mv = (slot: number, k: number) => (((slot + k) % MH_SLOTS) + MH_SLOTS) % MH_SLOTS;
 export function shiftClock(c: ClockData, k: number): ClockData {
-  return k ? { ...c, profile: rot(c.profile, k), windows: c.windows.map(w => ({ ...w, from: mv(w.from, k), to: mv(w.to, k), peak: mv(w.peak, k) })) } : c;
+  if (!k) return c;
+  // the week shifts as one long strip, so a late-evening half-hour that moves past midnight lands on the next weekday
+  const flat = c.week ? rot(c.week.flat(), k) : null;
+  return { ...c, profile: rot(c.profile, k), windows: c.windows.map(w => ({ ...w, from: mv(w.from, k), to: mv(w.to, k), peak: mv(w.peak, k) })),
+    week: flat ? Array.from({ length: 7 }, (_, d) => flat.slice(d * MH_SLOTS, (d + 1) * MH_SLOTS)) : c.week };
+}
+
+export const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
+/** Today's weekday in Calgary, 0 = Monday. */
+export const todayIndex = (at: Date): number => (zoneTime(at).weekday + 6) % 7;
+/** The clock of one weekday (0 = Monday): that day's own shape and its own best times. Falls back to the all-week
+ *  average when the study has no detail for the day. `today` marks whether it is the live day or a preview. */
+export function dayClock(c: ClockData, day: number, today: number): ClockData {
+  const row = c.week?.[day];
+  if (!row || row.filter(v => v != null).length < 12) return c;
+  const windows = topWindows(row);
+  return { ...c, key: `${c.key}|${day}`, profile: row, windows: windows.length ? windows : c.windows, day, preview: day === today ? undefined : DAY_NAMES[day] };
 }
 /** The same shift for a whole study row (the tables and the bar chart of the Market hours page). */
 export function shiftSymbol(s: MhSymbol, k: number): MhSymbol {
@@ -142,6 +168,8 @@ export interface ClockNow {
   /** Today's weekday multiplier (null on the weekend). */
   dayFactor: number | null; dayName: string;
   headline: string; detail: string;
+  /** The dial shows another weekday than today. */
+  preview?: boolean;
 }
 
 export const fmtDur = (min: number): string => {
@@ -169,6 +197,14 @@ export function clockNow(c: ClockData, at: Date): ClockNow {
   const upcoming = c.windows.filter(w => w !== inside).map(w => ({ w, d: until(w.from) })).sort((a, b) => a.d - b.d)[0];
   const dayFactor = t.weekday >= 1 && t.weekday <= 5 ? c.days[t.weekday - 1] ?? null : null;
   let headline: string, detail: string;
+  if (c.preview) {
+    // another weekday than today: describe that day, nothing is "on now"
+    const best = c.windows[0], act = c.profile[slot] ?? null;
+    return { slot, activity: act, level: levelOf(act), closed: false, inside: null, insideLeftMin: 0, next: null, nextInMin: 0,
+      dayFactor: c.day != null && c.day < 5 ? c.days[c.day] ?? null : null, dayName: c.preview.slice(0, 3), preview: true,
+      headline: best ? `${c.preview}s peak at ${fmt12(best.peak)}` : `${c.preview}s`,
+      detail: best ? `That half-hour runs ${best.activity != null ? best.activity.toFixed(2) + '×' : '–'} a typical one` : 'No clear best time on this day' };
+  }
   if (weekend) {
     headline = 'Market closed';
     const ahead = nyAheadMin(at);
