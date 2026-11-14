@@ -119,7 +119,8 @@ export function addMinutes(t: string, m: number): string {
   return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`;
 }
 
-/** New York time of a Calgary clock time (always +2 h: both follow US daylight-saving dates). */
-export const nyOf = (mt: string) => addMinutes(mt, 120);
+/** New York time of a Calgary clock time. The study's history is always +2 h; since Alberta stopped changing its
+ *  clocks (2026) the winter gap is 1 h: pass the live gap (core/tradeClock nyAheadMin). */
+export const nyOf = (mt: string, ahead = 120) => addMinutes(mt, ahead);
 
 export const slotLabel = (i: number) => `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`;

@@ -3,9 +3,11 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Badge, Card, CardHead, cx, Empty, Page, Segmented } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
 import {
-  findSymbol, fmtX, isFx, KIND_LABEL, MH_SLOTS, MH_URL, nyOf, parseMarketHours, searchSymbols, slotLabel, WEEKDAYS,
+  addMinutes, findSymbol, fmtX, isFx, KIND_LABEL, MH_SLOTS, MH_URL, nyOf, parseMarketHours, searchSymbols, slotLabel, WEEKDAYS,
   type MhEvent, type MhFile, type MhFilter, type MhSymbol, type Reliability,
 } from '@/core/marketHours';
+import { globalClock, nyAheadMin, shiftClock, shiftSlots, shiftSymbol, symbolClock } from '@/core/tradeClock';
+import { ClockStage, TradeClock, useNow } from '@/ui/TradeClock';
 
 type Load = { state: 'loading' } | { state: 'ok'; file: MhFile } | { state: 'error' };
 const FILTERS: { value: MhFilter; label: string }[] = [
@@ -20,7 +22,7 @@ function RelBadge({ rel, what }: { rel: Reliability; what: string }) {
 }
 
 /** Mon-Fri activity per Calgary half-hour; the best windows in full accent, the rest muted. */
-function Profile({ s }: { s: MhSymbol }) {
+function Profile({ s, ahead }: { s: MhSymbol; ahead: number }) {
   const [hover, setHover] = useState<number | null>(null);
   const vals = s.profile;
   const max = Math.max(1.2, ...vals.map(v => v ?? 0));
@@ -36,7 +38,7 @@ function Profile({ s }: { s: MhSymbol }) {
     <div>
       <div className="flex items-baseline justify-between gap-3 mb-1.5 min-h-[20px]">
         <span className="text-[12px] text-ink3">Activity by half-hour, Mon–Fri (1.0× = typical)</span>
-        {h != null && <span className="num text-[12px] text-ink2 shrink-0">{slotLabel(h)} <span className="text-ink3">({nyOf(slotLabel(h))} NY)</span> · <b className="text-ink">{fmtX(vals[h])}</b></span>}
+        {h != null && <span className="num text-[12px] text-ink2 shrink-0">{slotLabel(h)} <span className="text-ink3">({nyOf(slotLabel(h), ahead)} NY)</span> · <b className="text-ink">{fmtX(vals[h])}</b></span>}
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full h-32 md:h-40 block" role="img"
         aria-label={`${s.sym} activity by Calgary half-hour${peak ? `; peak ${peak.mt} at ${fmtX(peak.activity)}` : ''}`}
@@ -50,7 +52,7 @@ function Profile({ s }: { s: MhSymbol }) {
                 className={cx(inWin(i) ? 'fill-accent' : 'fill-ink3', hover === i && 'opacity-100')}
                 opacity={inWin(i) ? (hover === i || hover == null ? 1 : 0.85) : hover === i ? 0.75 : 0.35} />
             )}
-            <title>{`${slotLabel(i)} Calgary (${nyOf(slotLabel(i))} New York): ${fmtX(v)}`}</title>
+            <title>{`${slotLabel(i)} Calgary (${nyOf(slotLabel(i), ahead)} New York): ${fmtX(v)}`}</title>
           </g>
         ))}
       </svg>
@@ -99,7 +101,7 @@ function EventRow({ label, e, note }: { label: string; e: MhEvent | null; note: 
   );
 }
 
-function Detail({ s }: { s: MhSymbol }) {
+function Detail({ s, ahead }: { s: MhSymbol; ahead: number }) {
   const stock = s.kind === 'stock' || s.kind === 'etf';
   const w = s.weekday;
   return (
@@ -133,7 +135,7 @@ function Detail({ s }: { s: MhSymbol }) {
             </tbody>
           </table>
         </div>
-        <div className="mt-4"><Profile s={s} /></div>
+        <div className="mt-4"><Profile s={s} ahead={ahead} /></div>
       </Card>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -144,9 +146,9 @@ function Detail({ s }: { s: MhSymbol }) {
         </Card>
         <Card>
           <CardHead title="News days" sub="Range of that half-hour on event days vs normal days" />
-          <EventRow label={stock ? 'NFP Friday · 07:30 open' : 'NFP Friday · 06:30'} e={s.nfp} note={stock ? '09:30 ET opening half-hour vs other Fridays' : '08:30 ET jobs report vs other Fridays'} />
-          <EventRow label="FOMC · 12:00" e={s.fomc1200} note="14:00 ET statement vs a normal Wednesday" />
-          <EventRow label="FOMC · 12:30" e={s.fomc1230} note="14:30 ET press conference vs a normal Wednesday" />
+          <EventRow label={stock ? `NFP Friday · ${addMinutes('09:30', -ahead)} open` : `NFP Friday · ${addMinutes('08:30', -ahead)}`} e={s.nfp} note={stock ? '09:30 ET opening half-hour vs other Fridays' : '08:30 ET jobs report vs other Fridays'} />
+          <EventRow label={`FOMC · ${addMinutes('14:00', -ahead)}`} e={s.fomc1200} note="14:00 ET statement vs a normal Wednesday" />
+          <EventRow label={`FOMC · ${addMinutes('14:30', -ahead)}`} e={s.fomc1230} note="14:30 ET press conference vs a normal Wednesday" />
           {!s.nfp && !s.fomc1200 && !s.fomc1230 && <p className="text-[12.5px] text-ink3">Not enough event days in this symbol's history.</p>}
         </Card>
       </div>
@@ -182,7 +184,32 @@ export default function MarketHours() {
   const list = file?.symbols ?? [];
   const selected = useMemo(() => findSymbol(list, params.get('s') || '') ?? findSymbol(list, 'EURUSD') ?? list[0] ?? null, [list, params]);
   const results = useMemo(() => searchSymbols(list, q, filter, 40), [list, q, filter]);
-  const pick = (s: MhSymbol) => { setParams({ s: s.sym }, { replace: true }); setQ(''); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const now = useNow();
+  const mode: 'global' | 'symbol' = params.get('view') === 'global' ? 'global' : 'symbol';
+  const stage = params.get('clock') === '1';
+  // the study is in Calgary time with New York 2 h ahead; when the live gap differs (winter, since Alberta keeps summer time) shift it
+  const hourKey = Math.floor(now.getTime() / 3600_000);
+  const { shift, ahead } = useMemo(() => ({ shift: shiftSlots(new Date(hourKey * 3600_000)), ahead: nyAheadMin(new Date(hourKey * 3600_000)) }), [hourKey]);
+  const shown = useMemo(() => (selected ? shiftSymbol(selected, shift) : null), [selected, shift]);
+  const global = useMemo(() => { const g = globalClock(list); return g ? shiftClock(g, shift) : null; }, [list, shift]);
+  const clock = useMemo(() => (mode === 'global' && global ? global : shown ? symbolClock(shown) : global), [mode, global, shown]);
+  const setParam = (k: string, v: string | null) => setParams(prev => { const n = new URLSearchParams(prev); if (v == null) n.delete(k); else n.set(k, v); return n; }, { replace: true });
+  const quick = useMemo(() => {
+    const out = ['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD', 'NAS100', 'US30'].map(x => findSymbol(list, x)).filter((x): x is MhSymbol => !!x);
+    if (selected && !out.includes(selected)) out.unshift(selected);
+    return out;
+  }, [list, selected]);
+  const modeSwitch = (
+    <div className="flex items-center gap-2 w-max">
+      <Segmented label="Clock" size="sm" value={mode} onChange={v => setParam('view', v === 'global' ? 'global' : null)}
+        options={[{ value: 'global', label: 'Whole market' }, { value: 'symbol', label: selected?.sym ?? 'Symbol' }]} />
+      {stage && quick.map(s => (
+        <button key={s.sym} type="button" onClick={() => setParams(prev => { const n = new URLSearchParams(prev); n.set('s', s.sym); n.delete('view'); return n; }, { replace: true })}
+          className={cx('h-8 px-3 rounded-full border text-[12px] font-semibold shrink-0', mode === 'symbol' && selected?.sym === s.sym ? 'border-accent text-accent' : 'border-line text-ink2')}>{s.sym}</button>
+      ))}
+    </div>
+  );
+  const pick = (s: MhSymbol) => { setParams(prev => { const n = new URLSearchParams(prev); n.set('s', s.sym); n.delete('view'); return n; }, { replace: true }); setQ(''); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   return (
     <Page className="pb-24">
@@ -209,6 +236,15 @@ export default function MarketHours() {
       {file && !list.length && <Card><Empty icon="info" title="No study yet">The first results appear after the market-hours workflow runs.</Empty></Card>}
 
       {!!list.length && <>
+        {clock && (
+          <Card aria-label="Trading clock">
+            <CardHead title="Trading clock" sub="Live, Calgary time. Tap a slice to read it." right={
+              <button type="button" onClick={() => setParam('clock', '1')} className="h-9 px-3.5 rounded-full border border-line text-[12.5px] font-semibold inline-flex items-center gap-1.5 hover:bg-raised"><Icon name="clock" size={14} />Keep on screen</button>} />
+            <div className="overflow-x-auto -mx-1 px-1 mb-4">{modeSwitch}</div>
+            {!stage && <TradeClock data={clock} now={now} />}
+          </Card>
+        )}
+        {clock && stage && <ClockStage data={clock} now={now} onClose={() => setParam('clock', null)}>{modeSwitch}</ClockStage>}
         <Card>
           <div className="flex flex-col gap-3">
             <label className="relative block">
@@ -228,7 +264,7 @@ export default function MarketHours() {
                         <span className="font-semibold text-[13.5px]">{s.sym}</span>
                         <span className="text-[12px] text-ink3 ml-2 truncate">{isFx(s.kind) || s.kind === 'metal' || s.kind === 'cfd' ? KIND_LABEL[s.kind] : s.display}</span>
                       </span>
-                      <span className="num text-[12px] text-ink2 shrink-0">{s.windows[0] ? `${s.windows[0].mt} · ${fmtX(s.windows[0].activity, 1)}` : '–'}{s.weekday ? ` · ${s.weekday.best}` : ''}</span>
+                      <span className="num text-[12px] text-ink2 shrink-0">{s.windows[0] ? `${addMinutes(s.windows[0].mt, shift * 30)} · ${fmtX(s.windows[0].activity, 1)}` : '–'}{s.weekday ? ` · ${s.weekday.best}` : ''}</span>
                     </button>
                   </li>
                 ))}
@@ -237,7 +273,7 @@ export default function MarketHours() {
             )}
           </div>
         </Card>
-        {selected && <Detail key={selected.sym} s={selected} />}
+        {shown && <Detail key={shown.sym} s={shown} ahead={ahead} />}
         <p className="text-[11.5px] text-ink3 px-1 leading-relaxed">Activity = volume and range of a half-hour together (geometric mean), relative to a typical half-hour of the same month; Range = price movement alone (a stock's 13:30 close is mostly volume). Forex volume is OANDA tick volume; stock volume is consolidated (SIP). “Weak” = within noise: the two halves of the history disagree. Descriptive only, not financial advice.</p>
       </>}
     </Page>

@@ -580,3 +580,17 @@ html.ck-preview .ck-print { display: block; max-width: 210mm; margin: 0 auto; pa
 body:has([data-listen-mini]) #main { padding-bottom: calc(max(12px, env(safe-area-inset-bottom)) + 76px + 84px); }
 @media (orientation: landscape) and (max-height: 520px) { body:has([data-listen-mini]) #main { padding-bottom: 96px; } }
 @media (min-width: 1024px) { body:has([data-listen-mini]) #main { padding-bottom: 112px; } }
+
+/* ─── Trading clock (ui/TradeClock) ─────────────────────────────────── */
+@keyframes clockWedge { from { opacity: 0; transform: scale(0.72); } }
+@keyframes clockLive { 50% { opacity: 0.55; } }
+@keyframes clockPing { from { opacity: 0.5; transform: scale(1); } to { opacity: 0; transform: scale(3.4); } }
+@keyframes clockSweep { to { transform: rotate(360deg); } }
+.clock-wedge { transform-origin: 200px 200px; animation: clockWedge 0.5s cubic-bezier(0.23, 1, 0.32, 1) backwards; }
+.clock-live { animation: clockLive 1.8s ease-in-out infinite; }
+.clock-ping { animation: clockPing 2.2s ease-out infinite; }
+.clock-sweep { animation: clockSweep 60s linear infinite; }
+.clock-hand { transition: transform 1s linear; }
+.clock-big { max-width: min(94vw, calc(100dvh - 400px)); min-width: min(94vw, 260px); }
+@media (min-width: 1024px) { .clock-big { max-width: min(58vw, calc(100dvh - 150px)); } }
+@media (prefers-reduced-motion: reduce) { .clock-ping, .clock-sweep { display: none; } .clock-hand { transition: none; } }
