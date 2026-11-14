@@ -124,7 +124,26 @@ def compact(r: Dict) -> Dict:
         'e': [e.get('recent2y_vs_all'), e.get('pre_vs_post2020'), e.get('top_pre2020'), e.get('top_post2020'), e.get('top_recent2y'), e.get('drift')],
         'nfp': ev(r.get('nfp')), 'f12': ev(r.get('fomc_1200')), 'f1230': ev(r.get('fomc_1230')),
         'p': [None if v is None else int(round(v * 100)) for v in r.get('profile') or []],
+        **week_profiles(r),
     }
+
+
+def week_profiles(r: Dict) -> Dict:
+    """'pw': the activity profile of each Calgary weekday on its own (Mon..Fri, then Sun: the forex week opens Sunday
+    afternoon), x100, same scale as 'p' (volume and range together, 1.0 = a typical half-hour). Forex / metals / CFDs
+    only: a stock's weekdays differ by a few percent, not worth 240 numbers a ticker. A half-hour seen on fewer than
+    20 days of that weekday is None."""
+    h = r.get('heavy') or {}
+    if r.get('cls') in ('stock', 'etf') or not h.get('cell_rv') or not h.get('cell_rr') or not h.get('cell_n'):
+        return {}
+    rv, rr, n = arr(h['cell_rv']), arr(h['cell_rr']), np.asarray(h['cell_n'], float)
+    if len(rv) != 7 * NS or len(rr) != 7 * NS or len(n) != 7 * NS:
+        return {}
+    with np.errstate(invalid='ignore'):
+        sc = np.sqrt(np.maximum(rv, 0) * np.maximum(rr, 0))
+    sc[n < 20] = np.nan
+    return {'pw': [[None if not np.isfinite(v) else int(round(float(v) * 100)) for v in sc[d * NS:(d + 1) * NS]]
+                   for d in (0, 1, 2, 3, 4, 6)]}
 
 
 # ---- groups -----------------------------------------------------------------------------------------------------------
