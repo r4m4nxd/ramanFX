@@ -597,11 +597,28 @@ def main(argv=None) -> int:
     ap.add_argument('--cal', required=True)
     ap.add_argument('--root', default=ROOT)
     ap.add_argument('--synthetic', action='store_true')
+    ap.add_argument('--week-only', action='store_true',
+                    help='only add the per-weekday profiles (pw) of the forex shards to the existing by-symbol file')
     a = ap.parse_args(argv)
     with open(a.cal) as f:
         cal = json.load(f)
     data, info = load_shards(a.inp)
     fxr, sr = data['fx'], data['stocks']
+    if a.week_only:
+        # the forex shards finish in minutes, the stock shards can take hours: publish the weekday detail without them
+        path = os.path.join(a.root, 'public', 'research', 'market_hours_by_symbol.json')
+        with open(path) as f:
+            cur = json.load(f)
+        pw = {r['sym']: week_profiles(r).get('pw') for r in fxr}
+        n = 0
+        for row in cur.get('symbols') or []:
+            if pw.get(row.get('s')):
+                row['pw'] = pw[row['s']]
+                n += 1
+        with open(path, 'w') as f:
+            json.dump(cur, f, separators=(',', ':'))
+        print(f'week-only: weekday profiles added to {n} of {len(fxr)} forex / metal / CFD symbols -> {path}')
+        return 0 if n else 1
     groups = {
         'Forex currencies': group_summary([r for r in fxr if r['cls'] in ('major', 'cross', 'exotic')]),
         'Majors': group_summary([r for r in fxr if r['cls'] == 'major']),
