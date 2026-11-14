@@ -47,7 +47,7 @@ import { fxBarCloses, nyParts, REPO } from './scheduler.ts';
 import { isAppPath } from './appPaths.ts';
 
 export const MIN = 60_000, HOUR = 3_600_000, DAY = 86_400_000;
-export const FX_GRACE = 2 * HOUR + 20 * MIN, CRYPTO_GRACE = 3 * HOUR, MOVERS_GRACE = 3 * HOUR, STOCK_DUE = 150 * MIN;
+export const FX_GRACE = 2 * HOUR + 20 * MIN, CRYPTO_GRACE = 4 * HOUR, MOVERS_GRACE = 3 * HOUR, STOCK_DUE = 150 * MIN;
 export const KEY_GRACE = 25 * MIN, OANDA_KEY_GRACE = 55 * MIN, OANDA_RETRY_MS = 2500, FAIL_GRACE = 25 * MIN, REALERT = 6 * HOUR, PER_DAY = 4;
 export const APP_GRACE = 90 * MIN, APP_DATA_GRACE = 25 * MIN, APP_DATA_LAG = 30 * MIN;
 export const APP_URL = 'https://raman-fx.vercel.app';
@@ -207,7 +207,7 @@ export function evaluate(s: Snapshot): Check[] {
     out.push(last != null && now - last <= CRYPTO_GRACE
       ? { id: 'fx', label: 'FX scan', status: 'ok', text: `last good run ${when(last, now)} (weekend crypto)`, last }
       : { id: 'fx', label: 'FX scan', status: 'problem', last,
-        text: `Weekend crypto scan missed ${hoursAgo(now, last, 3)} hours — last good run ${when(last, now)}.` });
+        text: `Weekend crypto scan missed ${hoursAgo(now, last, 4)} hours — last good run ${when(last, now)}.` });
   }
 
   // Stock scan (NYSE trading days, due 2.5 h after the close)
@@ -263,6 +263,8 @@ export function evaluate(s: Snapshot): Check[] {
     const done = runs ? scheduled(runs).find(r => r.status === 'completed' && (r.conclusion === 'success' || FAILED.has(r.conclusion ?? ''))) : undefined;
     if (!done) { out.push({ id, label, status: 'skip', text: '' }); continue; }
     if (done.conclusion === 'success') { out.push({ id, label, status: 'ok', text: `last run ${when(done.at, now)} ok` }); continue; }
+    // weekend (owner, 2026-11-14): the forex market is closed, so only the crypto scan is watched (missed for 4 h, above)
+    if (wf === 'fx-scan.yml' && !fxWeek(now)) { out.push({ id, label, status: 'skip', text: '' }); continue; }
     if (now - done.at > DAY) { out.push({ id, label, status: 'skip', text: '' }); continue; }
     const link = done.url ? ` — <a href="${esc(done.url)}">open the run</a>` : '';
     out.push({ id, label, status: 'problem', graceMs: FAIL_GRACE, text: `${WF_NAME[wf]} failed at ${when(done.at, now)}${link}` });
@@ -275,7 +277,7 @@ export function evaluate(s: Snapshot): Check[] {
   for (const k of KEYS) {
     const v = s.keys[k];
     // OANDA refuses requests for a while around the weekend close (2026-11-14): a 'bad' answer then is not a dead key
-    const quiet = k === 'oanda' && v === 'bad' && !(fxWeek(now) && fxWeek(now - 2 * HOUR));
+    const quiet = k === 'oanda' && !(fxWeek(now) && fxWeek(now - 2 * HOUR));
     out.push({ id: `key:${k}`, label: `${KEY_LABEL[k]} key`, status: quiet ? 'skip' : v === 'bad' ? 'problem' : v === 'ok' ? 'ok' : 'skip', graceMs: k === 'oanda' ? OANDA_KEY_GRACE : KEY_GRACE,
       text: v === 'bad' ? KEY_TEXT[k] : 'works again' });
   }

@@ -35,12 +35,12 @@ describe('health: FX scan', () => {
     expect(status(S(now, { 'fx-scan.yml': runs }, { files: { fx: at('2026-10-29T15:11:00Z') } }), 'fx')).toBe('ok');
     expect(parseRuns({ workflow_runs: [{ id: 1, created_at: '2026-10-29T15:30:00Z', display_title: 'FX on-demand scan EURUSD', status: 'completed', conclusion: 'success', html_url: 'https://github.com/x' }] })[0].ondemand).toBe(true);
   });
-  it('weekend: a crypto-only run within 3 h; the switch at the Friday close and the Sunday open', () => {
+  it('weekend: a crypto-only run within 4 h; the switch at the Friday close and the Sunday open', () => {
     const sat = '2026-10-31T18:00:00Z';
     expect(status(S(sat, { 'fx-scan.yml': [R('2026-10-31T15:12:00Z')] }), 'fx')).toBe('ok');
-    const c = get(evaluate(S(sat, { 'fx-scan.yml': [R('2026-10-31T14:42:00Z')] })), 'fx');
+    const c = get(evaluate(S(sat, { 'fx-scan.yml': [R('2026-10-31T13:42:00Z')] })), 'fx');
     expect(c.status).toBe('problem');
-    expect(c.text).toMatch(/^Weekend crypto scan missed 3 hours/);
+    expect(c.text).toMatch(/^Weekend crypto scan missed 4 hours/);
     // Friday 18:30 New York (EDT): weekend rule already, a 2.5 h old run is fine
     expect(status(S('2026-10-30T22:30:00Z', { 'fx-scan.yml': [R('2026-10-30T20:00:00Z')] }), 'fx')).toBe('ok');
     // Sunday (EST): the week opens 22:00 UTC; the forex rule starts only 2 h 20 min after the first close
