@@ -90,22 +90,19 @@ export function zoneTime(at: Date, tz: string = CLOCK_TZ): ZoneTime {
 }
 export const minutesOf = (t: ZoneTime) => t.h * 60 + t.m + t.s / 60;
 
-/** The four forex sessions, as Calgary half-hour slots today (their local 8:00-17:00, Sydney 7:00-16:00, Tokyo 9:00-18:00;
- *  each city's own daylight-saving rule is applied through the time zone database). */
-export interface Session { id: string; label: string; from: number; to: number }
-const SESSIONS: { id: string; label: string; tz: string; open: number; close: number }[] = [
-  { id: 'sydney', label: 'Sydney', tz: 'Australia/Sydney', open: 7, close: 16 },
-  { id: 'tokyo', label: 'Tokyo', tz: 'Asia/Tokyo', open: 9, close: 18 },
-  { id: 'london', label: 'London', tz: 'Europe/London', open: 8, close: 17 },
-  { id: 'newyork', label: 'New York', tz: 'America/New_York', open: 8, close: 17 },
+/** The three forex sessions as Calgary half-hour slots today: Asia = Sydney's open (7:00 there) to Tokyo's close
+ *  (18:00 there), London and New York 8:00-17:00 local (each city's daylight-saving rule comes from the time zone
+ *  database). They overlap, so the dial draws each on its own track. */
+export interface Session { id: 'asia' | 'london' | 'newyork'; label: string; from: number; to: number }
+const SESSIONS: { id: Session['id']; label: string; openTz: string; open: number; closeTz: string; close: number }[] = [
+  { id: 'asia', label: 'Asia', openTz: 'Australia/Sydney', open: 7, closeTz: 'Asia/Tokyo', close: 18 },
+  { id: 'london', label: 'London', openTz: 'Europe/London', open: 8, closeTz: 'Europe/London', close: 17 },
+  { id: 'newyork', label: 'New York', openTz: 'America/New_York', open: 8, closeTz: 'America/New_York', close: 17 },
 ];
 export function sessions(at: Date): Session[] {
   const here = minutesOf(zoneTime(at));
-  return SESSIONS.map(s => {
-    const diff = here - minutesOf(zoneTime(at, s.tz));           // Calgary minus the city, minutes (mod one day)
-    const slot = (hour: number) => (((Math.round((hour * 60 + diff) / 30) % MH_SLOTS) + MH_SLOTS) % MH_SLOTS);
-    return { id: s.id, label: s.label, from: slot(s.open), to: slot(s.close) };
-  });
+  const slot = (hour: number, tz: string) => (((Math.round((hour * 60 + here - minutesOf(zoneTime(at, tz))) / 30) % MH_SLOTS) + MH_SLOTS) % MH_SLOTS);
+  return SESSIONS.map(s => ({ id: s.id, label: s.label, from: slot(s.open, s.openTz), to: slot(s.close, s.closeTz) }));
 }
 
 export const NY_TZ = 'America/New_York';

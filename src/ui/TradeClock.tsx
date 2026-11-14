@@ -12,8 +12,9 @@ const C = 200, R_BAR0 = 104, R_BAR1 = 168, R_RIM = 174, R_NUM = 190;
 const FILL: Record<Level, string> = { peak: 'fill-loss', busy: 'fill-warn', normal: 'fill-profit', quiet: 'fill-ink3', closed: 'fill-line' };
 const DOT: Record<Level, string> = { peak: 'bg-loss', busy: 'bg-warn', normal: 'bg-profit', quiet: 'bg-ink3', closed: 'bg-line' };
 const TEXT: Record<Level, string> = { peak: 'text-loss', busy: 'text-warn', normal: 'text-profit', quiet: 'text-ink2', closed: 'text-ink3' };
-const SESSION_STROKE: Record<string, string> = { sydney: 'stroke-cyan', tokyo: 'stroke-violet', london: 'stroke-profit', newyork: 'stroke-ink' };
-const SESSION_DOT: Record<string, string> = { sydney: 'bg-cyan', tokyo: 'bg-violet', london: 'bg-profit', newyork: 'bg-ink' };
+/** Sessions: a thin ring outside the dial, one track each so overlapping sessions never draw on top of each other. */
+const SESSION_R: Record<string, number> = { asia: 204, london: 209.5, newyork: 215 };
+const R_SES_LABEL = 225, VB = '-36 -36 472 472';
 
 const DAY_FULL: Record<string, string> = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
 const rad = (deg: number) => ((deg - 90) * Math.PI) / 180;
@@ -80,7 +81,7 @@ export function ClockDial({ data, now, className }: { data: ClockData; now: Date
   const clock = `${t.h % 12 || 12}:${String(t.m).padStart(2, '0')}`;
 
   return (
-    <svg viewBox="0 0 400 400" className={cx('block w-full h-auto select-none touch-manipulation', className)} role="img"
+    <svg viewBox={VB} className={cx('block w-full h-auto select-none touch-manipulation', className)} role="img"
       aria-label={`${data.title} trading clock, Calgary time. ${state.headline}. ${state.detail}.`}
       onPointerLeave={e => { if (e.pointerType === 'mouse') pick(null); }}>
       {/* track */}
@@ -116,10 +117,17 @@ export function ClockDial({ data, now, className }: { data: ClockData; now: Date
       })}
 
       {/* forex sessions */}
-      {sess.map((s, k) => {
-        const r = R_BAR0 - 7 - k * 4.6;
+      {sess.map(s => {
+        const r = SESSION_R[s.id];
+        const a0 = s.from * STEP + 0.6, a1 = (s.from + slotSpan(s.from, s.to)) * STEP - 0.6, am = (((a0 + a1) / 2) % 360 + 360) % 360;
         const open = inWindow(s, state.slot) && !state.closed;
-        return <path key={s.id} d={arc(r, s.from * STEP, (s.from + slotSpan(s.from, s.to)) * STEP)} fill="none" className={SESSION_STROKE[s.id]} strokeWidth={3} strokeLinecap="round" opacity={open ? 1 : 0.32} />;
+        const [tx, ty] = pt(R_SES_LABEL, am);
+        return (
+          <g key={s.id} className={`ses-${s.id}`} opacity={open ? 1 : 0.4}>
+            <path d={arc(r, a0, a1)} fill="none" stroke="currentColor" strokeWidth={open ? 3.2 : 2} strokeLinecap="round" />
+            <text x={tx} y={ty} transform={`rotate(${f(am > 90 && am < 270 ? am + 180 : am)} ${f(tx)} ${f(ty)})`} textAnchor="middle" dominantBaseline="central" fill="currentColor" fontSize={8} fontWeight={700} letterSpacing={1.6}>{s.label.toUpperCase()}</text>
+          </g>
+        );
       })}
 
       {/* touch targets */}
@@ -162,7 +170,7 @@ function Legend({ sess, slot, closed }: { sess: Session[]; slot: number; closed:
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11.5px] text-ink2">
       {(['peak', 'busy', 'normal', 'quiet'] as Level[]).map(l => <span key={l} className="inline-flex items-center gap-1.5"><i className={cx('w-2.5 h-2.5 rounded-sm', DOT[l], l === 'quiet' && 'opacity-50')} />{LEVEL_LABEL[l]}</span>)}
       <span className="inline-flex items-center gap-1.5"><i className="w-4 h-4 rounded-full bg-accent text-on-accent text-[9px] font-bold grid place-items-center not-italic">1</i>Best times</span>
-      {sess.map(s => { const open = inWindow(s, slot) && !closed; return <span key={s.id} className={cx('inline-flex items-center gap-1.5', !open && 'text-ink3')}><i className={cx('w-3 h-1 rounded-full', SESSION_DOT[s.id], !open && 'opacity-40')} />{s.label}{open && <b className="text-profit font-semibold">open</b>}</span>; })}
+      {sess.map(s => { const open = inWindow(s, slot) && !closed; return <span key={s.id} className={cx('inline-flex items-center gap-1.5', !open && 'text-ink3')}><i className={cx('w-3 h-1 rounded-full bg-current', `ses-${s.id}`, !open && 'opacity-40')} />{s.label}{open && <b className="text-profit font-semibold">open</b>}</span>; })}
     </div>
   );
 }

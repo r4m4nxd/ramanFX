@@ -82,9 +82,11 @@ describe('trading clock', () => {
     const s = Object.fromEntries(sessions(at('2026-07-09T14:30:00Z')).map(x => [x.id, x]));
     expect(s.london).toMatchObject({ from: 2, to: 20 });
     expect(s.newyork).toMatchObject({ from: 12, to: 30 });
-    expect(s.tokyo).toMatchObject({ from: 36, to: 6 });
-    expect(inWindow(s.tokyo, 0)).toBe(true);
-    expect(inWindow(s.tokyo, 10)).toBe(false);
+    // Asia: Sydney 7:00 (15:00 Calgary) to Tokyo 18:00 (3:00 Calgary), one arc across midnight
+    expect(s.asia).toMatchObject({ from: 30, to: 6 });
+    expect(inWindow(s.asia, 0)).toBe(true);
+    expect(inWindow(s.asia, 10)).toBe(false);
+    expect(Object.keys(s)).toEqual(['asia', 'london', 'newyork']);
   });
   it('formatting', () => {
     expect([fmt12(0), fmt12(13), fmt12('15:30'), fmt12(24)]).toEqual(['12:00 AM', '6:30 AM', '3:30 PM', '12:00 PM']);

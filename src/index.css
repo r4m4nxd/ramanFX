@@ -594,3 +594,5 @@ body:has([data-listen-mini]) #main { padding-bottom: calc(max(12px, env(safe-are
 .clock-big { max-width: min(94vw, calc(100dvh - 400px)); min-width: min(94vw, 260px); }
 @media (min-width: 1024px) { .clock-big { max-width: min(58vw, calc(100dvh - 150px)); } }
 @media (prefers-reduced-motion: reduce) { .clock-ping, .clock-sweep { display: none; } .clock-hand { transition: none; } }
+.ses-asia { color: rgb(var(--cyan)); } .ses-london { color: var(--ses-blue, #60A5FA); } .ses-newyork { color: rgb(var(--ink)); }
+[data-theme='light'] { --ses-blue: #2563EB; }
