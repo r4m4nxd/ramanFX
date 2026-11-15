@@ -646,6 +646,24 @@ def main(argv=None) -> int:
     os.makedirs(docs, exist_ok=True)
     by = {'meta': {k: meta[k] for k in ('generated', 'synthetic', 'timezone', 'n_fx', 'n_stocks', 'alpaca_feed', 'fomc_source', 'nfp_source')},
           'symbols': [compact(r) for r in fxr + sr]}
+    # A run that ran out of time or hit fetch errors must not shrink the app's list (2026-11-14: the stock shards spent
+    # their 5 h budget with an expired cache and 379 stocks vanished from the Market hours page): keep the last
+    # published row of every symbol this run did not reach.
+    kept = 0
+    if any(i.get('n_errors') for i in info):
+        try:
+            with open(os.path.join(pub, 'market_hours_by_symbol.json')) as f:
+                prev = json.load(f).get('symbols') or []
+        except (OSError, ValueError):
+            prev = []
+        have = {r['s'] for r in by['symbols']}
+        keep = [r for r in prev if isinstance(r, dict) and r.get('s') and r['s'] not in have]
+        by['symbols'] += keep
+        kept = len(keep)
+        by['meta']['n_stocks'] = sum(1 for r in by['symbols'] if r.get('k') in ('stock', 'etf'))
+        by['meta']['n_fx'] = len(by['symbols']) - by['meta']['n_stocks']
+        if kept:
+            print(f'kept the previous rows of {kept} symbols this run did not reach')
     with open(os.path.join(pub, 'market_hours_by_symbol.json'), 'w') as f:
         json.dump(by, f, separators=(',', ':'))
     with open(os.path.join(pub, 'market_hours.json'), 'w') as f:
