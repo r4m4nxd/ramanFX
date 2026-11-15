@@ -68,6 +68,7 @@ export function guestStore(load: () => Promise<GuestPrefs>, save: (p: GuestPrefs
         alerts: p.alerts.filter(a => !a.fired_at).map(cleanAlert),
         quiet: p.quiet ? { ...p.quiet, tz: TZ } : null,
         watch: [...p.watch],
+        focus: { on: false, syms: [] },          // focus mode is the owner's setting only
       };
     },
     addAlert: a => edit(p => { const id = p.next++; p.alerts.push(cleanAlert({ ...a, id })); return id; }),
@@ -76,6 +77,7 @@ export function guestStore(load: () => Promise<GuestPrefs>, save: (p: GuestPrefs
     mute: (sym, until, now) => edit(p => { p.mutes = p.mutes.filter(m => m.sym !== sym && Date.parse(m.until_utc) > now.getTime()); p.mutes.push({ sym, until_utc: until.toISOString() }); }),
     unmute: sym => edit(p => { const n = p.mutes.length; p.mutes = p.mutes.filter(m => m.sym !== sym); return p.mutes.length < n; }),
     setQuiet: q => edit(p => { p.quiet = q; }),
+    setFocus: async () => {},                    // owner only (/focus is refused for guests)
     watch: sym => edit(p => { if (!p.watch.includes(sym)) p.watch.push(sym); }),
     unwatch: sym => edit(p => { const i = p.watch.indexOf(sym); if (i >= 0) p.watch.splice(i, 1); return i >= 0; }),
   };

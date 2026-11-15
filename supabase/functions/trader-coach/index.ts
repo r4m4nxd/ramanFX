@@ -121,6 +121,7 @@ async function schedule(cfg: Cfg, now: number): Promise<string[]> {
 async function breaking(now: number): Promise<number> {
   if (!ALPACA_ID || !ALPACA_SECRET || !hasTelegram()) return 0;
   const p = await restStore(SB_URL, H(), (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(6000) })).get(new Date(now));
+  if (p.focus?.on) return 0;                       // focus mode (/focus): no breaking-news alerts, only the daily plan
   if (inQuiet(p.quiet, now)) return 0;
   const jr = await q<{ open_positions: unknown }>('rfx_journal?user_id=eq.67967f02-d6fb-45f1-9edf-d14c3d3fcf12&select=open_positions');
   const pos = Array.isArray(jr[0]?.open_positions) ? jr[0].open_positions as { symbol?: unknown }[] : [];

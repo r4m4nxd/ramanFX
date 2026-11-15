@@ -614,7 +614,7 @@ def notify_failure(reason: str, state: Dict, notify: bool, log=print) -> None:
     day = now_utc().date().isoformat()
     log(f'FX scan failed: {reason}')
     if notify and state.get('fail_day') != day:
-        N.send([N.failure_message(reason)])
+        N.send([N.SN.kept(N.failure_message(reason))])
         state['fail_day'] = day
         save_state(state)
 

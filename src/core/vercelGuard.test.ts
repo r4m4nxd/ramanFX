@@ -72,7 +72,7 @@ describe('app paths: the ignore script and the watchdog agree', () => {
   const WF = path.join(ROOT, '.github/workflows');
   const workflows = fs.readdirSync(WF).filter(f => /\.ya?ml$/.test(f)).map(f => [f, fs.readFileSync(path.join(WF, f), 'utf8')] as const);
   const dataPaths = execFileSync('bash', [path.join(ROOT, 'scripts/data-branch.sh'), 'paths'], { encoding: 'utf8' }).trim().split('\n');
-  const MAIN_OK = new Set(['market-hours.yml']);
+  const MAIN_OK = new Set(['market-hours.yml', 'market-hours-week.yml']);
   const NO_DATA = new Set(['ctrader-token.yml']);   // refreshes a token in Supabase: reads and writes no repo data
   it('scheduled workflows never push to main: their data goes to the data branch', () => {
     const scheduled = workflows.filter(([, y]) => /^\s*schedule:/m.test(y));

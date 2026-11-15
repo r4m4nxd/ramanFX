@@ -19,6 +19,7 @@
   {"command": "mute", "description": "Mute a symbol (1d or 1w)"},
   {"command": "unmute", "description": "Unmute a symbol"},
   {"command": "quiet", "description": "Quiet hours (Calgary)"},
+  {"command": "focus", "description": "Focus mode: only your daily plan"},
   {"command": "watch", "description": "Add a symbol to the watchlist"},
   {"command": "unwatch", "description": "Remove a watchlist symbol"},
   {"command": "markets", "description": "Which markets message you"},

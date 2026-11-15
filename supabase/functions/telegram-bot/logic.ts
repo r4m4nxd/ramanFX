@@ -7,7 +7,7 @@
 
 import { bestQuote, buildIndex, lessonPath, mentorOf, search as askSearch, type AskIndex } from './ask.ts';
 import { newsButton, newsText, symbolNews, withLatest, withTopHeadlines, loadHeadlines } from './news.ts';
-import { MAX_ALERTS, MAX_WATCH, parseDuration, parsePrice, parseQuiet, parseTap, type Alert, type Prefs, type PrefsStore } from './prefs.ts';
+import { FOCUS_DEFAULT, MAX_FOCUS, MAX_ALERTS, MAX_WATCH, parseDuration, parsePrice, parseQuiet, parseTap, type Alert, type Prefs, type PrefsStore } from './prefs.ts';
 import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type ArrTp, type Band, type Bar, type ChartModel, type Panel, type TLine } from './chart.ts';
 import { FX_PARAMS, fxZonesOf, nextBusinessDay, RAJA, Series, stockZonesOf, tfZonesOf, type LiveZone, type ZBar } from './zonecore.ts';
 import { arrivalTf, CONFIRM_TF, HIGHER_TF, stockSpread, type ArrivalTf, type ArrZone } from './arrival.ts';
@@ -56,7 +56,7 @@ export interface Ctx {
 }
 export type Role = 'owner' | 'guest';
 /** Owner-only commands (journal, health, guest admin): hidden from guests' /help and menu, refused for guests (guests.ts). */
-export const OWNER_ONLY = new Set(['took', 'health', 'status', 'adduser', 'removeuser', 'deluser', 'users', 'guests']);
+export const OWNER_ONLY = new Set(['took', 'health', 'focus', 'status', 'adduser', 'removeuser', 'deluser', 'users', 'guests']);
 /** The owner's guest admin commands (guests.ts), in the owner's /help and chat-scoped menu only (commands_owner.json). */
 export const OWNER_COMMANDS: { command: string; description: string; usage: string; help: string }[] = [
   { command: 'adduser', description: 'Share the bot with someone (max 5)', usage: '/adduser 123456789 Name', help: 'they get the market commands + market messages, never your data' },
@@ -89,6 +89,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'mute', description: 'Mute a symbol (1d or 1w)', group: 'Alerts', usage: '/mute EURUSD 1w', help: 'no scanner alerts for it (1d default, 1w, 12h)' },
   { command: 'unmute', description: 'Unmute a symbol', group: 'Alerts', usage: '/unmute EURUSD', help: 'alerts back on for it' },
   { command: 'quiet', description: 'Quiet hours (Calgary)', group: 'Alerts', usage: '/quiet 22:00-06:00', help: 'silent alerts overnight (/quiet off)' },
+  { command: 'focus', description: 'Focus mode: only your daily plan', group: 'Alerts', usage: '/focus on', help: 'holds back the market alerts; you get the evening and morning plan for your markets (/focus off, /focus EURUSD XAUUSD NAS100)' },
   { command: 'watch', description: 'Add a symbol to the watchlist', group: 'Alerts', usage: '/watch AUDNZD', help: 'extra watchlist symbol (/watch: the list)' },
   { command: 'unwatch', description: 'Remove a watchlist symbol', group: 'Alerts', usage: '/unwatch AUDNZD', help: 'take it off the extra watchlist' },
   { command: 'markets', description: 'Which markets message you', group: 'Alerts', usage: '/markets', help: 'pick stocks / crypto / forex / indices for the automatic messages (shared users)' },
@@ -1633,6 +1634,28 @@ async function cmdUnmute(a: string, ctx: Ctx): Promise<Reply> {
     return { cmd: 'unmute', text: (await p.unmute(sym)) ? `🔔 <b>${esc(sym)}</b> unmuted.` : `<b>${esc(sym)}</b> was not muted.`, toast: `${sym} unmuted` };
   });
 }
+/** /focus · /focus on|off · /focus EURUSD XAUUSD NAS100 (sets the markets and turns it on). */
+async function cmdFocus(a: string, ctx: Ctx): Promise<Reply> {
+  return withPrefs('focus', ctx, async p => {
+    const cur = (await p.get(ctx.now)).focus;
+    const list = (syms: string[]) => syms.map(x => `<b>${esc(x)}</b>`).join(', ');
+    const onText = (syms: string[]) => `🎯 <b>Focus mode is on</b>\nMarket alerts are held back. You get two messages a day for ${list(syms)}: the evening plan and the morning check. Your own price alerts still come through.\n/focus off brings every alert back.`;
+    const word = a.trim().toLowerCase();
+    if (!word) return { cmd: 'focus', text: cur.on ? onText(cur.syms) : `Focus mode is off: you get every market alert.\n<b>/focus on</b> holds them back and keeps only your daily plan for ${list(cur.syms)}.` };
+    if (word === 'off') { await p.setFocus({ on: false, syms: cur.syms }); return { cmd: 'focus', text: '🔔 Focus mode off. All market alerts are back.', toast: 'Focus off' }; }
+    if (word === 'on') { await p.setFocus({ on: true, syms: cur.syms.length ? cur.syms : [...FOCUS_DEFAULT] }); return { cmd: 'focus', text: onText(cur.syms.length ? cur.syms : [...FOCUS_DEFAULT]), toast: 'Focus on' }; }
+    const syms: string[] = [];
+    for (const q of a.split(/[\s,]+/).filter(Boolean).slice(0, 8)) {
+      const { hit, suggest } = await resolve(q, ctx);
+      if (!hit) return unknownSym('focus', q, suggest);
+      if (!syms.includes(hit.sym)) syms.push(hit.sym);
+    }
+    if (!syms.length) return { cmd: 'focus', text: 'Use <b>/focus on</b>, <b>/focus off</b>, or list your markets: <b>/focus EURUSD XAUUSD NAS100</b>.' };
+    if (syms.length > MAX_FOCUS) return { cmd: 'focus', text: `Pick at most ${MAX_FOCUS} markets. Fewer is the point.` };
+    await p.setFocus({ on: true, syms });
+    return { cmd: 'focus', text: onText(syms), toast: 'Focus on' };
+  });
+}
 async function cmdQuiet(a: string, ctx: Ctx): Promise<Reply> {
   return withPrefs('quiet', ctx, async p => {
     if (!a) {
@@ -1783,6 +1806,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'mute': return cmdMute(c.arg, c.arg2, ctx);
       case 'unmute': return cmdUnmute(c.arg, ctx);
       case 'quiet': return cmdQuiet(c.rest, ctx);
+      case 'focus': return cmdFocus(c.rest, ctx);
       case 'watch': return cmdWatch(c.arg, ctx);
       case 'unwatch': return cmdUnwatch(c.arg, ctx);
       case 'markets': return { cmd: 'markets', text: '📬 <b>/markets</b> is for the people you share the bot with (/adduser): they pick which markets\' automatic messages they get. You get everything.' };   // guests: guests.ts

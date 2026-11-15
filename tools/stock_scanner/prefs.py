@@ -97,6 +97,9 @@ def normalize(raw) -> Dict:
         quiet = {'from': q['from'], 'to': q['to'], 'tz': q.get('tz') or 'America/Edmonton'}
     watch = sorted({_sym(s) for s in raw.get('watch') or [] if _sym(s)})
     out = {'mutes': mutes, 'alerts': alerts, 'quiet': quiet, 'watch': watch}
+    fo = raw.get('focus')
+    if isinstance(fo, dict):                    # focus mode (/focus): market alerts held back, only the daily plan
+        out['focus'] = {'on': bool(fo.get('on')), 'syms': [_sym(x) for x in fo.get('syms') or [] if _sym(x)][:5]}
     if raw.get('open'):                         # journal open positions (bot >= headlines): the brief's 'your symbols'
         out['open'] = sorted({_sym(s) for s in raw['open'] if _sym(s)})[:30]
     if raw.get('guests'):                       # the bot's guests (guests.py broadcast; never part of the owner's view)

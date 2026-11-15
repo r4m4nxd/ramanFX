@@ -6,7 +6,11 @@ export type AlertKind = 'price' | 'zone' | 'pct';
 export interface Alert { id: number; sym: string; kind: AlertKind; level?: number; dir?: 'above' | 'below'; pct?: number }
 export type NewAlert = Omit<Alert, 'id'>;
 export interface Quiet { from: string; to: string; tz: string }
-export interface Prefs { mutes: { sym: string; until_utc: string }[]; alerts: Alert[]; quiet: Quiet | null; watch: string[] }
+/** Focus mode: the scanners hold their market alerts back; only the daily plan messages for `syms`, the owner's own
+ *  price alerts and failure notices are sent. */
+export interface Focus { on: boolean; syms: string[] }
+export const FOCUS_DEFAULT = ['EURUSD', 'XAUUSD', 'NAS100'], MAX_FOCUS = 5;
+export interface Prefs { mutes: { sym: string; until_utc: string }[]; alerts: Alert[]; quiet: Quiet | null; watch: string[]; focus: Focus }
 
 export interface PrefsStore {
   get(now: Date): Promise<Prefs>;
@@ -17,6 +21,7 @@ export interface PrefsStore {
   mute(sym: string, until: Date, now: Date): Promise<void>;
   unmute(sym: string): Promise<boolean>;
   setQuiet(q: { from: string; to: string } | null): Promise<void>;
+  setFocus(f: Focus): Promise<void>;
   watch(sym: string): Promise<void>;
   unwatch(sym: string): Promise<boolean>;
 }
@@ -110,6 +115,7 @@ export function memoryStore(): PrefsStore & { _alerts: (Alert & { fired?: boolea
   const alerts: (Alert & { fired?: boolean })[] = [];
   const mutes = new Map<string, Date>(), watch: string[] = [];
   let quiet: { from: string; to: string } | null = null;
+  let focus: Focus = { on: false, syms: [...FOCUS_DEFAULT] };
   return {
     _alerts: alerts,
     async get(now) {
@@ -118,6 +124,7 @@ export function memoryStore(): PrefsStore & { _alerts: (Alert & { fired?: boolea
         alerts: alerts.filter(a => !a.fired).map(clean),
         quiet: quiet ? { ...quiet, tz: TZ } : null,
         watch: [...watch],
+        focus: { on: focus.on, syms: [...focus.syms] },
       };
     },
     async addAlert(a) { const id = next++; alerts.push({ ...a, id }); return id; },
@@ -126,6 +133,7 @@ export function memoryStore(): PrefsStore & { _alerts: (Alert & { fired?: boolea
     async mute(sym, until) { mutes.set(sym, until); },
     async unmute(sym) { return mutes.delete(sym); },
     async setQuiet(q) { quiet = q; },
+    async setFocus(f) { focus = { on: f.on, syms: f.syms.slice(0, MAX_FOCUS) }; },
     async watch(sym) { if (!watch.includes(sym)) watch.push(sym); },
     async unwatch(sym) { const i = watch.indexOf(sym); if (i < 0) return false; watch.splice(i, 1); return true; },
   };
@@ -148,14 +156,15 @@ export function restStore(base: string, headers: Record<string, string>, f: Fetc
         call('GET', 'rfx_bot_alerts?fired_at=is.null&select=id,sym,kind,level,dir,pct&order=id'),
         call('GET', `rfx_bot_mutes?until_utc=gt.${enc(now.toISOString())}&select=sym,until_utc&order=sym`),
         call('GET', 'rfx_bot_watch?select=sym&order=created_at'),
-        call('GET', 'rfx_bot_config?id=eq.1&select=quiet_from,quiet_to'),
-      ]) as [Alert[], { sym: string; until_utc: string }[], { sym: string }[], { quiet_from: string | null; quiet_to: string | null }[]];
+        call('GET', 'rfx_bot_config?id=eq.1&select=quiet_from,quiet_to,focus_on,focus_syms'),
+      ]) as [Alert[], { sym: string; until_utc: string }[], { sym: string }[], { quiet_from: string | null; quiet_to: string | null; focus_on?: boolean | null; focus_syms?: string | null }[]];
       const q = c[0];
       return {
         mutes: m.map(x => ({ sym: x.sym, until_utc: new Date(x.until_utc).toISOString() })),
         alerts: a.map(x => clean({ ...x, id: Number(x.id) })),
         quiet: q?.quiet_from && q?.quiet_to ? { from: q.quiet_from, to: q.quiet_to, tz: TZ } : null,
         watch: w.map(x => x.sym),
+        focus: { on: q?.focus_on === true, syms: (q?.focus_syms ? q.focus_syms.split(',').map(x => x.trim().toUpperCase()).filter(Boolean) : [...FOCUS_DEFAULT]).slice(0, MAX_FOCUS) },
       };
     },
     async addAlert(a) {
@@ -170,6 +179,7 @@ export function restStore(base: string, headers: Record<string, string>, f: Fetc
     },
     async unmute(sym) { return (await call('DELETE', `rfx_bot_mutes?sym=eq.${enc(sym)}&select=sym`, undefined, 'return=representation')).length === 1; },
     async setQuiet(q) { await call('PATCH', 'rfx_bot_config?id=eq.1', { quiet_from: q?.from ?? null, quiet_to: q?.to ?? null }); },
+    async setFocus(f) { await call('PATCH', 'rfx_bot_config?id=eq.1', { focus_on: f.on, focus_syms: f.syms.slice(0, MAX_FOCUS).join(',') }); },
     async watch(sym) { await call('POST', 'rfx_bot_watch?on_conflict=sym', { sym }, 'resolution=ignore-duplicates,return=minimal'); },
     async unwatch(sym) { return (await call('DELETE', `rfx_bot_watch?sym=eq.${enc(sym)}&select=sym`, undefined, 'return=representation')).length === 1; },
   };

@@ -220,6 +220,7 @@ export const GUIDE: GuideSection[] = [
       { id: 'b-unalert', cmd: 'unalert', title: 'Delete alert', example: '/unalert 12', get: 'Deletes alert number 12 (numbers in /alerts).' },
       { id: 'b-mute', cmd: 'mute', title: 'Mute a symbol', example: '/mute EURUSD 1w', get: 'No scanner alerts for it: 1d default, 12h, 3d, 1w, 2w, up to 90d.' },
       { id: 'b-unmute', cmd: 'unmute', title: 'Unmute', example: '/unmute EURUSD', get: 'Alerts back on.' },
+      { id: 'b-focus', cmd: 'focus', title: 'Focus mode', example: '/focus on  ·  /focus off  ·  /focus EURUSD XAUUSD NAS100', get: 'Holds back the market alerts. You get only the evening plan and the morning check for your few markets, plus your own price alerts.' },
       { id: 'b-quiet', cmd: 'quiet', title: 'Quiet hours', example: '/quiet 22:00-06:00  ·  /quiet off', get: 'Alerts arrive silently in that Calgary window; breaking news waits for the brief.' },
       { id: 'b-watch', cmd: 'watch', title: 'Watch', example: '/watch AUDNZD', get: 'Adds an extra watchlist symbol (scanned and reported like the watchlist, gets breaking news). /watch alone: the list. Max 50.' },
       { id: 'b-unwatch', cmd: 'unwatch', title: 'Unwatch', example: '/unwatch AUDNZD', get: 'Removes it.' },

@@ -203,17 +203,25 @@ class Msg(str):
     buttons: List[List[Dict]]
 
     silent: bool
+    keep: bool
 
-    def __new__(cls, text: str, buttons: Optional[List[List[Dict]]] = None, silent: bool = False):
+    def __new__(cls, text: str, buttons: Optional[List[List[Dict]]] = None, silent: bool = False, keep: bool = False):
         m = super().__new__(cls, text)
         m.buttons = [r for r in (buttons or []) if r][:5]
         m.silent = silent                   # disable_notification (quiet hours, non-urgent)
+        m.keep = keep                       # still sent in focus mode (the owner's own alerts, the daily plan, failures)
         return m
 
 
 def silenced(m: str, silent: bool = True) -> 'Msg':
     """The same message (text + buttons), sent silently when `silent`."""
-    return Msg(str(m), getattr(m, 'buttons', None), silent=silent or bool(getattr(m, 'silent', False)))
+    return Msg(str(m), getattr(m, 'buttons', None), silent=silent or bool(getattr(m, 'silent', False)),
+               keep=bool(getattr(m, 'keep', False)))
+
+
+def kept(m: str) -> 'Msg':
+    """The same message, marked to go out even in focus mode."""
+    return Msg(str(m), getattr(m, 'buttons', None), silent=bool(getattr(m, 'silent', False)), keep=True)
 
 
 def button(text: str, url: str) -> Dict: return {'text': text, 'url': url}
@@ -287,7 +295,7 @@ def fired_alert_message(f: Dict, market: str = 'fx', bar_word: str = '') -> 'Msg
     head = f"{title(sym, f.get('name') or '', 'stock' if market == 'stock' else 'fx')} · {what}"
     kb = [[cb('Chart', f'c:{sym}')]] if _cb_ok(f'c:{sym}') else []
     text = head + '\n' + block(lines) + '\n' + footer('Pepperstone' if market == 'fx' else '')
-    return Msg(text, kb)
+    return Msg(text, kb, keep=True)          # the owner set this alert: it goes out in focus mode too
 
 
 def local_time(iso_utc: str, fmt: str = '%H:%M', tz: str = LOCAL_TZ) -> str:
@@ -673,8 +681,36 @@ def _post(token: str, fields: Dict) -> Dict:
                 'desc': str(info.get('description') or '')}
 
 
+_FOCUS: Dict = {}
+
+
+def focus_on(log=print) -> bool:
+    """Focus mode (the owner's /focus in the bot): the market alerts are held back, so Telegram carries only the daily
+    plan messages, the owner's own price alerts and failure notices. Read once per run from the bot's prefs. Unknown
+    (bot not reachable) = off: a market alert is never lost to a network blip. An on-demand check the owner asked for
+    in the bot is never held."""
+    if os.environ.get('ONDEMAND') == 'true' or os.environ.get('IN_ONDEMAND') == 'true' or os.environ.get('RFX_TO'):
+        return False
+    if 'on' not in _FOCUS:
+        on = False
+        try:
+            import prefs as _P
+            on = bool(((_P.fetch(log=lambda *a, **k: None) or {}).get('focus') or {}).get('on'))
+        except Exception:  # noqa: BLE001
+            on = False
+        _FOCUS['on'] = on
+    return _FOCUS['on']
+
+
 def send(messages: List[str], pause: float = 1.1) -> bool:
     token, chat = os.environ.get('TELEGRAM_BOT_TOKEN'), os.environ.get('TELEGRAM_CHAT_ID')
+    if token and chat and messages and focus_on():
+        held = [m for m in messages if not getattr(m, 'keep', False)]
+        messages = [m for m in messages if getattr(m, 'keep', False)]
+        if held:
+            print(f'focus mode: {len(held)} market message(s) held back (not sent to Telegram)')
+        if not messages:
+            return True                    # as good as sent: the callers' state moves on, nothing piles up for later
     if not token or not chat:
         print('TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set: printing instead\n')
         for m in messages:
