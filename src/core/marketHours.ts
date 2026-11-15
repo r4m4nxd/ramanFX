@@ -62,7 +62,9 @@ export function parseSymbol(v: unknown): MhSymbol | null {
   // 'pw' = Mon..Fri then Sun (the forex week opens Sunday afternoon)
   const pw = arr(o.pw).map(r => { const row = arr(r).slice(0, MH_SLOTS).map(x => { const n = num(x); return n == null ? null : n / 100; }); while (row.length < MH_SLOTS) row.push(null); return row; });
   const empty = () => Array<number | null>(MH_SLOTS).fill(null);
-  const week = pw.length >= 5 ? [pw[0], pw[1], pw[2], pw[3], pw[4], empty(), pw[5] ?? empty()] : null;
+  // Sunday counts only from the open (17:00 New York = 15:00 on the study's clock, half-hour 30): the few early prints before it are not a session
+  const sunday = (pw[5] ?? empty()).map((v, i) => (i < 30 ? null : v));
+  const week = pw.length >= 5 ? [pw[0], pw[1], pw[2], pw[3], pw[4], empty(), sunday] : null;
   const kind = str(o.k);
   return {
     sym, name: str(o.n, sym), kind: (KINDS.includes(kind) ? kind : 'other') as MhKind, group: str(o.g), display: str(o.d), indexes: str(o.i),

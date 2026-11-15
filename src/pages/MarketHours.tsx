@@ -196,12 +196,15 @@ export default function MarketHours() {
   // which weekday the dial shows: today by default (Saturday looks ahead to Monday), any weekday, or the all-week average
   const today = todayIndex(new Date(hourKey * 3600_000));
   const dayParam = params.get('day');
-  const dayPick = dayParam === 'avg' ? null : ['mon', 'tue', 'wed', 'thu', 'fri'].indexOf(dayParam ?? '') >= 0 ? ['mon', 'tue', 'wed', 'thu', 'fri'].indexOf(dayParam!) : today === 5 ? 0 : today;
+  // the forex week: Sunday evening (row 6, from the 17:00 New York open), then Monday to Friday
+  const DAY_KEY: Record<string, number> = { sun: 6, mon: 0, tue: 1, wed: 2, thu: 3, fri: 4 };
+  const auto = today === 5 ? 6 : today;                // Saturday looks ahead to the Sunday open
+  const dayPick = dayParam === 'avg' ? null : dayParam && dayParam in DAY_KEY ? DAY_KEY[dayParam] : auto;
   const clock = useMemo(() => (base && dayPick != null && base.week ? dayClock(base, dayPick, today) : base), [base, dayPick, today]);
-  const setDay = (d: number | null) => setParam('day', d == null ? 'avg' : d === (today === 5 ? 0 : today) ? null : ['mon', 'tue', 'wed', 'thu', 'fri'][d] ?? null);
+  const setDay = (d: number | null) => setParam('day', d == null ? 'avg' : d === auto ? null : Object.keys(DAY_KEY).find(k => DAY_KEY[k] === d) ?? null);
   const dayBar = base?.week ? (
     <div className="flex items-center gap-1.5 w-max">
-      {[0, 1, 2, 3, 4].map(d => (
+      {[6, 0, 1, 2, 3, 4].map(d => (
         <button key={d} type="button" onClick={() => setDay(d)} aria-pressed={dayPick === d}
           className={cx('h-8 px-3 rounded-full border text-[12px] font-semibold shrink-0', dayPick === d ? 'border-accent text-accent' : 'border-line text-ink2')}>{d === today ? 'Today' : DAY_NAMES[d].slice(0, 3)}</button>
       ))}
@@ -209,7 +212,7 @@ export default function MarketHours() {
         className={cx('h-8 px-3 rounded-full border text-[12px] font-semibold shrink-0', dayPick == null ? 'border-accent text-accent' : 'border-line text-ink2')}>Average</button>
     </div>
   ) : null;
-  const weekGrid = base?.week ? <WeekGrid week={base.week} selected={dayPick != null && dayPick < 5 ? dayPick : null} today={today} onPick={setDay} /> : null;
+  const weekGrid = base?.week ? <WeekGrid week={base.week} selected={dayPick} today={today} onPick={setDay} /> : null;
   const setParam = (k: string, v: string | null) => setParams(prev => { const n = new URLSearchParams(prev); if (v == null) n.delete(k); else n.set(k, v); return n; }, { replace: true });
   const quick = useMemo(() => {
     const out = ['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD', 'NAS100', 'US30'].map(x => findSymbol(list, x)).filter((x): x is MhSymbol => !!x);

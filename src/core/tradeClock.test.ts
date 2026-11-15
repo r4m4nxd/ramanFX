@@ -116,4 +116,18 @@ describe('trading clock', () => {
     expect(sh.week![0][0]).toBeCloseTo(0.9);       // Sunday 23:00 -> Monday 00:00
     expect(globalClock([s])!.week![2][18]).toBeCloseTo(2.5);
   });
+  it('Sunday evening: its own quiet clock from the open, never the weekday best times', () => {
+    const pw = [0, 1, 2, 3, 4, 6].map(d => Array.from({ length: 48 }, (_, i) => (d === 6 ? (i >= 30 ? (i === 36 ? 90 : i === 44 ? 80 : 40) : null) : i === 16 ? 250 : 100)));
+    const s = parseSymbol({ s: 'EURUSD', n: 'EURUSD', k: 'major', t: [['08:00', '10:00', '07:00', '09:30', 2.27]], dd: [0.9, 1, 1, 1.07, 1.03], p: Array(48).fill(100), pw }) as MhSymbol;
+    const sun = dayClock(symbolClock(s), 6, 6);
+    expect(sun.key).toBe('EURUSD|6');
+    expect(sun.profile[10]).toBeNull();
+    expect(sun.windows.map(w => w.peak)).toEqual([36, 44]);          // 6:00 PM and 10:00 PM, not Monday's 8:00 AM
+    expect(sun.preview).toBeUndefined();
+    expect(dayClock(symbolClock(s), 6, 2).preview).toBe('Sunday');
+    // Sunday 18:10 Calgary in July = 20:10 New York: the market is open, and it reads as a normal half-hour
+    const n = clockNow(sun, at('2026-07-13T00:10:00Z'));
+    expect(n.closed).toBe(false);
+    expect(n.level).toBe('normal');
+  });
 });

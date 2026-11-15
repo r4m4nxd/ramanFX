@@ -288,20 +288,21 @@ export function ClockStage({ data, now, onClose, children, extra }: { data: Cloc
 
 /** The week at a glance: one row per weekday, 48 half-hours coloured by how busy. Tap a row to put that day on the dial. */
 export function WeekGrid({ week, selected, today, onPick }: { week: (number | null)[][]; selected: number | null; today: number; onPick: (day: number) => void }) {
-  const NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  // the forex week in order: Sunday evening (row 6, after the open), then Monday to Friday
+  const ROWS: [string, number][] = [['Sun', 6], ['Mon', 0], ['Tue', 1], ['Wed', 2], ['Thu', 3], ['Fri', 4]];
   const W = 340, x0 = 34, cw = (W - x0) / MH_SLOTS, rh = 15;
   return (
     <div>
       <div className="text-[11px] uppercase tracking-wide text-ink3 font-medium mb-1.5">The week · tap a day</div>
-      <svg viewBox={`0 0 ${W} ${5 * rh + 14}`} className="block w-full h-auto" role="img" aria-label="Activity by weekday and time of day">
-        {NAMES.map((n, d) => (
+      <svg viewBox={`0 0 ${W} ${ROWS.length * rh + 14}`} className="block w-full h-auto" role="img" aria-label="Activity by weekday and time of day">
+        {ROWS.map(([n, d], k) => (
           <g key={n} onClick={() => onPick(d)} className="cursor-pointer" opacity={selected == null || selected === d ? 1 : 0.45}>
-            <rect x={0} y={d * rh} width={W} height={rh} fill="transparent" />
-            <text x={0} y={d * rh + rh / 2} dominantBaseline="central" className={cx('num', selected === d ? 'fill-accent' : d === today ? 'fill-ink' : 'fill-ink3')} fontSize={9.5} fontWeight={selected === d || d === today ? 700 : 500}>{n}{d === today ? ' •' : ''}</text>
-            {week[d].map((v, i) => { const lv = levelOf(v); return <rect key={i} x={x0 + i * cw + 0.4} y={d * rh + 2} width={cw - 0.8} height={rh - 4} rx={1.5} className={FILL[lv]} opacity={lv === 'quiet' ? 0.4 : lv === 'closed' ? 0.5 : 0.9} />; })}
+            <rect x={0} y={k * rh} width={W} height={rh} fill="transparent" />
+            <text x={0} y={k * rh + rh / 2} dominantBaseline="central" className={cx('num', selected === d ? 'fill-accent' : d === today ? 'fill-ink' : 'fill-ink3')} fontSize={9.5} fontWeight={selected === d || d === today ? 700 : 500}>{n}{d === today ? ' •' : ''}</text>
+            {week[d].map((v, i) => { const lv = levelOf(v); return <rect key={i} x={x0 + i * cw + 0.4} y={k * rh + 2} width={cw - 0.8} height={rh - 4} rx={1.5} className={FILL[lv]} opacity={lv === 'quiet' ? 0.4 : lv === 'closed' ? 0.5 : 0.9} />; })}
           </g>
         ))}
-        {[0, 12, 24, 36].map(i => <text key={i} x={x0 + i * cw} y={5 * rh + 10} className="fill-ink3 num" fontSize={8.5}>{i === 0 ? '12a' : i === 12 ? '6a' : i === 24 ? '12p' : '6p'}</text>)}
+        {[0, 12, 24, 36].map(i => <text key={i} x={x0 + i * cw} y={ROWS.length * rh + 10} className="fill-ink3 num" fontSize={8.5}>{i === 0 ? '12a' : i === 12 ? '6a' : i === 24 ? '12p' : '6p'}</text>)}
       </svg>
     </div>
   );

@@ -33,7 +33,7 @@ export interface ClockData {
   week?: (number | null)[][] | null;
   /** Set when the dial shows one weekday that is not today: its full name ("Thursday"). */
   preview?: string;
-  /** The weekday shown (0 = Monday), when the dial is not the all-week average. */
+  /** The weekday shown (0 = Monday .. 4 = Friday, 6 = Sunday evening), when the dial is not the all-week average. */
   day?: number;
 }
 
@@ -54,9 +54,9 @@ export function symbolClock(s: MhSymbol): ClockData {
 
 /** The best `n` windows of a profile: the highest half-hours at least `gap` slots apart, each grown to its neighbours
  *  that keep 85% of the peak (at most 2 h wide). */
-export function topWindows(profile: (number | null)[], n = 3, gap = 4): ClockWindow[] {
+export function topWindows(profile: (number | null)[], n = 3, gap = 4, min = 1): ClockWindow[] {
   const v = profile.map(x => x ?? 0);
-  const order = v.map((x, i) => ({ x, i })).filter(o => o.x > 1).sort((a, b) => b.x - a.x);
+  const order = v.map((x, i) => ({ x, i })).filter(o => o.x > min).sort((a, b) => b.x - a.x);
   const picked: number[] = [];
   for (const o of order) {
     if (picked.length >= n) break;
@@ -147,9 +147,12 @@ export const todayIndex = (at: Date): number => (zoneTime(at).weekday + 6) % 7;
  *  average when the study has no detail for the day. `today` marks whether it is the live day or a preview. */
 export function dayClock(c: ClockData, day: number, today: number): ClockData {
   const row = c.week?.[day];
-  if (!row || row.filter(v => v != null).length < 12) return c;
-  const windows = topWindows(row);
-  return { ...c, key: `${c.key}|${day}`, profile: row, windows: windows.length ? windows : c.windows, day, preview: day === today ? undefined : DAY_NAMES[day] };
+  if (!row || row.filter(v => v != null).length < (day === 6 ? 4 : 12)) return c;
+  // Sunday is only the evening after the open (17:00 New York): a quiet session, so its best times are simply its
+  // two busiest half-hours, and it never borrows the weekday windows
+  const sunday = day === 6;
+  const windows = sunday ? topWindows(row, 2, 4, 0.3) : topWindows(row);
+  return { ...c, key: `${c.key}|${day}`, profile: row, windows: windows.length || sunday ? windows : c.windows, day, preview: day === today ? undefined : DAY_NAMES[day] };
 }
 /** The same shift for a whole study row (the tables and the bar chart of the Market hours page). */
 export function shiftSymbol(s: MhSymbol, k: number): MhSymbol {
