@@ -1,15 +1,15 @@
 # Market hours: every US stock (Calgary time)
 
-Generated 2026-11-14 22:08 UTC. 646 stocks / ETFs, Alpaca 30-minute bars (2016-01-04 to 2026-11-14, median 10.9 years). Summary, method and caveats: [Market_Hours.md](Market_Hours.md). Calgary time; New York = Calgary + 2 h. Descriptive only, no profit claim.
+Generated 2026-11-15 02:49 UTC. 1014 stocks / ETFs, Alpaca 30-minute bars (2016-01-04 to 2026-11-14, median 10.9 years). Summary, method and caveats: [Market_Hours.md](Market_Hours.md). Calgary time; New York = Calgary + 2 h. Descriptive only, no profit claim.
 
 ## In plain words
 
-- **Weekdays, stocks:** day activity Mon 0.98x / Tue 1.00x / Wed 1.01x / Thu 1.02x / Fri 0.99x - only 4% between the busiest and the quietest weekday. Best weekday reliable for 23.8% of instruments (mostly Thu 95, Wed 44, Mon 6).
-- **All 646 stocks:** strongest half-hours 07:30 (2.04x), 13:30 (1.95x) Calgary. The 07:30 open: volume 1.61x, range 2.62x, big-move days 75.1%. The 13:30 last half-hour: volume 3.62x but range 1.05x.
-- **Price movement alone (range):** the biggest half-hour range is at 07:30 for 642 stocks, 18:30 for 4 stocks - the open is where price travels; the 13:30 close is mostly volume.
-- **Each stock's own best half-hour:** 07:30 for 375 stocks, 13:30 for 271 stocks; best times reliable for 96.3% of stocks.
-- **NFP Fridays:** opening half-hour range 1.08x other Fridays (median stock); **FOMC days** 12:30 Calgary 1.94x.
-- **Era:** median rho last 2 y vs all 0.99, before vs since 2020 0.99; 6.8% of stocks shifted.
+- **Weekdays, stocks:** day activity Mon 0.98x / Tue 1.00x / Wed 1.01x / Thu 1.02x / Fri 0.99x - only 4% between the busiest and the quietest weekday. Best weekday reliable for 24.9% of instruments (mostly Thu 148, Wed 77, Mon 11).
+- **All 1014 stocks:** strongest half-hours 07:30 (2.05x), 13:30 (1.95x) Calgary. The 07:30 open: volume 1.61x, range 2.63x, big-move days 75.3%. The 13:30 last half-hour: volume 3.63x but range 1.05x.
+- **Price movement alone (range):** the biggest half-hour range is at 07:30 for 1006 stocks, 18:30 for 6 stocks, 18:00 for 2 stocks - the open is where price travels; the 13:30 close is mostly volume.
+- **Each stock's own best half-hour:** 07:30 for 595 stocks, 13:30 for 419 stocks; best times reliable for 96.4% of stocks.
+- **NFP Fridays:** opening half-hour range 1.08x other Fridays (median stock); **FOMC days** 12:30 Calgary 1.95x.
+- **Era:** median rho last 2 y vs all 0.99, before vs since 2020 0.99; 8.5% of stocks shifted.
 
 ![Stocks heatmap](market_hours_stocks.png)
 
@@ -17,23 +17,24 @@ Generated 2026-11-14 22:08 UTC. 646 stocks / ETFs, Alpaca 30-minute bars (2016-0
 
 | Sector | Stocks | Group peaks (Calgary) | Day activity Mon-Fri | NFP open ratio | FOMC 12:30 ratio | Shifted era |
 |---|---|---|---|---|---|---|
-| Communication Services | 20 | 07:30 (2.22x), 13:30 (1.88x) | Mon 0.98x / Tue 0.99x / Wed 1.01x / Thu 1.02x / Fri 0.99x | 1.09x | 1.98x | 0.0% |
-| Consumer Discretionary | 69 | 07:30 (2.14x), 13:30 (1.87x) | Mon 0.99x / Tue 1.00x / Wed 1.00x / Thu 1.02x / Fri 0.99x | 1.08x | 1.95x | 11.6% |
-| Consumer Staples | 38 | 07:30 (2.03x), 13:30 (1.99x) | Mon 0.98x / Tue 1.00x / Wed 1.01x / Thu 1.01x / Fri 0.98x | 1.06x | 1.73x | 2.6% |
-| Energy | 25 | 07:30 (2.11x), 13:30 (1.69x) | Mon 0.98x / Tue 1.00x / Wed 1.02x / Thu 1.02x / Fri 0.98x | 1.14x | 1.78x | 0.0% |
-| Financials | 97 | 07:30 (2.01x), 13:30 (1.98x) | Mon 0.97x / Tue 1.00x / Wed 1.01x / Thu 1.03x / Fri 0.99x | 1.09x | 2.09x | 3.1% |
-| Health Care | 70 | 07:30 (2.04x), 13:30 (1.98x) | Mon 0.98x / Tue 1.00x / Wed 1.01x / Thu 1.01x / Fri 0.99x | 1.06x | 1.73x | 11.4% |
-| Industrials | 96 | 13:30 (2.04x), 07:30 (1.92x) | Mon 0.97x / Tue 1.00x / Wed 1.01x / Thu 1.02x / Fri 0.99x | 1.08x | 1.99x | 6.2% |
-| Information Technology | 113 | 07:30 (2.17x), 13:30 (1.88x) | Mon 0.98x / Tue 0.99x / Wed 1.01x / Thu 1.02x / Fri 0.99x | 1.11x | 2.00x | 9.7% |
-| Materials | 57 | 07:30 (2.26x), 13:30 (1.74x) | Mon 0.97x / Tue 1.00x / Wed 1.01x / Thu 1.02x / Fri 0.99x | 1.08x | 2.31x | 3.5% |
-| Real Estate | 29 | 13:30 (2.15x), 07:30 (1.83x) | Mon 0.97x / Tue 1.00x / Wed 1.01x / Thu 1.02x / Fri 0.99x | 1.08x | 1.92x | 6.9% |
-| Utilities | 32 | 13:30 (2.18x), 07:30 (1.92x) | Mon 0.97x / Tue 0.99x / Wed 1.02x / Thu 1.02x / Fri 1.00x | 1.09x | 1.87x | 9.4% |
+| Communication Services | 38 | 07:30 (2.20x), 13:30 (1.86x) | Mon 0.99x / Tue 0.99x / Wed 1.01x / Thu 1.02x / Fri 0.99x | 1.07x | 1.83x | 2.6% |
+| Consumer Discretionary | 106 | 07:30 (2.12x), 13:30 (1.87x) | Mon 0.99x / Tue 1.00x / Wed 1.00x / Thu 1.01x / Fri 0.98x | 1.08x | 1.93x | 14.2% |
+| Consumer Staples | 51 | 07:30 (2.02x), 13:30 (2.00x) | Mon 0.98x / Tue 1.00x / Wed 1.01x / Thu 1.01x / Fri 0.99x | 1.06x | 1.73x | 5.9% |
+| ETF | 4 | 07:30 (2.04x), 13:30 (1.62x) | Mon 0.92x / Tue 0.98x / Wed 1.01x / Thu 1.04x / Fri 1.03x | 1.17x | 2.83x | 0.0% |
+| Energy | 52 | 07:30 (2.10x), 13:30 (1.69x) | Mon 0.98x / Tue 1.00x / Wed 1.03x / Thu 1.02x / Fri 0.98x | 1.12x | 1.78x | 3.8% |
+| Financials | 145 | 07:30 (2.02x), 13:30 (1.97x) | Mon 0.97x / Tue 1.00x / Wed 1.02x / Thu 1.03x / Fri 0.99x | 1.08x | 2.14x | 4.8% |
+| Health Care | 108 | 07:30 (2.00x), 13:30 (2.00x) | Mon 0.98x / Tue 1.00x / Wed 1.01x / Thu 1.02x / Fri 0.99x | 1.07x | 1.75x | 12.0% |
+| Industrials | 150 | 13:30 (2.06x), 07:30 (1.92x) | Mon 0.97x / Tue 1.00x / Wed 1.01x / Thu 1.02x / Fri 0.99x | 1.07x | 1.98x | 6.0% |
+| Information Technology | 186 | 07:30 (2.18x), 13:30 (1.88x) | Mon 0.98x / Tue 0.99x / Wed 1.01x / Thu 1.02x / Fri 0.99x | 1.10x | 2.00x | 11.8% |
+| Materials | 87 | 07:30 (2.26x), 13:30 (1.76x) | Mon 0.97x / Tue 1.00x / Wed 1.01x / Thu 1.02x / Fri 0.99x | 1.08x | 2.40x | 3.4% |
+| Real Estate | 42 | 13:30 (2.18x), 07:30 (1.85x) | Mon 0.97x / Tue 1.00x / Wed 1.02x / Thu 1.02x / Fri 0.99x | 1.10x | 1.98x | 14.3% |
+| Utilities | 45 | 13:30 (2.17x), 07:30 (1.93x) | Mon 0.97x / Tue 0.99x / Wed 1.02x / Thu 1.02x / Fri 1.00x | 1.09x | 1.87x | 11.1% |
 
 ## Every stock, by sector
 
 Columns: the three best half-hour windows (Calgary, peak in bold, activity x typical, and the range alone - a close-of-day peak is mostly volume with an ordinary range); best and quietest weekday with the ratio and its 95% CI; reliability of times / days ("weak" = within noise); NFP = range of the 07:30 Calgary opening half-hour on NFP Fridays vs other Fridays; FOMC = 12:30 Calgary half-hour on FOMC days vs other Wednesdays; era = before vs since 2020.
 
-### Communication Services (20)
+### Communication Services (38)
 
 | Symbol | Name | Years | Best 1 | Best 2 | Best 3 | Best / quiet day | Reliability (times / days) | NFP | FOMC | Era |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -54,11 +55,29 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **GOOGL** | Alphabet Inc. (Class A) | 10.9 | 07:30-08:00 **07:30** 2.68x (range 2.48x) | 13:30-14:30 **13:30** 1.68x (range 1.09x) | - | Thu / Tue 1.04x (0.99-1.08) | reliable / weak | 1.09x | 2.13x | stable |
 | **LYV** | Live Nation Entertainment | 10.9 | 13:30-14:00 **13:30** 2.03x (range 1.00x) | 07:30-08:30 **07:30** 1.73x (range 2.50x) | - | Mon / Fri 1.04x (0.99-1.08) | reliable / weak | 1.06x | 1.80x | stable |
 | **META** | Meta Platforms | 10.9 | 07:30-08:00 **07:30** 2.65x (range 2.55x) | 13:30-14:30 **13:30** 1.37x (range 1.00x) | - | Thu / Tue 1.02x (0.99-1.06) | reliable / weak | 1.09x | 2.17x | stable |
+| **NFLX** | Netflix | 10.9 | 07:30-08:00 **07:30** 2.68x (range 2.67x) | 13:30-14:00 **13:30** 1.40x (range 0.93x) | - | Thu / Tue 1.05x (0.99-1.09) | reliable / weak | 1.10x | 1.81x | stable |
+| **NTES** | NetEase | 10.9 | 07:30-08:00 **07:30** 3.09x (range 3.42x) | 13:30-14:00 **13:30** 1.69x (range 0.95x) | - | Wed / Mon 1.02x (0.98-1.08) | reliable / weak | 1.02x | 1.80x | stable |
 | **NWS** | News Corp (Class B) | 10.9 | 07:30-08:00 **07:30** 2.34x (range 2.67x) | 13:30-14:00 **13:30** 2.30x (range 1.18x) | - | Thu / Mon 1.05x (1.01-1.11) | reliable / weak | 1.06x | 1.94x | stable |
-| **NWSA** | News Corp (Class A) | 9.8 | 13:30-14:00 **13:30** 2.27x (range 1.11x) | 07:30-08:00 **07:30** 2.07x (range 2.76x) | - | Wed / Mon 1.03x (0.99-1.08) | reliable / weak | 1.09x | 1.88x | stable |
+| **NWSA** | News Corp (Class A) | 10.9 | 13:30-14:00 **13:30** 2.29x (range 1.12x) | 07:30-08:00 **07:30** 2.08x (range 2.80x) | - | Thu / Mon 1.03x (0.99-1.09) | reliable / weak | 1.07x | 1.88x | stable |
+| **NYT** | New York Times Co. | 10.9 | 13:30-14:00 **13:30** 2.28x (range 1.06x) | 07:30-09:00 **07:30** 1.59x (range 2.39x) | - | Fri / Wed 1.02x (0.98-1.06) | reliable / weak | 1.18x | 1.71x | stable |
 | **OMC** | Omnicom Group | 10.9 | 13:30-14:00 **13:30** 2.00x (range 1.05x) | 07:30-08:30 **07:30** 1.90x (range 2.65x) | - | Thu / Mon 1.07x (1.03-1.1) | reliable / weak | 1.02x | 1.71x | stable |
+| **RCI** | Rogers Communications Inc. | 10.9 | 13:30-14:00 **13:30** 2.21x (range 1.06x) | 07:30-08:00 **07:30** 1.97x (range 2.56x) | - | Wed / Mon 1.08x (1.03-1.12) | reliable / reliable | 1.10x | 1.83x | shifted |
+| **RDDT** | Reddit | 2.7 | 07:30-08:00 **07:30** 2.58x (range 2.80x) | 13:30-14:00 **13:30** 1.59x (range 1.00x) | - | Wed / Mon 1.05x (0.95-1.13) | reliable / weak | 1.10x | 1.91x | stable |
+| **SIRI** | SiriusXM Holdings Inc. | 10.9 | 07:30-08:30 **07:30** 1.93x (range 2.25x) | 13:30-14:00 **13:30** 1.86x (range 1.08x) | - | Wed / Mon 1.09x (1.03-1.13) | reliable / reliable | 1.07x | 1.87x | stable |
+| **SKYD** | Skydance | 1.3 | 13:30-14:00 **13:30** 2.17x (range 1.26x) | 07:30-08:00 **07:30** 1.99x (range 2.56x) | - | Thu / Fri 1.16x (0.99-1.34) | reliable / weak | 1.24x | 1.38x | stable |
+| **SPCX** | SpaceX | 0.4 | 07:30-08:00 **07:30** 2.67x (range 2.60x) | 13:30-14:00 **13:30** 1.49x (range 1.25x) | - | Mon / Tue 1.09x (0.91-1.25) | reliable / weak | - | - | stable |
+| **SPOT** | Spotify Technology | 8.6 | 07:30-08:00 **07:30** 2.33x (range 2.78x) | 13:30-14:00 **13:30** 1.77x (range 0.97x) | - | Wed / Fri 1.09x (1.03-1.15) | reliable / reliable | 1.03x | 1.83x | stable |
+| **T** | AT&T | 10.9 | 07:30-08:00 **07:30** 2.26x (range 2.57x) | 13:30-14:30 **13:30** 1.72x (range 1.12x) | - | Tue / Mon 1.04x (0.99-1.08) | reliable / weak | 1.04x | 1.65x | stable |
+| **TKO** | TKO Group Holdings | 10.9 | 13:30-14:00 **13:30** 2.16x (range 1.02x) | 07:30-09:00 **07:30** 1.67x (range 2.50x) | - | Thu / Tue 1.05x (1.0-1.09) | reliable / weak | 1.12x | 1.57x | stable |
+| **TME** | Tencent Music Entertainment | 7.9 | 07:30-08:00 **07:30** 2.96x (range 3.54x) | 13:30-14:00 **13:30** 1.75x (range 1.00x) | - | Tue / Fri 1.08x (1.02-1.15) | reliable / weak | 1.02x | 1.67x | stable |
+| **TMUS** | T-Mobile US | 10.9 | 07:30-08:00 **07:30** 2.20x (range 2.70x) | 13:30-14:00 **13:30** 1.96x (range 1.13x) | - | Fri / Mon 1.07x (1.02-1.13) | reliable / weak | 1.07x | 1.81x | stable |
+| **TTWO** | Take-Two Interactive | 10.9 | 07:30-08:00 **07:30** 2.16x (range 2.69x) | 13:30-14:00 **13:30** 1.86x (range 0.98x) | - | Fri / Tue 1.03x (0.97-1.06) | reliable / weak | 1.07x | 1.96x | stable |
+| **TU** | Telus Corporation | 10.9 | 07:30-08:00 **07:30** 2.09x (range 2.58x) | 13:30-14:00 **13:30** 2.03x (range 1.06x) | - | Thu / Fri 1.05x (1.02-1.1) | reliable / reliable | 1.09x | 1.76x | stable |
+| **VOD** | Vodafone Group | 10.9 | 07:30-08:30 **07:30** 2.07x (range 1.93x) | 13:30-14:00 **13:30** 1.49x (range 1.00x) | 08:30-10:00 **09:00** 1.38x (range 1.30x) | Wed / Mon 1.07x (1.03-1.12) | reliable / reliable | 1.09x | 2.12x | stable |
+| **VSAT** | ViaSat, Inc. | 10.9 | 13:30-14:00 **13:30** 1.99x (range 1.00x) | 07:30-08:30 **07:30** 1.93x (range 2.67x) | - | Wed / Tue 1.04x (0.99-1.08) | reliable / weak | 1.05x | 1.76x | stable |
+| **VZ** | Verizon | 10.9 | 07:30-08:00 **07:30** 2.36x (range 2.67x) | 13:30-14:30 **13:30** 1.78x (range 1.12x) | - | Tue / Wed 1.02x (0.98-1.05) | reliable / weak | 1.01x | 1.58x | stable |
 
-### Consumer Discretionary (69)
+### Consumer Discretionary (106)
 
 | Symbol | Name | Years | Best 1 | Best 2 | Best 3 | Best / quiet day | Reliability (times / days) | NFP | FOMC | Era |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -71,7 +90,7 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **AZO** | AutoZone | 10.9 | 13:30-14:00 **13:30** 2.13x (range 1.15x) | 07:30-08:30 **07:30** 1.85x (range 2.59x) | - | Thu / Fri 1.05x (1.02-1.09) | reliable / weak | 0.97x | 1.45x | shifted |
 | **BABA** | Alibaba Group | 10.9 | 07:30-08:00 **07:30** 3.06x (range 2.95x) | 13:30-14:00 **13:30** 1.34x (range 0.93x) | - | Thu / Tue 1.03x (0.98-1.08) | reliable / weak | 1.04x | 2.09x | stable |
 | **BBWI** | Bath & Body Works, Inc. | 5.3 | 13:30-14:00 **13:30** 2.11x (range 1.02x) | 07:30-08:30 **07:30** 1.95x (range 2.78x) | - | Mon / Fri 1.08x (1.01-1.19) | reliable / weak | 1.13x | 2.65x | stable |
-| **BBY** | Best Buy | 10.9 | 07:30-08:00 **07:30** 2.16x (range 2.82x) | 13:30-14:00 **13:30** 1.84x (range 0.98x) | - | Mon / Thu 1.02x (0.98-1.06) | reliable / weak | 0.95x | 1.78x | stable |
+| **BBY** | Best Buy | 10.9 | 07:30-08:00 **07:30** 2.16x (range 2.82x) | 13:30-14:00 **13:30** 1.84x (range 0.97x) | - | Mon / Thu 1.02x (0.98-1.06) | reliable / weak | 0.95x | 1.78x | stable |
 | **BJ** | BJs Wholesale Club Holdings, | 8.4 | 13:30-14:00 **13:30** 2.10x (range 1.05x) | 07:30-08:30 **07:30** 1.77x (range 2.66x) | - | Thu / Tue 1.03x (0.98-1.08) | reliable / weak | 1.05x | 1.57x | stable |
 | **BKNG** | Booking Holdings | 10.9 | 07:30-08:00 **07:30** 2.46x (range 2.70x) | 13:30-14:00 **13:30** 1.97x (range 1.15x) | - | Thu / Tue 1.05x (1.01-1.09) | reliable / reliable | 1.16x | 1.86x | stable |
 | **BLDR** | Builders FirstSource, Inc. | 10.9 | 07:30-08:30 **07:30** 2.00x (range 2.71x) | 13:30-14:00 **13:30** 1.87x (range 0.97x) | - | Thu / Fri 1.04x (1.0-1.09) | reliable / weak | 1.16x | 2.04x | stable |
@@ -104,7 +123,7 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **GIL** | Gildan Activewear Inc. | 10.9 | 13:30-14:00 **13:30** 1.99x (range 1.00x) | 07:30-08:30 **07:30** 1.97x (range 2.73x) | - | Wed / Fri 1.07x (1.03-1.12) | reliable / weak | 1.12x | 2.00x | stable |
 | **GM** | General Motors | 10.9 | 07:30-08:00 **07:30** 2.41x (range 2.85x) | 13:30-14:30 **13:30** 1.68x (range 0.98x) | - | Thu / Mon 1.09x (1.03-1.13) | reliable / weak | 1.15x | 1.88x | stable |
 | **GME** | GameStop Corp. Class A | 10.9 | 07:30-08:30 **07:30** 2.17x (range 2.44x) | 13:30-14:00 **13:30** 1.56x (range 0.93x) | - | Mon / Fri 1.08x (1.02-1.12) | reliable / weak | 1.02x | 1.47x | stable |
-| **GPC** | Genuine Parts Company | 10.9 | 13:30-14:00 **13:30** 2.21x (range 1.08x) | 07:30-08:30 **07:30** 1.75x (range 2.54x) | - | Thu / Wed 1.03x (1.0-1.07) | reliable / weak | 0.92x | 1.83x | stable |
+| **GPC** | Genuine Parts Company | 10.9 | 13:30-14:00 **13:30** 2.21x (range 1.08x) | 07:30-08:30 **07:30** 1.75x (range 2.54x) | - | Thu / Wed 1.03x (1.0-1.07) | reliable / weak | 0.92x | 1.84x | stable |
 | **GRMN** | Garmin | 10.9 | 13:30-14:00 **13:30** 2.26x (range 1.13x) | 07:30-08:00 **07:30** 1.96x (range 2.53x) | - | Thu / Mon 1.07x (1.03-1.12) | reliable / weak | 1.10x | 1.98x | shifted |
 | **H** | Hyatt Hotels Corporation | 10.9 | 13:30-14:00 **13:30** 2.22x (range 1.05x) | 07:30-09:00 **07:30** 1.71x (range 2.57x) | - | Thu / Fri 1.09x (1.04-1.14) | reliable / weak | 1.08x | 2.06x | stable |
 | **HAS** | Hasbro | 10.9 | 13:30-14:00 **13:30** 2.09x (range 1.05x) | 07:30-08:00 **07:30** 1.93x (range 2.67x) | - | Thu / Wed 1.03x (0.98-1.06) | reliable / weak | 1.08x | 1.79x | shifted |
@@ -120,6 +139,7 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **LTH** | Life Time Group Holdings, In | 5.1 | 13:30-14:00 **13:30** 2.28x (range 1.10x) | 07:30-08:30 **07:30** 1.74x (range 2.65x) | - | Tue / Fri 1.05x (0.97-1.11) | reliable / weak | 1.02x | 2.64x | stable |
 | **LULU** | Lululemon Athletica | 10.9 | 07:30-08:00 **07:30** 2.34x (range 2.75x) | 13:30-14:00 **13:30** 1.65x (range 0.94x) | - | Mon / Wed 1.06x (1.01-1.12) | reliable / weak | 1.16x | 1.95x | stable |
 | **LVS** | Las Vegas Sands | 10.9 | 07:30-08:00 **07:30** 2.31x (range 2.93x) | 13:30-14:00 **13:30** 1.78x (range 0.99x) | - | Thu / Wed 1.03x (0.99-1.08) | reliable / weak | 1.01x | 1.84x | stable |
+| **M** | Macy's Inc. | 10.9 | 07:30-08:00 **07:30** 2.41x (range 2.86x) | 13:30-14:00 **13:30** 1.58x (range 0.91x) | - | Mon / Fri 1.06x (1.03-1.1) | reliable / weak | 1.10x | 1.62x | stable |
 | **MAR** | Marriott International | 10.9 | 07:30-08:00 **07:30** 2.17x (range 2.72x) | 13:30-14:00 **13:30** 1.88x (range 1.02x) | - | Wed / Mon 1.07x (1.03-1.12) | reliable / reliable | 1.14x | 2.11x | stable |
 | **MCD** | McDonald's | 10.9 | 07:30-08:00 **07:30** 2.32x (range 2.63x) | 13:30-14:00 **13:30** 1.86x (range 1.12x) | - | Thu / Wed 1.03x (1.0-1.06) | reliable / weak | 1.05x | 1.80x | stable |
 | **MELI** | Mercado Libre | 10.9 | 07:30-08:00 **07:30** 2.41x (range 2.70x) | 13:30-14:00 **13:30** 1.68x (range 0.98x) | - | Thu / Fri 1.05x (1.01-1.09) | reliable / reliable | 1.22x | 1.68x | stable |
@@ -127,16 +147,52 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **MGM** | MGM Resorts | 10.9 | 07:30-08:30 **07:30** 2.17x (range 2.73x) | 13:30-14:00 **13:30** 1.80x (range 0.99x) | - | Thu / Tue 1.05x (1.0-1.09) | reliable / weak | 1.10x | 2.21x | stable |
 | **MHK** | Mohawk Industries, Inc. | 10.9 | 13:30-14:00 **13:30** 2.13x (range 1.02x) | 07:30-08:30 **07:30** 1.81x (range 2.66x) | - | Thu / Mon 1.04x (1.0-1.09) | reliable / weak | 1.12x | 2.06x | shifted |
 | **MOD** | Modine Manufacturing Co | 10.9 | 13:30-14:00 **13:30** 2.04x (range 1.02x) | 07:30-08:30 **07:30** 1.91x (range 2.50x) | - | Fri / Tue 1.02x (0.97-1.06) | reliable / weak | 1.04x | 1.87x | stable |
+| **MSGK** | MSG Knickerbockers Corp. | 10.9 | 13:30-14:00 **13:30** 2.49x (range 1.20x) | 07:30-09:30 **07:30** 1.42x (range 2.23x) | - | Mon / Fri 1.03x (0.97-1.08) | reliable / weak | 1.04x | 1.77x | stable |
 | **MUSA** | MURPHY USA INC. | 10.9 | 13:30-14:00 **13:30** 2.40x (range 1.13x) | 07:30-09:00 **07:30** 1.55x (range 2.49x) | - | Wed / Tue 1.03x (0.99-1.07) | reliable / weak | 0.94x | 1.85x | stable |
+| **NCLH** | Norwegian Cruise Line Holdin | 10.9 | 07:30-08:00 **07:30** 2.39x (range 2.81x) | 13:30-14:00 **13:30** 1.62x (range 0.91x) | - | Thu / Mon 1.05x (1.0-1.1) | reliable / weak | 1.13x | 2.05x | stable |
 | **NIO** | NIO Inc. | 10.9 | 07:30-08:00 **07:30** 3.17x (range 3.15x) | 13:30-14:00 **13:30** 1.24x (range 0.90x) | - | Thu / Fri 1.07x (1.02-1.12) | reliable / weak | 1.10x | 1.87x | stable |
 | **NKE** | Nike, Inc. | 10.9 | 07:30-08:00 **07:30** 2.46x (range 2.74x) | 13:30-14:30 **13:30** 1.68x (range 1.02x) | - | Thu / Mon 1.05x (1.0-1.09) | reliable / weak | 1.04x | 2.02x | stable |
 | **NVR** | NVR, Inc. | 10.9 | 13:30-14:00 **13:30** 2.18x (range 1.23x) | 07:30-08:30 **07:30** 1.78x (range 2.38x) | - | Wed / Fri 1.06x (1.02-1.12) | reliable / reliable | 0.98x | 1.67x | stable |
+| **OLLI** | Ollie's Bargain Outlet Holdi | 10.9 | 13:30-14:00 **13:30** 2.01x (range 1.01x) | 07:30-08:30 **07:30** 1.85x (range 2.62x) | - | Mon / Fri 1.09x (1.03-1.14) | reliable / reliable | 1.13x | 1.47x | shifted |
+| **ORLY** | O'Reilly Automotive | 10.9 | 07:30-08:00 **07:30** 2.15x (range 2.74x) | 13:30-14:00 **13:30** 2.03x (range 1.11x) | - | Fri / Mon 1.01x (0.97-1.05) | reliable / weak | 1.07x | 1.63x | stable |
+| **PHM** | PulteGroup | 10.9 | 07:30-08:30 **07:30** 2.06x (range 2.69x) | 13:30-14:00 **13:30** 1.92x (range 0.97x) | - | Wed / Mon 1.13x (1.08-1.18) | reliable / reliable | 1.16x | 2.35x | stable |
+| **QSR** | Restaurant Brands Internatio | 10.9 | 13:30-14:00 **13:30** 2.05x (range 1.02x) | 07:30-08:30 **07:30** 1.92x (range 2.62x) | - | Thu / Fri 1.05x (1.01-1.09) | reliable / reliable | 1.10x | 1.91x | shifted |
+| **RACE** | Ferrari | 10.9 | 07:30-08:30 **07:30** 2.05x (range 1.88x) | 13:30-14:00 **13:30** 1.91x (range 1.08x) | 08:30-10:00 **09:30** 1.19x (range 1.22x) | Thu / Mon 1.11x (1.04-1.16) | reliable / weak | 1.17x | 2.25x | stable |
+| **RCL** | Royal Caribbean Group | 10.9 | 07:30-08:00 **07:30** 2.32x (range 2.82x) | 13:30-14:00 **13:30** 1.71x (range 0.93x) | - | Thu / Mon 1.05x (0.98-1.1) | reliable / weak | 1.05x | 2.06x | stable |
+| **RIVN** | Rivian Automotive, Inc. | 5.0 | 07:30-08:00 **07:30** 2.60x (range 2.78x) | 13:30-14:00 **13:30** 1.35x (range 0.91x) | - | Thu / Mon 1.05x (0.97-1.11) | reliable / weak | 1.11x | 2.42x | stable |
+| **RL** | Ralph Lauren Corporation | 10.9 | 07:30-08:30 **07:30** 2.01x (range 2.86x) | 13:30-14:00 **13:30** 2.00x (range 0.96x) | - | Thu / Fri 1.03x (0.98-1.09) | weak / weak | 1.03x | 2.01x | shifted |
+| **ROST** | Ross Stores | 10.9 | 07:30-08:00 **07:30** 2.12x (range 2.75x) | 13:30-14:00 **13:30** 2.00x (range 1.07x) | - | Fri / Tue 1.03x (0.98-1.06) | reliable / weak | 1.01x | 1.81x | stable |
+| **SBUX** | Starbucks | 10.9 | 07:30-08:00 **07:30** 2.41x (range 2.67x) | 13:30-14:30 **13:30** 1.79x (range 1.09x) | - | Fri / Mon 1.03x (0.99-1.09) | reliable / weak | 1.16x | 1.84x | stable |
+| **SE** | Sea Limited | 10.9 | 07:30-08:00 **07:30** 2.57x (range 2.93x) | 13:30-14:00 **13:30** 1.60x (range 0.93x) | - | Tue / Fri 1.05x (1.01-1.11) | reliable / reliable | 1.05x | 1.92x | stable |
+| **SGI** | Somnigroup International Inc | 10.9 | 13:30-14:00 **13:30** 2.06x (range 1.00x) | 07:30-08:30 **07:30** 1.74x (range 2.67x) | - | Thu / Fri 1.05x (1.01-1.11) | reliable / reliable | 1.10x | 2.27x | stable |
+| **SN** | SharkNinja, Inc. | 10.9 | 07:30-08:30 **07:30** 2.05x (range 2.59x) | 13:30-14:00 **13:30** 1.74x (range 0.96x) | - | Wed / Fri 1.14x (1.08-1.22) | weak / reliable | 1.10x | 1.58x | shifted |
+| **SONY** | Sony Group | 10.9 | 07:30-08:00 **07:30** 2.12x (range 2.44x) | 13:30-14:00 **13:30** 1.86x (range 1.05x) | - | Thu / Mon 1.09x (1.05-1.14) | reliable / weak | 1.12x | 2.36x | stable |
+| **STLA** | Stellantis | 10.9 | 07:30-08:30 **07:30** 2.08x (range 1.97x) | 13:30-14:00 **13:30** 1.59x (range 1.00x) | - | Thu / Mon 1.12x (1.07-1.18) | reliable / weak | 1.14x | 2.50x | stable |
+| **TCOM** | Trip.com Group | 10.9 | 07:30-08:00 **07:30** 3.02x (range 3.42x) | 13:30-14:00 **13:30** 1.80x (range 0.99x) | - | Thu / Fri 1.05x (0.99-1.1) | reliable / weak | 1.06x | 1.88x | stable |
+| **TJX** | TJX Companies | 10.9 | 07:30-08:00 **07:30** 2.08x (range 2.63x) | 13:30-14:00 **13:30** 1.89x (range 1.09x) | - | Thu / Wed 1.04x (1.01-1.07) | reliable / reliable | 1.04x | 1.72x | stable |
+| **TM** | Toyota Motor | 10.9 | 07:30-08:00 **07:30** 2.26x (range 2.43x) | 13:30-14:00 **13:30** 2.03x (range 1.13x) | - | Tue / Mon 1.06x (1.02-1.1) | reliable / reliable | 1.21x | 2.44x | stable |
+| **TPR** | Tapestry, Inc. | 10.9 | 07:30-08:30 **07:30** 2.10x (range 2.84x) | 13:30-14:00 **13:30** 1.88x (range 0.95x) | - | Mon / Fri 1.06x (1.02-1.1) | reliable / weak | 1.07x | 2.13x | stable |
+| **TSCO** | Tractor Supply | 10.9 | 07:30-08:00 **07:30** 2.10x (range 2.81x) | 13:30-14:00 **13:30** 1.92x (range 1.01x) | - | Thu / Wed 1.03x (1.0-1.08) | reliable / weak | 1.01x | 1.82x | stable |
+| **TSLA** | Tesla, Inc. | 10.9 | 07:30-08:00 **07:30** 2.68x (range 2.58x) | 10:30-14:00 **13:30** 1.12x (range 0.89x) | - | Mon / Fri 1.10x (1.05-1.16) | reliable / reliable | 1.13x | 1.85x | stable |
+| **TXRH** | Texas Roadhouse, Inc. | 10.9 | 13:30-14:00 **13:30** 2.09x (range 1.02x) | 07:30-08:30 **07:30** 1.90x (range 2.74x) | - | Mon / Thu 1.03x (0.99-1.08) | reliable / weak | 0.95x | 1.83x | shifted |
+| **ULTA** | Ulta Beauty | 10.9 | 07:30-08:00 **07:30** 2.22x (range 2.76x) | 13:30-14:00 **13:30** 1.87x (range 1.01x) | - | Mon / Fri 1.07x (1.01-1.12) | reliable / reliable | 1.12x | 1.68x | stable |
+| **VFC** | V.F. Corporation | 10.9 | 07:30-08:30 **07:30** 1.99x (range 2.74x) | 13:30-14:00 **13:30** 1.92x (range 1.00x) | - | Fri / Wed 1.03x (1.0-1.06) | reliable / weak | 1.00x | 2.16x | stable |
+| **VIPS** | Vipshop Holdings | 10.9 | 07:30-08:00 **07:30** 2.80x (range 3.41x) | 13:30-14:00 **13:30** 1.70x (range 0.94x) | - | Wed / Fri 1.07x (1.01-1.11) | reliable / weak | 1.10x | 1.83x | stable |
+| **VSXY** | Victorias Secret & Co. | 5.3 | 13:30-14:00 **13:30** 2.12x (range 1.03x) | 07:30-08:30 **07:30** 1.93x (range 2.67x) | - | Mon / Fri 1.05x (1.01-1.12) | reliable / reliable | 1.12x | 2.26x | stable |
+| **W** | Wayfair Inc. | 10.9 | 07:30-08:30 **07:30** 2.15x (range 2.69x) | 13:30-14:00 **13:30** 1.69x (range 0.91x) | - | Wed / Tue 1.05x (1.0-1.09) | reliable / weak | 1.12x | 2.07x | stable |
+| **WHR** | Whirlpool Corp. | 10.9 | 13:30-14:00 **13:30** 1.97x (range 1.00x) | 07:30-08:30 **07:30** 1.92x (range 2.57x) | - | Wed / Fri 1.04x (1.0-1.09) | reliable / weak | 0.98x | 1.93x | stable |
+| **WING** | Wingstop Inc. | 10.9 | 13:30-14:00 **13:30** 2.02x (range 1.02x) | 07:30-08:30 **07:30** 1.96x (range 2.67x) | - | Mon / Fri 1.06x (1.0-1.11) | reliable / reliable | 1.12x | 1.75x | shifted |
+| **WSM** | Williams-Sonoma, Inc. | 10.9 | 13:30-14:00 **13:30** 1.96x (range 0.96x) | 07:30-08:30 **07:30** 1.92x (range 2.73x) | - | Thu / Fri 1.07x (1.01-1.12) | reliable / reliable | 1.03x | 1.86x | shifted |
+| **WYNN** | Wynn Resorts | 10.9 | 07:30-08:00 **07:30** 2.51x (range 2.95x) | 13:30-14:00 **13:30** 1.67x (range 0.93x) | - | Thu / Fri 1.06x (1.01-1.11) | reliable / weak | 1.02x | 1.93x | stable |
+| **XPEV** | XPeng | 6.2 | 07:30-08:00 **07:30** 3.37x (range 3.33x) | 13:30-14:00 **13:30** 1.46x (range 0.90x) | - | Tue / Fri 1.04x (0.98-1.11) | reliable / weak | 1.06x | 2.60x | stable |
+| **YUM** | Yum! Brands | 10.9 | 13:30-14:00 **13:30** 2.24x (range 1.15x) | 07:30-08:30 **07:30** 1.93x (range 2.65x) | - | Thu / Fri 1.03x (0.98-1.08) | reliable / weak | 1.18x | 1.88x | stable |
+| **YUMC** | Yum China Holdings | 10.0 | 07:30-08:00 **07:30** 2.62x (range 3.29x) | 13:30-14:00 **13:30** 2.00x (range 1.08x) | - | Wed / Fri 1.04x (0.99-1.08) | reliable / weak | 1.11x | 1.91x | stable |
 
-### Consumer Staples (38)
+### Consumer Staples (51)
 
 | Symbol | Name | Years | Best 1 | Best 2 | Best 3 | Best / quiet day | Reliability (times / days) | NFP | FOMC | Era |
 |---|---|---|---|---|---|---|---|---|---|---|
-| **ABEV** | Ambev | 10.9 | 07:30-09:30 **07:30** 1.49x (range 1.61x) | 13:30-14:00 **13:30** 1.37x (range 1.00x) | - | Wed / Mon 1.10x (1.05-1.14) | reliable / reliable | 1.04x | 1.67x | stable |
+| **ABEV** | Ambev | 10.9 | 07:30-09:30 **07:30** 1.49x (range 1.62x) | 13:30-14:00 **13:30** 1.37x (range 1.00x) | - | Wed / Mon 1.10x (1.05-1.14) | reliable / reliable | 1.04x | 1.67x | stable |
 | **ADM** | Archer Daniels Midland | 10.9 | 07:30-08:00 **07:30** 2.13x (range 2.67x) | 13:30-14:00 **13:30** 2.04x (range 1.08x) | - | Tue / Mon 1.05x (0.99-1.08) | reliable / weak | 1.03x | 1.79x | stable |
 | **BF.B** | Brown–Forman | 10.9 | 13:30-14:00 **13:30** 2.29x (range 1.13x) | 07:30-08:30 **07:30** 1.73x (range 2.58x) | - | Thu / Tue 1.02x (0.98-1.06) | reliable / weak | 1.05x | 1.80x | stable |
 | **BG** | Bunge Global | 10.9 | 13:30-14:00 **13:30** 2.06x (range 1.04x) | 07:30-08:30 **07:30** 1.93x (range 2.71x) | - | Wed / Fri 1.09x (1.04-1.14) | reliable / reliable | 1.08x | 1.90x | stable |
@@ -154,7 +210,7 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **CPB** | The Campbell's Company | 10.9 | 13:30-14:00 **13:30** 2.04x (range 1.06x) | 07:30-08:30 **07:30** 2.02x (range 2.74x) | - | Wed / Mon 1.04x (1.0-1.1) | reliable / weak | 1.08x | 1.59x | stable |
 | **CTVA** | Corteva, Inc. | 7.4 | 13:30-14:00 **13:30** 2.14x (range 1.12x) | 07:30-08:30 **07:30** 1.98x (range 2.67x) | - | Thu / Tue 1.05x (1.01-1.1) | reliable / weak | 1.09x | 1.91x | stable |
 | **DAR** | DARLING INGREDIENTS INC. | 10.9 | 13:30-14:00 **13:30** 2.11x (range 1.00x) | 07:30-08:30 **07:30** 1.75x (range 2.57x) | - | Wed / Mon 1.06x (1.02-1.11) | reliable / weak | 1.09x | 1.87x | stable |
-| **DEO** | Diageo | 10.9 | 07:30-08:30 **07:30** 2.02x (range 1.88x) | 13:30-14:00 **13:30** 1.53x (range 1.00x) | 08:30-10:00 **09:00** 1.28x (range 1.26x) | Thu / Mon 1.08x (1.04-1.12) | reliable / weak | 1.09x | 2.30x | stable |
+| **DEO** | Diageo | 10.9 | 07:30-08:30 **07:30** 2.02x (range 1.87x) | 13:30-14:00 **13:30** 1.53x (range 1.00x) | 08:30-10:00 **09:00** 1.28x (range 1.26x) | Thu / Mon 1.08x (1.04-1.12) | reliable / weak | 1.09x | 2.30x | stable |
 | **DG** | Dollar General | 10.9 | 07:30-08:00 **07:30** 2.10x (range 2.82x) | 13:30-14:00 **13:30** 1.90x (range 1.04x) | - | Mon / Fri 1.04x (1.0-1.08) | reliable / weak | 1.13x | 1.55x | stable |
 | **DLTR** | Dollar Tree | 10.9 | 07:30-08:00 **07:30** 2.10x (range 2.76x) | 13:30-14:00 **13:30** 1.95x (range 1.04x) | - | Thu / Fri 1.06x (1.0-1.09) | reliable / weak | 1.05x | 1.65x | stable |
 | **EL** | Estée Lauder Companies (The) | 10.9 | 07:30-08:00 **07:30** 2.21x (range 2.76x) | 13:30-14:00 **13:30** 1.89x (range 1.04x) | - | Fri / Mon 1.04x (0.99-1.08) | reliable / weak | 1.11x | 2.11x | stable |
@@ -173,9 +229,31 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **MKC** | McCormick & Company | 10.9 | 13:30-14:00 **13:30** 2.22x (range 1.11x) | 07:30-08:30 **07:30** 1.88x (range 2.62x) | - | Tue / Fri 1.04x (1.0-1.08) | reliable / weak | 1.06x | 1.67x | stable |
 | **MNST** | Monster Beverage | 10.9 | 13:30-14:00 **13:30** 2.08x (range 1.10x) | 07:30-08:00 **07:30** 2.04x (range 2.62x) | - | Fri / Mon 1.04x (1.01-1.09) | reliable / weak | 1.07x | 1.76x | stable |
 | **MO** | Altria | 10.9 | 07:30-08:00 **07:30** 2.29x (range 2.65x) | 13:30-14:30 **13:30** 1.88x (range 1.14x) | - | Wed / Mon 1.02x (0.99-1.06) | reliable / weak | 1.08x | 1.71x | stable |
-| **PM** | Philip Morris International | 3.7 | 07:30-08:00 **07:30** 2.21x (range 2.74x) | 13:30-14:00 **13:30** 1.77x (range 1.04x) | - | Wed / Mon 1.16x (1.09-1.23) | reliable / weak | 1.03x | 1.33x | stable |
+| **PEP** | PepsiCo | 10.9 | 07:30-08:00 **07:30** 2.39x (range 2.67x) | 13:30-14:30 **13:30** 1.96x (range 1.20x) | - | Tue / Mon 1.06x (1.02-1.09) | reliable / weak | 1.03x | 1.94x | stable |
+| **PFGC** | Performance Food Group Compa | 10.9 | 13:30-14:00 **13:30** 2.35x (range 1.12x) | 07:30-09:30 **07:30** 1.52x (range 2.39x) | - | Wed / Mon 1.05x (1.01-1.1) | reliable / reliable | 1.00x | 1.73x | stable |
+| **PG** | Procter & Gamble | 10.9 | 07:30-08:00 **07:30** 2.41x (range 2.63x) | 13:30-14:00 **13:30** 1.86x (range 1.17x) | - | Fri / Mon 1.02x (0.99-1.06) | reliable / weak | 1.02x | 1.73x | stable |
+| **PM** | Philip Morris International | 10.9 | 07:30-08:00 **07:30** 2.17x (range 2.66x) | 13:30-14:00 **13:30** 2.01x (range 1.16x) | - | Thu / Mon 1.08x (1.04-1.13) | reliable / weak | 0.96x | 1.44x | stable |
+| **SFM** | Sprouts Farmers Market, Inc. | 10.9 | 07:30-08:00 **07:30** 2.06x (range 2.90x) | 13:30-14:00 **13:30** 2.00x (range 1.02x) | - | Mon / Thu 1.02x (0.97-1.07) | reliable / weak | 1.10x | 1.64x | stable |
+| **SJM** | J.M. Smucker Company (The) | 10.9 | 13:30-14:00 **13:30** 2.16x (range 1.07x) | 07:30-08:30 **07:30** 1.88x (range 2.70x) | - | Wed / Mon 1.09x (1.04-1.13) | reliable / reliable | 1.09x | 1.53x | shifted |
+| **STZ** | Constellation Brands | 10.9 | 13:30-14:00 **13:30** 2.04x (range 1.09x) | 07:30-08:30 **07:30** 1.92x (range 2.52x) | - | Tue / Thu 1.03x (0.99-1.07) | reliable / weak | 1.19x | 1.54x | shifted |
+| **SYY** | Sysco | 10.9 | 13:30-14:00 **13:30** 2.02x (range 1.07x) | 07:30-08:30 **07:30** 1.88x (range 2.61x) | - | Wed / Mon 1.06x (1.03-1.1) | reliable / weak | 1.06x | 1.82x | stable |
+| **TAP** | Molson Coors Beverage Compan | 10.9 | 13:30-14:00 **13:30** 2.07x (range 1.05x) | 07:30-08:30 **07:30** 1.85x (range 2.58x) | - | Wed / Fri 1.05x (1.02-1.11) | reliable / reliable | 1.10x | 1.88x | stable |
+| **TGT** | Target Corporation | 10.9 | 07:30-08:00 **07:30** 2.27x (range 2.75x) | 13:30-14:00 **13:30** 1.71x (range 1.00x) | - | Thu / Fri 1.04x (1.0-1.08) | reliable / weak | 0.99x | 1.81x | stable |
+| **TSN** | Tyson Foods | 10.9 | 13:30-14:00 **13:30** 2.00x (range 1.05x) | 07:30-08:30 **07:30** 2.00x (range 2.70x) | - | Wed / Tue 1.04x (0.99-1.07) | weak / weak | 1.09x | 1.56x | stable |
+| **UL** | Unilever | 10.9 | 07:30-08:30 **07:30** 2.13x (range 1.94x) | 13:30-14:00 **13:30** 1.50x (range 1.00x) | 08:30-10:00 **09:00** 1.35x (range 1.30x) | Thu / Mon 1.07x (1.03-1.13) | reliable / weak | 1.01x | 2.32x | stable |
+| **USFD** | US Foods Holding Corp. | 10.5 | 13:30-14:00 **13:30** 2.21x (range 1.07x) | 07:30-09:00 **07:30** 1.64x (range 2.59x) | - | Thu / Fri 1.07x (1.02-1.12) | reliable / weak | 1.02x | 1.77x | stable |
+| **WMT** | Walmart | 10.9 | 07:30-08:00 **07:30** 2.37x (range 2.71x) | 13:30-14:30 **13:30** 1.74x (range 1.09x) | - | Fri / Wed 1.03x (0.99-1.08) | reliable / weak | 0.98x | 1.66x | stable |
 
 ### Energy (25)
+
+| Symbol | Name | Years | Best 1 | Best 2 | Best 3 | Best / quiet day | Reliability (times / days) | NFP | FOMC | Era |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **DIA** | DIA | 10.9 | 07:30-08:00 **07:30** 2.22x (range 1.85x) | 13:30-14:00 **13:30** 1.71x (range 1.14x) | - | Thu / Mon 1.14x (1.09-1.2) | reliable / reliable | 1.12x | 2.77x | stable |
+| **IWM** | IWM | 10.9 | 07:30-08:30 **07:30** 2.06x (range 2.02x) | 13:30-14:00 **13:30** 1.54x (range 0.99x) | - | Thu / Mon 1.12x (1.08-1.17) | reliable / reliable | 1.16x | 2.85x | stable |
+| **QQQ** | QQQ | 10.9 | 07:30-08:30 **07:30** 2.01x (range 1.88x) | 13:30-14:00 **13:30** 1.50x (range 1.05x) | - | Thu / Mon 1.13x (1.08-1.16) | reliable / weak | 1.17x | 2.82x | stable |
+| **SPY** | SPY | 10.9 | 13:30-14:30 **13:30** 1.86x (range 1.18x) | 07:30-09:00 **07:30** 1.64x (range 1.55x) | - | Fri / Mon 1.15x (1.1-1.2) | reliable / weak | 1.26x | 3.01x | stable |
+
+### Energy (52)
 
 | Symbol | Name | Years | Best 1 | Best 2 | Best 3 | Best / quiet day | Reliability (times / days) | NFP | FOMC | Era |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -203,9 +281,36 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **IMO** | Imperial Oil Limited | 10.9 | 07:30-08:00 **07:30** 2.13x (range 2.82x) | 13:30-14:00 **13:30** 1.86x (range 0.98x) | - | Thu / Fri 1.06x (1.01-1.1) | reliable / weak | 1.14x | 1.70x | stable |
 | **KMI** | Kinder Morgan | 10.9 | 07:30-08:30 **07:30** 1.97x (range 2.38x) | 13:30-14:00 **13:30** 1.74x (range 1.00x) | - | Thu / Mon 1.05x (1.0-1.1) | reliable / weak | 1.05x | 1.53x | stable |
 | **MPC** | Marathon Petroleum | 10.9 | 07:30-08:30 **07:30** 2.11x (range 2.69x) | 13:30-14:00 **13:30** 1.73x (range 0.97x) | - | Wed / Fri 1.09x (1.05-1.15) | reliable / reliable | 1.18x | 1.60x | stable |
+| **NXE** | NexGen Energy Ltd. | 9.5 | 07:30-08:00 **07:30** 2.30x (range 2.86x) | 13:30-14:00 **13:30** 1.49x (range 1.00x) | - | Tue / Mon 1.04x (0.99-1.11) | reliable / weak | 1.01x | 1.93x | stable |
+| **OKE** | Oneok | 10.9 | 07:30-08:30 **07:30** 1.93x (range 2.48x) | 13:30-14:00 **13:30** 1.85x (range 0.98x) | - | Wed / Fri 1.07x (1.02-1.11) | reliable / weak | 1.10x | 1.89x | stable |
+| **OVV** | Ovintiv Inc. | 10.9 | 07:30-08:30 **07:30** 2.05x (range 2.50x) | 13:30-14:00 **13:30** 1.68x (range 0.89x) | - | Wed / Mon 1.09x (1.05-1.15) | reliable / reliable | 1.16x | 1.90x | stable |
+| **OXY** | Occidental Petroleum | 10.9 | 07:30-08:00 **07:30** 2.34x (range 2.58x) | 13:30-14:00 **13:30** 1.54x (range 0.93x) | - | Wed / Fri 1.05x (1.01-1.08) | reliable / weak | 1.16x | 1.75x | stable |
+| **PBA** | Pembina Pipeline Corporation | 10.9 | 07:30-08:00 **07:30** 2.19x (range 2.67x) | 13:30-14:00 **13:30** 1.95x (range 1.00x) | - | Wed / Mon 1.05x (1.01-1.09) | reliable / weak | 1.22x | 2.00x | stable |
+| **PBF** | PBF ENERGY INC. | 10.9 | 07:30-08:30 **07:30** 2.01x (range 2.75x) | 13:30-14:00 **13:30** 1.83x (range 0.93x) | - | Wed / Fri 1.10x (1.05-1.13) | reliable / reliable | 1.09x | 1.61x | stable |
 | **PBR** | Petrobras | 10.9 | 07:30-08:30 **07:30** 1.97x (range 2.14x) | 13:30-14:00 **13:30** 1.37x (range 0.83x) | - | Thu / Mon 1.05x (1.02-1.1) | reliable / weak | 1.12x | 1.98x | stable |
+| **PBR.A** | Petroleo Brasileiro S.A.-Pet | 10.9 | 07:30-08:30 **07:30** 1.92x (range 1.94x) | 13:30-14:00 **13:30** 1.44x (range 0.89x) | - | Thu / Mon 1.10x (1.05-1.16) | reliable / reliable | 1.10x | 2.07x | stable |
+| **PR** | Permian Resources Corporatio | 10.4 | 07:30-08:30 **07:30** 1.90x (range 2.53x) | 13:30-14:00 **13:30** 1.70x (range 0.99x) | - | Wed / Mon 1.04x (1.0-1.08) | reliable / reliable | 1.13x | 1.88x | shifted |
+| **PSX** | Phillips 66 | 10.9 | 07:30-08:30 **07:30** 2.02x (range 2.58x) | 13:30-14:00 **13:30** 1.81x (range 0.99x) | - | Thu / Mon 1.07x (1.02-1.1) | reliable / weak | 1.14x | 1.71x | stable |
+| **RIG** | Transocean LTD. | 10.9 | 07:30-08:00 **07:30** 2.22x (range 2.51x) | 13:30-14:00 **13:30** 1.35x (range 0.86x) | - | Wed / Fri 1.06x (1.02-1.11) | reliable / weak | 1.12x | 1.89x | stable |
+| **RRC** | Range Resources Corp | 10.9 | 07:30-08:30 **07:30** 2.02x (range 2.59x) | 13:30-14:00 **13:30** 1.74x (range 0.91x) | - | Wed / Fri 1.05x (1.02-1.11) | reliable / weak | 1.04x | 1.73x | stable |
+| **SHEL** | Shell plc | 4.8 | 07:30-08:30 **07:30** 2.26x (range 2.26x) | 13:30-14:00 **13:30** 1.67x (range 1.04x) | - | Thu / Mon 1.07x (1.0-1.13) | reliable / weak | 1.26x | 2.73x | stable |
+| **SLB** | Schlumberger | 10.9 | 07:30-08:00 **07:30** 2.23x (range 2.58x) | 13:30-14:00 **13:30** 1.65x (range 0.97x) | - | Wed / Mon 1.05x (1.01-1.11) | reliable / reliable | 1.03x | 1.78x | stable |
+| **SOBO** | South Bow Corporation | 2.1 | 13:30-14:00 **13:30** 2.47x (range 1.11x) | 07:30-08:30 **07:30** 1.73x (range 2.56x) | - | Wed / Fri 1.03x (0.92-1.1) | reliable / weak | 1.42x | 1.67x | stable |
+| **SU** | Suncor Energy Inc. | 10.9 | 07:30-08:00 **07:30** 2.19x (range 2.63x) | 13:30-14:00 **13:30** 1.68x (range 0.93x) | - | Wed / Fri 1.08x (1.04-1.12) | reliable / reliable | 1.18x | 1.78x | stable |
+| **TPL** | Texas Pacific Land Corporati | 10.9 | 13:30-14:00 **13:30** 2.66x (range 1.88x) | 07:30-08:00 **07:30** 2.09x (range 2.79x) | - | Tue / Wed 1.03x (0.97-1.08) | reliable / weak | 0.97x | 1.75x | stable |
+| **TRGP** | Targa Resources | 10.9 | 13:30-14:00 **13:30** 1.87x (range 0.96x) | 07:30-09:00 **07:30** 1.81x (range 2.63x) | - | Wed / Fri 1.08x (1.05-1.11) | reliable / reliable | 1.10x | 1.75x | stable |
+| **TRP** | TC Energy Corporation | 7.5 | 13:30-14:00 **13:30** 2.14x (range 1.08x) | 07:30-08:00 **07:30** 2.01x (range 2.68x) | - | Wed / Tue 1.04x (0.98-1.1) | reliable / weak | 1.09x | 2.11x | stable |
+| **TS** | Tenaris | 10.9 | 07:30-08:00 **07:30** 2.26x (range 2.30x) | 13:30-14:00 **13:30** 1.70x (range 0.96x) | - | Wed / Mon 1.10x (1.05-1.14) | reliable / weak | 1.15x | 2.22x | stable |
+| **TTE** | TotalEnergies | 10.9 | 07:30-09:00 **07:30** 1.82x (range 1.87x) | 13:30-14:00 **13:30** 1.52x (range 1.01x) | - | Wed / Mon 1.14x (1.09-1.18) | reliable / reliable | 1.12x | 2.23x | stable |
+| **UUUU** | Energy Fuels Inc. | 10.9 | 07:30-08:00 **07:30** 2.53x (range 2.68x) | 13:30-14:00 **13:30** 1.46x (range 1.00x) | - | Tue / Fri 1.04x (0.98-1.09) | reliable / weak | 1.02x | 1.78x | stable |
+| **VET** | Vermilion Energy Inc. | 10.9 | 07:30-08:00 **07:30** 2.41x (range 2.67x) | 13:30-14:00 **13:30** 1.51x (range 0.84x) | - | Wed / Fri 1.10x (1.04-1.14) | reliable / weak | 1.20x | 1.86x | stable |
+| **VLO** | Valero Energy | 10.9 | 07:30-08:00 **07:30** 2.22x (range 2.75x) | 13:30-14:00 **13:30** 1.69x (range 0.94x) | - | Wed / Mon 1.10x (1.05-1.13) | reliable / reliable | 1.17x | 1.65x | stable |
+| **WDS** | Woodside Energy Group | 4.5 | 07:30-08:00 **07:30** 1.98x (range 2.54x) | 13:30-14:00 **13:30** 1.86x (range 1.03x) | - | Mon / Fri 1.07x (1.0-1.13) | reliable / weak | 1.01x | 3.25x | stable |
+| **WMB** | Williams Companies | 10.9 | 07:30-08:30 **07:30** 1.91x (range 2.47x) | 13:30-14:00 **13:30** 1.86x (range 1.03x) | - | Thu / Fri 1.05x (1.01-1.1) | reliable / weak | 1.12x | 1.64x | stable |
+| **XOM** | ExxonMobil | 10.9 | 07:30-08:00 **07:30** 2.38x (range 2.51x) | 13:30-14:30 **13:30** 1.79x (range 1.08x) | - | Tue / Mon 1.04x (0.99-1.07) | reliable / weak | 1.11x | 1.77x | stable |
+| **YPF** | YPF | 10.9 | 07:30-08:30 **07:30** 1.96x (range 2.64x) | 13:30-14:00 **13:30** 1.64x (range 0.97x) | - | Mon / Fri 1.08x (1.02-1.13) | reliable / weak | 1.06x | 1.63x | shifted |
 
-### Financials (97)
+### Financials (145)
 
 | Symbol | Name | Years | Best 1 | Best 2 | Best 3 | Best / quiet day | Reliability (times / days) | NFP | FOMC | Era |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -215,7 +320,7 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **AIG** | American International Group | 10.9 | 13:30-14:00 **13:30** 2.01x (range 1.12x) | 07:30-08:30 **07:30** 1.96x (range 2.56x) | - | Thu / Mon 1.09x (1.03-1.15) | reliable / weak | 1.06x | 1.77x | stable |
 | **AIZ** | Assurant | 10.9 | 13:30-14:00 **13:30** 2.45x (range 1.16x) | 07:30-08:30 **07:30** 1.71x (range 2.52x) | - | Thu / Fri 1.06x (1.02-1.09) | reliable / weak | 1.09x | 1.79x | stable |
 | **AJG** | Arthur J. Gallagher & Co. | 10.9 | 13:30-14:00 **13:30** 2.30x (range 1.15x) | 07:30-08:30 **07:30** 1.76x (range 2.51x) | - | Wed / Mon 1.05x (1.01-1.08) | reliable / weak | 0.98x | 1.84x | stable |
-| **ALL** | Allstate | 10.9 | 13:30-14:00 **13:30** 2.08x (range 1.13x) | 07:30-08:30 **07:30** 1.90x (range 2.59x) | - | Thu / Mon 1.10x (1.05-1.14) | reliable / weak | 1.12x | 1.76x | stable |
+| **ALL** | Allstate | 10.9 | 13:30-14:00 **13:30** 2.08x (range 1.12x) | 07:30-08:30 **07:30** 1.90x (range 2.59x) | - | Thu / Mon 1.10x (1.05-1.14) | reliable / weak | 1.12x | 1.76x | stable |
 | **ALLY** | Ally Financial Inc. | 10.9 | 13:30-14:00 **13:30** 2.00x (range 1.03x) | 07:30-08:30 **07:30** 1.98x (range 2.65x) | - | Thu / Mon 1.08x (1.03-1.14) | reliable / reliable | 1.11x | 2.02x | stable |
 | **AMP** | Ameriprise Financial | 10.9 | 13:30-14:00 **13:30** 2.10x (range 1.09x) | 07:30-08:30 **07:30** 1.89x (range 2.68x) | - | Thu / Mon 1.07x (1.03-1.11) | reliable / weak | 1.09x | 2.32x | shifted |
 | **AON** | Aon plc | 10.9 | 13:30-14:00 **13:30** 2.13x (range 1.16x) | 07:30-08:30 **07:30** 1.92x (range 2.65x) | - | Thu / Mon 1.06x (1.02-1.09) | reliable / weak | 0.94x | 1.82x | stable |
@@ -268,7 +373,7 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **FIS** | Fidelity National Informatio | 10.9 | 13:30-14:00 **13:30** 2.00x (range 1.09x) | 07:30-08:30 **07:30** 1.87x (range 2.60x) | - | Thu / Mon 1.05x (1.01-1.1) | reliable / reliable | 1.12x | 1.98x | stable |
 | **FISV** | Fiserv | 10.9 | 07:30-08:00 **07:30** 2.11x (range 2.70x) | 13:30-14:00 **13:30** 1.94x (range 1.09x) | - | Wed / Mon 1.05x (1.0-1.09) | reliable / weak | 1.06x | 1.88x | stable |
 | **FITB** | Fifth Third Bancorp | 10.9 | 07:30-08:00 **07:30** 2.22x (range 2.72x) | 13:30-14:00 **13:30** 1.89x (range 1.03x) | - | Thu / Mon 1.08x (1.04-1.12) | reliable / reliable | 1.02x | 2.28x | stable |
-| **GGAL** | Grupo Financiero Galicia | 10.9 | 07:30-08:30 **07:30** 1.89x (range 2.62x) | 13:30-14:00 **13:30** 1.47x (range 0.89x) | - | Tue / Mon 1.03x (0.99-1.09) | reliable / weak | 0.99x | 1.49x | stable |
+| **GGAL** | Grupo Financiero Galicia | 10.9 | 07:30-08:30 **07:30** 1.89x (range 2.63x) | 13:30-14:00 **13:30** 1.47x (range 0.89x) | - | Tue / Mon 1.03x (0.99-1.09) | reliable / weak | 0.99x | 1.49x | stable |
 | **GL** | Globe Life | 10.9 | 13:30-14:00 **13:30** 2.42x (range 1.16x) | 07:30-08:30 **07:30** 1.65x (range 2.54x) | - | Thu / Mon 1.06x (1.03-1.1) | reliable / weak | 0.97x | 1.75x | stable |
 | **GLXY** | Galaxy Digital Inc. | 1.5 | 07:30-08:00 **07:30** 2.31x (range 2.60x) | 13:30-14:30 **13:30** 1.52x (range 0.95x) | - | Wed / Tue 1.11x (0.99-1.2) | reliable / weak | 1.11x | 2.42x | stable |
 | **GPN** | Global Payments | 10.9 | 13:30-14:00 **13:30** 2.03x (range 1.03x) | 07:30-08:30 **07:30** 1.85x (range 2.59x) | - | Thu / Mon 1.06x (1.02-1.11) | reliable / weak | 1.11x | 2.11x | stable |
@@ -279,7 +384,7 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **HOOD** | Robinhood Markets | 5.3 | 07:30-08:00 **07:30** 2.56x (range 2.70x) | 13:30-14:00 **13:30** 1.35x (range 0.90x) | - | Thu / Mon 1.07x (1.01-1.14) | reliable / weak | 1.11x | 2.99x | stable |
 | **HSBC** | HSBC Holdings | 10.9 | 07:30-08:30 **07:30** 2.19x (range 2.00x) | 13:30-14:00 **13:30** 1.66x (range 1.00x) | - | Thu / Mon 1.11x (1.07-1.15) | reliable / weak | 1.07x | 2.71x | stable |
 | **HUT** | Hut 8 Corp. | 5.4 | 07:30-08:00 **07:30** 2.46x (range 2.49x) | 13:00-14:00 **13:30** 1.18x (range 0.78x) | - | Thu / Wed 1.02x (0.96-1.09) | reliable / weak | 1.16x | 2.59x | stable |
-| **IBKR** | Interactive Brokers | 10.9 | 13:30-14:00 **13:30** 1.95x (range 1.05x) | 07:30-08:30 **07:30** 1.89x (range 2.58x) | - | Thu / Mon 1.06x (1.01-1.1) | reliable / reliable | 1.21x | 1.93x | stable |
+| **IBKR** | Interactive Brokers | 10.9 | 13:30-14:00 **13:30** 1.95x (range 1.05x) | 07:30-08:30 **07:30** 1.89x (range 2.58x) | - | Thu / Mon 1.06x (1.01-1.1) | reliable / reliable | 1.22x | 1.93x | stable |
 | **IBN** | ICICI Bank | 10.9 | 07:30-08:00 **07:30** 2.51x (range 2.67x) | 13:30-14:00 **13:30** 2.05x (range 1.13x) | - | Thu / Fri 1.05x (1.0-1.1) | reliable / weak | 1.07x | 1.89x | stable |
 | **ICE** | Intercontinental Exchange | 10.9 | 13:30-14:00 **13:30** 2.05x (range 1.11x) | 07:30-08:00 **07:30** 2.03x (range 2.64x) | - | Wed / Mon 1.08x (1.02-1.11) | reliable / weak | 1.18x | 1.89x | stable |
 | **ING** | ING Groep | 10.9 | 07:30-08:30 **07:30** 2.18x (range 1.91x) | 13:30-14:00 **13:30** 1.39x (range 0.90x) | - | Thu / Mon 1.11x (1.07-1.16) | reliable / reliable | 1.16x | 2.71x | stable |
@@ -297,17 +402,65 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **MA** | Mastercard | 10.9 | 07:30-08:00 **07:30** 2.30x (range 2.58x) | 13:30-14:00 **13:30** 1.83x (range 1.11x) | - | Thu / Tue 1.07x (1.03-1.11) | reliable / reliable | 1.02x | 2.05x | stable |
 | **MARA** | MARA Holdings, Inc. | 9.0 | 07:30-08:00 **07:30** 2.50x (range 2.42x) | 11:30-14:00 **13:30** 1.11x (range 0.88x) | - | Thu / Fri 1.05x (1.0-1.1) | reliable / weak | 1.05x | 2.19x | stable |
 | **MCO** | Moody's Corporation | 10.9 | 13:30-14:00 **13:30** 2.14x (range 1.10x) | 07:30-08:30 **07:30** 1.97x (range 2.59x) | - | Thu / Mon 1.11x (1.06-1.16) | reliable / reliable | 1.07x | 2.08x | stable |
-| **MET** | MetLife | 2.5 | 07:30-08:30 **07:30** 1.95x (range 2.48x) | 13:30-14:00 **13:30** 1.61x (range 0.94x) | - | Thu / Mon 1.13x (1.02-1.22) | reliable / weak | 1.24x | 2.03x | stable |
+| **MET** | MetLife | 10.9 | 07:30-08:30 **07:30** 2.00x (range 2.62x) | 13:30-14:00 **13:30** 1.96x (range 1.09x) | - | Thu / Mon 1.07x (1.03-1.11) | reliable / weak | 1.18x | 2.25x | stable |
+| **MFC** | Manulife Financial Corporati | 10.9 | 07:30-08:00 **07:30** 2.14x (range 2.64x) | 13:30-14:00 **13:30** 1.89x (range 1.00x) | - | Thu / Mon 1.13x (1.09-1.18) | reliable / reliable | 1.07x | 2.31x | stable |
 | **MFG** | Mizuho Financial Group | 10.9 | 13:30-14:00 **13:30** 2.29x (range 1.33x) | 07:30-08:00 **07:30** 1.63x (range 2.00x) | 08:00-11:00 **09:00** 1.05x (range 1.00x) | Tue / Fri 1.10x (1.06-1.16) | reliable / reliable | 1.00x | 1.75x | stable |
 | **MKL** | Markel Group Inc. | 10.9 | 13:30-14:00 **13:30** 2.31x (range 1.32x) | 07:30-08:30 **07:30** 1.71x (range 2.33x) | - | Wed / Fri 1.03x (1.0-1.07) | reliable / weak | 1.17x | 1.70x | stable |
 | **MKTX** | MarketAxess Holdings, Inc. | 10.9 | 13:30-14:00 **13:30** 2.23x (range 1.13x) | 07:30-08:30 **07:30** 1.87x (range 2.63x) | - | Wed / Mon 1.07x (1.0-1.12) | reliable / weak | 1.28x | 1.67x | stable |
 | **MOH** | Molina Healthcare, Inc. | 10.9 | 13:30-14:00 **13:30** 2.24x (range 1.06x) | 07:30-08:30 **07:30** 1.84x (range 2.73x) | - | Wed / Mon 1.04x (1.0-1.09) | reliable / weak | 1.01x | 1.49x | shifted |
-| **MS** | Morgan Stanley | 9.4 | 07:30-08:00 **07:30** 2.19x (range 2.50x) | 13:30-14:00 **13:30** 1.77x (range 1.05x) | - | Thu / Mon 1.07x (1.02-1.12) | reliable / weak | 1.04x | 2.20x | stable |
+| **MRSH** | Marsh McLennan | 10.9 | 13:30-14:00 **13:30** 2.12x (range 1.16x) | 07:30-08:30 **07:30** 1.92x (range 2.54x) | - | Thu / Mon 1.06x (1.03-1.11) | reliable / weak | 1.01x | 1.89x | stable |
+| **MS** | Morgan Stanley | 10.9 | 07:30-08:00 **07:30** 2.19x (range 2.55x) | 13:30-14:00 **13:30** 1.77x (range 1.04x) | - | Thu / Mon 1.07x (1.04-1.13) | reliable / weak | 1.03x | 2.29x | stable |
 | **MSCI** | MSCI | 10.9 | 13:30-14:00 **13:30** 2.19x (range 1.10x) | 07:30-08:30 **07:30** 1.89x (range 2.58x) | - | Tue / Mon 1.06x (1.02-1.11) | reliable / reliable | 1.13x | 1.88x | stable |
+| **MTB** | M&T Bank | 10.9 | 13:30-14:00 **13:30** 2.08x (range 1.05x) | 07:30-08:30 **07:30** 1.86x (range 2.62x) | - | Thu / Mon 1.06x (1.02-1.11) | reliable / weak | 1.02x | 2.47x | stable |
+| **MUFG** | Mitsubishi UFJ Financial Gro | 10.9 | 07:30-08:00 **07:30** 1.84x (range 2.25x) | 13:30-14:00 **13:30** 1.73x (range 1.00x) | - | Thu / Fri 1.03x (0.98-1.07) | reliable / weak | 1.11x | 2.04x | stable |
+| **NDAQ** | Nasdaq, Inc. | 10.9 | 13:30-14:00 **13:30** 2.20x (range 1.16x) | 07:30-08:00 **07:30** 2.09x (range 2.59x) | - | Thu / Mon 1.06x (1.01-1.1) | reliable / weak | 1.08x | 1.94x | stable |
 | **NMR** | Nomura Holdings | 10.9 | 13:30-14:00 **13:30** 2.07x (range 1.25x) | 07:30-08:00 **07:30** 2.02x (range 2.44x) | 08:30-11:00 **09:00** 1.04x (range 1.00x) | Tue / Fri 1.06x (1.02-1.14) | weak / weak | 1.20x | 2.00x | stable |
-| **NU** | Nu Holdings | 4.9 | 07:30-08:00 **07:30** 2.19x (range 2.87x) | 13:30-14:00 **13:30** 1.52x (range 1.00x) | - | Thu / Mon 1.11x (1.01-1.19) | reliable / reliable | 1.15x | 2.52x | stable |
+| **NTRS** | Northern Trust | 10.9 | 13:30-14:00 **13:30** 2.11x (range 1.10x) | 07:30-08:30 **07:30** 1.99x (range 2.80x) | - | Wed / Mon 1.10x (1.05-1.14) | reliable / weak | 1.01x | 2.34x | shifted |
+| **NU** | Nu Holdings | 4.9 | 07:30-08:00 **07:30** 2.19x (range 2.88x) | 13:30-14:00 **13:30** 1.52x (range 1.00x) | - | Thu / Mon 1.11x (1.01-1.19) | reliable / reliable | 1.15x | 2.52x | stable |
+| **NWG** | NatWest Group | 10.9 | 07:30-09:30 **07:30** 2.01x (range 1.75x) | 13:30-14:00 **13:30** 1.51x (range 1.00x) | - | Thu / Mon 1.09x (1.04-1.15) | reliable / weak | 1.14x | 2.10x | stable |
+| **ONB** | Old National Bancorp | 10.9 | 13:30-14:00 **13:30** 2.23x (range 1.12x) | 07:30-08:00 **07:30** 1.92x (range 2.50x) | - | Wed / Mon 1.06x (1.03-1.1) | reliable / weak | 0.99x | 2.25x | stable |
+| **OSCR** | Oscar Health, Inc. | 5.7 | 07:30-08:00 **07:30** 2.22x (range 2.88x) | 13:30-14:00 **13:30** 1.86x (range 1.00x) | - | Thu / Tue 1.05x (0.99-1.12) | reliable / weak | 1.10x | 2.22x | stable |
+| **OWL** | Blue Owl Capital Inc. | 5.9 | 13:30-14:00 **13:30** 2.04x (range 1.08x) | 07:30-08:30 **07:30** 1.77x (range 2.50x) | - | Thu / Mon 1.18x (1.07-1.24) | reliable / weak | 1.10x | 2.82x | stable |
+| **PFG** | Principal Financial Group | 10.9 | 13:30-14:00 **13:30** 2.09x (range 1.08x) | 07:30-08:00 **07:30** 1.99x (range 2.72x) | - | Fri / Mon 1.08x (1.02-1.13) | reliable / reliable | 1.03x | 2.16x | stable |
+| **PGR** | Progressive Corporation | 10.9 | 13:30-14:00 **13:30** 2.03x (range 1.11x) | 07:30-08:30 **07:30** 1.98x (range 2.61x) | - | Wed / Mon 1.11x (1.07-1.15) | reliable / weak | 1.08x | 1.84x | stable |
+| **PNC** | PNC Financial Services | 10.9 | 07:30-08:30 **07:30** 1.97x (range 2.63x) | 13:30-14:00 **13:30** 1.91x (range 1.05x) | - | Wed / Mon 1.08x (1.04-1.13) | reliable / reliable | 1.07x | 2.39x | stable |
+| **PRU** | Prudential Financial | 10.9 | 07:30-08:00 **07:30** 2.08x (range 2.69x) | 13:30-14:00 **13:30** 1.93x (range 1.04x) | - | Wed / Mon 1.08x (1.04-1.13) | reliable / weak | 1.16x | 2.38x | stable |
+| **PYPL** | PayPal | 10.9 | 07:30-08:00 **07:30** 2.60x (range 2.78x) | 13:30-14:30 **13:30** 1.58x (range 0.98x) | - | Wed / Tue 1.08x (1.03-1.13) | reliable / weak | 1.15x | 2.14x | stable |
+| **RF** | Regions Financial Corporatio | 10.9 | 07:30-08:00 **07:30** 2.13x (range 2.59x) | 13:30-14:00 **13:30** 1.74x (range 1.00x) | - | Thu / Mon 1.09x (1.05-1.12) | reliable / weak | 1.11x | 2.39x | stable |
+| **RGLD** | Royal Gold, Inc. | 10.9 | 07:30-08:00 **07:30** 2.13x (range 2.64x) | 13:30-14:00 **13:30** 2.03x (range 0.99x) | - | Thu / Mon 1.05x (1.0-1.1) | reliable / weak | 1.10x | 2.64x | stable |
+| **RIOT** | Riot Platforms, Inc. | 10.9 | 07:30-08:00 **07:30** 2.47x (range 2.43x) | 13:00-14:00 **13:30** 1.21x (range 0.90x) | - | Wed / Mon 1.02x (0.97-1.08) | reliable / weak | 1.13x | 2.02x | stable |
+| **RJF** | Raymond James Financial | 10.9 | 13:30-14:00 **13:30** 2.24x (range 1.09x) | 07:30-08:30 **07:30** 1.77x (range 2.62x) | - | Thu / Mon 1.10x (1.06-1.15) | reliable / reliable | 1.01x | 2.16x | stable |
+| **RKT** | Rocket Companies, Inc. | 6.3 | 07:30-08:30 **07:30** 2.10x (range 2.56x) | 13:30-14:00 **13:30** 1.75x (range 1.00x) | - | Wed / Fri 1.11x (1.05-1.18) | reliable / reliable | 1.35x | 3.28x | stable |
+| **RNR** | RenaissanceRe Holdings Ltd. | 10.9 | 13:30-14:00 **13:30** 2.46x (range 1.17x) | 07:30-09:00 **07:30** 1.60x (range 2.58x) | - | Thu / Mon 1.04x (1.0-1.09) | reliable / weak | 1.09x | 1.66x | stable |
+| **RY** | Royal Bank of Canada | 10.9 | 07:30-08:00 **07:30** 2.26x (range 2.57x) | 13:30-14:00 **13:30** 2.12x (range 1.08x) | - | Wed / Mon 1.13x (1.07-1.18) | reliable / weak | 1.06x | 2.46x | stable |
+| **SAN** | Banco Santander | 10.9 | 07:30-09:30 **07:30** 1.87x (range 1.60x) | 13:30-14:00 **13:30** 1.44x (range 1.00x) | - | Thu / Mon 1.10x (1.05-1.15) | reliable / reliable | 1.10x | 2.14x | stable |
+| **SCHW** | Charles Schwab Corporation | 10.9 | 07:30-08:00 **07:30** 2.12x (range 2.64x) | 13:30-14:00 **13:30** 1.80x (range 1.03x) | - | Thu / Mon 1.09x (1.04-1.13) | reliable / weak | 1.10x | 2.30x | stable |
+| **SHG** | Shinhan Financial Group | 10.9 | 13:30-14:00 **13:30** 2.25x (range 1.28x) | 07:30-08:00 **07:30** 2.00x (range 2.56x) | - | Thu / Mon 1.06x (1.01-1.1) | reliable / weak | 0.99x | 2.33x | stable |
+| **SII** | Sprott Inc. | 6.4 | 07:30-08:00 **07:30** 2.06x (range 2.53x) | 13:30-14:00 **13:30** 2.01x (range 1.10x) | - | Wed / Fri 1.03x (0.96-1.1) | reliable / weak | 0.95x | 2.79x | stable |
+| **SLF** | Sun Life Financial Inc. | 10.9 | 07:30-08:00 **07:30** 2.23x (range 2.77x) | 13:30-14:00 **13:30** 2.19x (range 1.08x) | - | Thu / Mon 1.09x (1.04-1.14) | weak / reliable | 1.07x | 2.24x | stable |
+| **SMFG** | Sumitomo Mitsui Financial Gr | 10.9 | 07:30-08:00 **07:30** 1.95x (range 2.40x) | 13:30-14:00 **13:30** 1.79x (range 1.00x) | - | Tue / Fri 1.05x (1.0-1.09) | reliable / weak | 1.04x | 2.17x | stable |
+| **SOFI** | SoFi Technologies, Inc. | 6.0 | 07:30-08:00 **07:30** 2.46x (range 2.70x) | 13:00-14:00 **13:30** 1.25x (range 0.91x) | - | Thu / Fri 1.07x (1.0-1.15) | reliable / weak | 1.09x | 3.17x | stable |
+| **SPGI** | S&P Global | 10.9 | 07:30-08:00 **07:30** 2.16x (range 2.71x) | 13:30-14:00 **13:30** 1.97x (range 1.09x) | - | Thu / Mon 1.08x (1.03-1.12) | reliable / weak | 1.07x | 2.07x | stable |
+| **STT** | State Street Corporation | 10.9 | 13:30-14:00 **13:30** 2.03x (range 1.05x) | 07:30-08:30 **07:30** 1.93x (range 2.65x) | - | Wed / Mon 1.07x (1.03-1.11) | reliable / weak | 1.06x | 2.35x | shifted |
+| **SYF** | Synchrony Financial | 10.9 | 07:30-08:30 **07:30** 2.06x (range 2.70x) | 13:30-14:00 **13:30** 1.92x (range 1.03x) | - | Thu / Fri 1.05x (1.0-1.08) | reliable / weak | 1.00x | 2.17x | stable |
+| **TD** | Toronto-Dominion Bank | 10.9 | 07:30-08:00 **07:30** 2.29x (range 2.62x) | 13:30-14:00 **13:30** 1.95x (range 1.04x) | - | Thu / Mon 1.11x (1.06-1.17) | reliable / weak | 1.15x | 2.35x | stable |
+| **TFC** | Truist Financial | 10.9 | 07:30-08:30 **07:30** 2.05x (range 2.60x) | 13:30-14:00 **13:30** 1.84x (range 1.04x) | - | Thu / Mon 1.11x (1.07-1.15) | reliable / reliable | 1.08x | 2.30x | stable |
+| **TPG** | TPG Inc. | 4.8 | 13:30-14:00 **13:30** 2.30x (range 1.12x) | 07:30-09:00 **07:30** 1.65x (range 2.77x) | - | Thu / Mon 1.14x (1.06-1.22) | reliable / reliable | 1.05x | 2.91x | stable |
+| **TROW** | T. Rowe Price | 10.9 | 07:30-08:00 **07:30** 2.08x (range 2.62x) | 13:30-14:00 **13:30** 2.05x (range 1.08x) | - | Thu / Mon 1.06x (1.03-1.11) | reliable / weak | 1.06x | 2.36x | stable |
+| **TRV** | Travelers Companies (The) | 10.9 | 13:30-14:00 **13:30** 2.11x (range 1.10x) | 07:30-08:30 **07:30** 2.03x (range 2.71x) | - | Thu / Mon 1.09x (1.05-1.13) | reliable / weak | 1.05x | 1.82x | shifted |
+| **TW** | Tradeweb Markets Inc. | 7.6 | 13:30-14:00 **13:30** 2.37x (range 1.18x) | 07:30-08:30 **07:30** 1.74x (range 2.68x) | - | Thu / Mon 1.06x (1.01-1.12) | reliable / reliable | 1.18x | 1.89x | stable |
+| **UBS** | UBS Group | 10.9 | 07:30-08:30 **07:30** 2.07x (range 1.88x) | 13:30-14:00 **13:30** 1.62x (range 1.00x) | 08:30-09:30 **09:00** 1.46x (range 1.31x) | Wed / Fri 1.08x (1.03-1.13) | reliable / weak | 1.13x | 2.35x | stable |
+| **UNM** | Unum Group | 10.9 | 13:30-14:00 **13:30** 2.13x (range 1.06x) | 07:30-08:30 **07:30** 1.94x (range 2.73x) | - | Thu / Mon 1.05x (1.01-1.09) | reliable / weak | 1.07x | 2.02x | stable |
+| **USB** | U.S. Bancorp | 10.9 | 07:30-08:00 **07:30** 2.12x (range 2.60x) | 13:30-14:00 **13:30** 1.88x (range 1.07x) | - | Wed / Mon 1.11x (1.07-1.16) | reliable / reliable | 1.09x | 2.34x | stable |
+| **V** | Visa Inc. | 10.9 | 07:30-08:00 **07:30** 2.39x (range 2.60x) | 13:30-14:30 **13:30** 1.76x (range 1.12x) | - | Thu / Mon 1.06x (1.01-1.1) | reliable / reliable | 1.00x | 1.94x | stable |
+| **WFC** | Wells Fargo | 10.9 | 07:30-08:00 **07:30** 2.21x (range 2.52x) | 13:30-14:30 **13:30** 1.70x (range 1.06x) | - | Wed / Mon 1.08x (1.05-1.13) | reliable / weak | 1.13x | 2.23x | stable |
+| **WRB** | W. R. Berkley Corporation | 10.9 | 13:30-14:00 **13:30** 2.40x (range 1.17x) | 07:30-08:30 **07:30** 1.69x (range 2.60x) | - | Thu / Mon 1.06x (1.01-1.1) | reliable / weak | 1.05x | 1.55x | stable |
+| **WTW** | Willis Towers Watson | 10.9 | 13:30-14:00 **13:30** 2.28x (range 1.21x) | 07:30-08:30 **07:30** 1.91x (range 2.83x) | - | Thu / Mon 1.07x (1.01-1.11) | reliable / weak | 1.02x | 1.70x | shifted |
+| **WULF** | TeraWulf Inc. | 6.1 | 07:30-08:00 **07:30** 2.44x (range 2.57x) | 13:30-14:00 **13:30** 1.36x (range 1.00x) | - | Mon / Thu 1.04x (0.98-1.11) | reliable / weak | 1.00x | 1.99x | stable |
+| **XP** | XP Inc. | 6.9 | 07:30-08:30 **07:30** 1.93x (range 2.59x) | 13:30-14:00 **13:30** 1.80x (range 1.00x) | - | Wed / Mon 1.12x (1.05-1.18) | reliable / weak | 1.20x | 1.89x | stable |
+| **XYZ** | Block, Inc. | 10.9 | 07:30-08:00 **07:30** 2.56x (range 2.79x) | 13:30-14:00 **13:30** 1.41x (range 0.89x) | - | Thu / Fri 1.06x (1.01-1.1) | reliable / weak | 1.23x | 2.09x | stable |
 
-### Health Care (70)
+### Health Care (108)
 
 | Symbol | Name | Years | Best 1 | Best 2 | Best 3 | Best / quiet day | Reliability (times / days) | NFP | FOMC | Era |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -325,7 +478,7 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **BAX** | Baxter International | 10.9 | 13:30-14:00 **13:30** 1.96x (range 1.04x) | 07:30-08:30 **07:30** 1.83x (range 2.48x) | - | Thu / Mon 1.08x (1.03-1.12) | reliable / reliable | 1.04x | 1.78x | stable |
 | **BBIO** | BridgeBio Pharma, Inc. | 7.4 | 13:30-14:00 **13:30** 2.08x (range 1.08x) | 07:30-08:30 **07:30** 1.85x (range 2.54x) | - | Fri / Wed 1.05x (1.0-1.11) | reliable / weak | 1.02x | 1.81x | stable |
 | **BDX** | Becton Dickinson | 10.9 | 13:30-14:00 **13:30** 2.01x (range 1.10x) | 07:30-08:30 **07:30** 1.95x (range 2.61x) | - | Thu / Mon 1.08x (1.03-1.12) | reliable / reliable | 1.10x | 1.79x | stable |
-| **BHC** | Bausch Health Companies Inc. | 10.9 | 07:30-08:00 **07:30** 2.20x (range 2.62x) | 13:30-14:00 **13:30** 1.67x (range 0.92x) | - | Wed / Fri 1.04x (1.0-1.1) | reliable / weak | 1.07x | 1.74x | stable |
+| **BHC** | Bausch Health Companies Inc. | 10.9 | 07:30-08:00 **07:30** 2.20x (range 2.63x) | 13:30-14:00 **13:30** 1.67x (range 0.92x) | - | Wed / Fri 1.04x (1.0-1.1) | reliable / weak | 1.07x | 1.74x | stable |
 | **BIIB** | Biogen | 10.9 | 07:30-08:00 **07:30** 2.21x (range 2.61x) | 13:30-14:00 **13:30** 1.92x (range 1.09x) | - | Thu / Tue 1.04x (1.0-1.08) | reliable / weak | 1.10x | 1.72x | stable |
 | **BMRN** | BioMarin Pharmaceutical Inc. | 10.9 | 07:30-08:30 **07:30** 1.99x (range 2.67x) | 13:30-14:00 **13:30** 1.96x (range 1.04x) | - | Thu / Mon 1.06x (1.01-1.11) | weak / weak | 0.98x | 1.63x | stable |
 | **BMY** | Bristol Myers Squibb | 10.9 | 07:30-08:00 **07:30** 2.21x (range 2.68x) | 13:30-14:00 **13:30** 1.81x (range 1.08x) | - | Thu / Mon 1.03x (1.0-1.08) | reliable / weak | 1.03x | 1.49x | stable |
@@ -377,12 +530,50 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **MEDP** | Medpace Holdings, Inc. | 10.3 | 13:30-14:00 **13:30** 2.13x (range 1.11x) | 07:30-08:30 **07:30** 1.77x (range 2.55x) | - | Wed / Mon 1.06x (1.0-1.12) | reliable / weak | 1.03x | 1.68x | stable |
 | **MMED** | MiniMed Group, Inc. | 0.7 | 13:30-14:00 **13:30** 2.53x (range 1.34x) | 07:30-08:30 **07:30** 1.69x (range 2.78x) | - | Mon / Thu 1.11x (0.87-1.3) | reliable / weak | 0.98x | 1.25x | stable |
 | **MRK** | Merck & Co. | 10.9 | 07:30-08:00 **07:30** 2.30x (range 2.73x) | 13:30-14:30 **13:30** 1.83x (range 1.12x) | - | Thu / Mon 1.04x (1.0-1.09) | reliable / weak | 0.99x | 1.69x | stable |
-| **MRNA** | Moderna | 2.2 | 07:30-08:00 **07:30** 2.55x (range 2.62x) | 13:30-14:00 **13:30** 1.34x (range 0.93x) | - | Wed / Fri 1.12x (0.99-1.24) | reliable / weak | 1.24x | 1.08x | stable |
+| **MRNA** | Moderna | 7.9 | 07:30-08:00 **07:30** 2.75x (range 2.94x) | 13:30-14:00 **13:30** 1.46x (range 0.92x) | - | Mon / Fri 1.06x (0.99-1.13) | reliable / weak | 1.04x | 2.02x | stable |
 | **MTD** | Mettler Toledo | 10.9 | 13:30-14:00 **13:30** 2.35x (range 1.24x) | 07:30-08:30 **07:30** 1.83x (range 2.59x) | - | Thu / Mon 1.09x (1.05-1.14) | reliable / reliable | 1.17x | 1.98x | stable |
-| **NBIX** | Neurocrine Biosciences, Inc. | 8.8 | 13:30-14:00 **13:30** 1.98x (range 1.03x) | 07:30-08:30 **07:30** 1.91x (range 2.70x) | - | Tue / Mon 1.01x (0.97-1.06) | reliable / weak | 1.12x | 1.72x | shifted |
+| **NBIX** | Neurocrine Biosciences, Inc. | 10.9 | 13:30-14:00 **13:30** 2.06x (range 1.07x) | 07:30-08:30 **07:30** 1.91x (range 2.72x) | - | Tue / Mon 1.03x (0.99-1.06) | reliable / weak | 1.12x | 1.74x | shifted |
+| **NTRA** | Natera, Inc. | 10.9 | 07:30-08:30 **07:30** 1.92x (range 2.63x) | 13:30-14:00 **13:30** 1.91x (range 1.00x) | - | Thu / Tue 1.03x (0.99-1.07) | reliable / weak | 1.07x | 1.52x | stable |
+| **NVO** | Novo Nordisk | 10.9 | 07:30-08:30 **07:30** 2.17x (range 2.08x) | 08:30-09:30 **08:30** 1.60x (range 1.54x) | 13:30-14:00 **13:30** 1.56x (range 0.97x) | Thu / Mon 1.05x (1.01-1.11) | reliable / weak | 1.16x | 1.95x | stable |
+| **NVS** | Novartis | 10.9 | 07:30-08:30 **07:30** 2.06x (range 1.94x) | 13:30-14:00 **13:30** 1.64x (range 1.03x) | 08:30-10:00 **09:00** 1.47x (range 1.34x) | Thu / Mon 1.07x (1.03-1.13) | reliable / weak | 1.02x | 2.22x | stable |
+| **ONC** | BeOne Medicines Ltd. | 10.8 | 07:30-08:00 **07:30** 2.18x (range 2.78x) | 13:30-14:00 **13:30** 2.01x (range 1.11x) | - | Wed / Fri 1.04x (0.99-1.1) | reliable / weak | 1.01x | 1.56x | stable |
+| **PCVX** | Vaxcyte, Inc. | 6.4 | 13:30-14:00 **13:30** 2.33x (range 1.16x) | 07:30-08:30 **07:30** 1.71x (range 2.52x) | - | Thu / Tue 1.07x (1.0-1.13) | reliable / weak | 0.94x | 1.84x | stable |
 | **PEN** | Penumbra, Inc. | 10.9 | 13:30-14:00 **13:30** 2.25x (range 1.10x) | 07:30-09:00 **07:30** 1.58x (range 2.45x) | - | Mon / Fri 1.04x (1.0-1.09) | reliable / weak | 1.04x | 1.74x | stable |
+| **PFE** | Pfizer | 10.9 | 07:30-08:00 **07:30** 2.33x (range 2.65x) | 13:30-14:30 **13:30** 1.71x (range 1.10x) | - | Tue / Fri 1.05x (1.0-1.08) | reliable / weak | 1.03x | 1.67x | stable |
+| **PHG** | Koninklijke Philips | 10.9 | 07:30-08:30 **07:30** 2.06x (range 1.91x) | 13:30-14:00 **13:30** 1.60x (range 0.98x) | - | Thu / Fri 1.06x (1.02-1.09) | reliable / weak | 1.08x | 2.79x | stable |
+| **PODD** | Insulet Corporation | 10.9 | 13:30-14:00 **13:30** 2.04x (range 1.01x) | 07:30-08:30 **07:30** 1.81x (range 2.66x) | - | Thu / Mon 1.08x (1.02-1.12) | reliable / weak | 1.11x | 1.76x | stable |
+| **QGEN** | QIAGEN N.V. | 10.9 | 13:30-14:00 **13:30** 2.24x (range 1.15x) | 07:30-08:30 **07:30** 1.93x (range 2.09x) | 09:00-10:30 **09:30** 1.10x (range 1.15x) | Thu / Mon 1.05x (1.01-1.11) | reliable / weak | 1.08x | 1.90x | stable |
+| **RDY** | Dr. Reddy's Laboratories | 10.9 | 13:30-14:00 **13:30** 2.35x (range 1.21x) | 07:30-08:00 **07:30** 2.15x (range 2.93x) | - | Thu / Mon 1.07x (1.03-1.12) | reliable / reliable | 1.03x | 1.72x | shifted |
+| **REGN** | Regeneron Pharmaceuticals | 10.9 | 07:30-08:00 **07:30** 2.25x (range 2.68x) | 13:30-14:00 **13:30** 1.89x (range 1.07x) | - | Thu / Wed 1.05x (1.0-1.1) | reliable / weak | 1.07x | 1.70x | stable |
+| **RGEN** | Repligen Corporation | 10.9 | 13:30-14:00 **13:30** 2.10x (range 1.03x) | 07:30-08:30 **07:30** 1.88x (range 2.67x) | - | Wed / Fri 1.04x (1.0-1.09) | reliable / weak | 1.12x | 1.70x | stable |
+| **RMD** | ResMed | 10.9 | 13:30-14:00 **13:30** 2.33x (range 1.10x) | 07:30-08:00 **07:30** 2.04x (range 2.72x) | - | Thu / Mon 1.05x (1.02-1.09) | reliable / reliable | 1.08x | 1.79x | stable |
+| **ROIV** | Roivant Sciences Ltd. | 5.9 | 13:30-14:00 **13:30** 2.14x (range 1.17x) | 07:30-08:30 **07:30** 1.97x (range 2.74x) | - | Mon / Thu 1.06x (0.98-1.15) | reliable / weak | 1.06x | 1.86x | stable |
+| **RPRX** | Royalty Pharma plc | 6.4 | 13:30-14:00 **13:30** 2.18x (range 1.18x) | 07:30-08:30 **07:30** 1.99x (range 2.71x) | - | Wed / Mon 1.07x (1.01-1.14) | reliable / weak | 1.03x | 1.74x | stable |
+| **RVMD** | Revolution Medicines, Inc. | 6.7 | 13:30-14:00 **13:30** 2.17x (range 1.12x) | 07:30-08:30 **07:30** 1.82x (range 2.60x) | - | Wed / Mon 1.07x (1.02-1.13) | reliable / weak | 1.07x | 1.97x | stable |
+| **RVTY** | Revvity | 10.9 | 13:30-14:00 **13:30** 2.22x (range 1.06x) | 07:30-08:30 **07:30** 1.87x (range 2.72x) | - | Thu / Mon 1.06x (1.01-1.11) | reliable / weak | 1.19x | 1.98x | stable |
+| **SNN** | Smith & Nephew | 10.9 | 07:30-09:30 **07:30** 1.89x (range 2.00x) | 13:30-14:00 **13:30** 1.72x (range 1.00x) | - | Thu / Mon 1.07x (1.02-1.12) | reliable / weak | 1.15x | 2.38x | stable |
+| **SNY** | Sanofi | 10.9 | 07:30-10:00 **07:30** 1.73x (range 1.75x) | 13:30-14:00 **13:30** 1.71x (range 1.10x) | - | Thu / Mon 1.09x (1.05-1.15) | weak / reliable | 1.03x | 2.24x | stable |
+| **SOLV** | Solventum | 2.6 | 13:30-14:00 **13:30** 2.34x (range 1.14x) | 07:30-08:30 **07:30** 1.85x (range 2.68x) | - | Fri / Tue 1.06x (0.93-1.15) | reliable / weak | 1.15x | 2.12x | stable |
+| **STE** | Steris | 10.9 | 13:30-14:00 **13:30** 2.31x (range 1.11x) | 07:30-08:30 **07:30** 1.73x (range 2.61x) | - | Thu / Wed 1.03x (0.99-1.06) | reliable / weak | 1.08x | 1.78x | stable |
+| **SYK** | Stryker Corporation | 10.9 | 13:30-14:00 **13:30** 2.07x (range 1.11x) | 07:30-08:30 **07:30** 1.99x (range 2.64x) | - | Thu / Mon 1.08x (1.03-1.11) | reliable / weak | 1.00x | 1.92x | stable |
+| **TAK** | Takeda Pharmaceutical | 7.9 | 07:30-08:00 **07:30** 2.06x (range 2.70x) | 13:30-14:00 **13:30** 1.91x (range 1.11x) | - | Mon / Fri 1.02x (0.98-1.1) | reliable / weak | 0.96x | 2.06x | stable |
+| **TECH** | Bio-Techne | 10.9 | 13:30-14:00 **13:30** 2.21x (range 1.11x) | 07:30-08:30 **07:30** 1.82x (range 2.75x) | - | Thu / Fri 1.06x (1.02-1.1) | reliable / weak | 1.26x | 1.72x | stable |
+| **THC** | Tenet Healthcare Corporation | 10.9 | 13:30-14:00 **13:30** 1.99x (range 0.97x) | 07:30-08:30 **07:30** 1.84x (range 2.68x) | - | Wed / Mon 1.04x (1.0-1.09) | reliable / weak | 1.04x | 1.67x | shifted |
+| **TMO** | Thermo Fisher Scientific | 10.9 | 07:30-08:00 **07:30** 2.30x (range 2.78x) | 13:30-14:00 **13:30** 1.86x (range 1.08x) | - | Wed / Mon 1.09x (1.04-1.14) | reliable / reliable | 1.10x | 1.87x | stable |
+| **TWST** | Twist Bioscience Corporation | 8.0 | 07:30-08:30 **07:30** 2.05x (range 2.62x) | 13:30-14:00 **13:30** 1.94x (range 1.03x) | - | Wed / Fri 1.03x (0.99-1.08) | reliable / weak | 1.41x | 2.17x | stable |
+| **UHS** | Universal Health Services | 10.9 | 13:30-14:00 **13:30** 2.17x (range 1.03x) | 07:30-08:30 **07:30** 1.79x (range 2.69x) | - | Tue / Mon 1.06x (1.02-1.11) | reliable / weak | 0.95x | 1.75x | shifted |
+| **UNH** | UnitedHealth Group | 10.9 | 07:30-08:00 **07:30** 2.36x (range 2.74x) | 13:30-14:00 **13:30** 1.75x (range 1.06x) | - | Fri / Mon 1.05x (1.02-1.09) | reliable / weak | 1.07x | 1.74x | stable |
+| **UTHR** | United Therapeutics Corporat | 10.9 | 13:30-14:00 **13:30** 2.25x (range 1.15x) | 07:30-08:30 **07:30** 1.93x (range 2.74x) | - | Wed / Fri 1.09x (1.04-1.13) | reliable / reliable | 1.05x | 1.70x | shifted |
+| **VEEV** | Veeva Systems | 10.9 | 07:30-08:30 **07:30** 2.06x (range 2.75x) | 13:30-14:00 **13:30** 1.91x (range 0.98x) | - | Thu / Fri 1.06x (1.01-1.1) | reliable / weak | 1.18x | 1.73x | stable |
+| **VKTX** | Viking Therapeutics, Inc. | 10.9 | 07:30-08:00 **07:30** 2.24x (range 2.44x) | 13:30-14:00 **13:30** 1.63x (range 1.03x) | - | Tue / Mon 1.04x (0.98-1.1) | reliable / weak | 1.06x | 1.51x | stable |
+| **VRTX** | Vertex Pharmaceuticals | 10.9 | 07:30-08:00 **07:30** 2.23x (range 2.73x) | 13:30-14:00 **13:30** 1.90x (range 1.06x) | - | Fri / Tue 1.03x (0.99-1.07) | reliable / weak | 1.13x | 1.74x | stable |
+| **VTRS** | Viatris | 6.0 | 13:30-14:00 **13:30** 2.12x (range 1.17x) | 07:30-08:00 **07:30** 2.07x (range 2.60x) | - | Wed / Fri 1.06x (1.01-1.11) | reliable / weak | 0.97x | 2.19x | stable |
+| **WAT** | Waters Corporation | 10.9 | 13:30-14:00 **13:30** 2.15x (range 1.08x) | 07:30-08:30 **07:30** 1.89x (range 2.68x) | - | Wed / Mon 1.08x (1.03-1.12) | reliable / reliable | 1.21x | 1.82x | stable |
+| **WST** | West Pharmaceutical Services | 10.9 | 13:30-14:00 **13:30** 2.26x (range 1.08x) | 07:30-08:30 **07:30** 1.78x (range 2.64x) | - | Thu / Mon 1.09x (1.03-1.13) | reliable / reliable | 1.00x | 1.68x | stable |
+| **ZBH** | Zimmer Biomet | 10.9 | 13:30-14:00 **13:30** 2.01x (range 1.03x) | 07:30-08:30 **07:30** 1.83x (range 2.59x) | - | Wed / Mon 1.06x (1.01-1.11) | reliable / weak | 1.11x | 2.03x | shifted |
+| **ZTS** | Zoetis | 10.9 | 07:30-08:00 **07:30** 2.02x (range 2.62x) | 13:30-14:00 **13:30** 1.91x (range 1.06x) | - | Thu / Mon 1.05x (1.02-1.09) | reliable / weak | 1.08x | 1.83x | stable |
 
-### Industrials (96)
+### Industrials (150)
 
 | Symbol | Name | Years | Best 1 | Best 2 | Best 3 | Best / quiet day | Reliability (times / days) | NFP | FOMC | Era |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -475,15 +666,69 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **LMT** | Lockheed Martin | 10.9 | 07:30-08:00 **07:30** 2.19x (range 2.59x) | 13:30-14:00 **13:30** 1.83x (range 1.08x) | - | Wed / Tue 1.04x (1.0-1.08) | reliable / weak | 1.01x | 1.62x | stable |
 | **LUV** | Southwest Airlines | 10.9 | 07:30-08:00 **07:30** 2.18x (range 2.68x) | 13:30-14:00 **13:30** 1.74x (range 0.99x) | - | Thu / Fri 1.08x (1.03-1.12) | reliable / weak | 1.06x | 1.85x | stable |
 | **LYFT** | Lyft, Inc. | 7.6 | 07:30-08:00 **07:30** 2.33x (range 2.67x) | 13:30-14:00 **13:30** 1.66x (range 0.99x) | - | Wed / Fri 1.06x (1.0-1.11) | reliable / reliable | 1.24x | 2.23x | stable |
-| **MAS** | Masco | 6.1 | 13:30-14:00 **13:30** 1.93x (range 1.00x) | 07:30-08:30 **07:30** 1.83x (range 2.50x) | - | Wed / Fri 1.11x (1.04-1.15) | reliable / reliable | 0.99x | 1.73x | stable |
+| **MAS** | Masco | 10.9 | 13:30-14:00 **13:30** 2.08x (range 1.05x) | 07:30-08:30 **07:30** 1.85x (range 2.62x) | - | Wed / Fri 1.10x (1.05-1.13) | reliable / reliable | 1.07x | 2.27x | stable |
 | **MDA** | MDA Space Ltd. | 0.7 | 07:30-08:00 **07:30** 2.36x (range 2.94x) | 13:30-14:00 **13:30** 1.83x (range 0.94x) | - | Thu / Mon 1.21x (1.01-1.43) | reliable / weak | 1.22x | 1.87x | stable |
 | **MMM** | 3M | 10.9 | 07:30-08:00 **07:30** 2.19x (range 2.53x) | 13:30-14:00 **13:30** 1.84x (range 1.05x) | - | Thu / Mon 1.04x (1.0-1.08) | reliable / weak | 1.06x | 2.04x | stable |
+| **MTZ** | MasTec, Inc. | 10.9 | 13:30-14:00 **13:30** 2.09x (range 1.00x) | 07:30-08:30 **07:30** 1.80x (range 2.59x) | - | Thu / Fri 1.09x (1.01-1.12) | reliable / reliable | 1.08x | 1.67x | stable |
+| **NDSN** | Nordson Corporation | 10.9 | 13:30-14:00 **13:30** 2.47x (range 1.20x) | 07:30-08:30 **07:30** 1.79x (range 2.69x) | - | Wed / Mon 1.08x (1.02-1.13) | reliable / reliable | 1.02x | 1.94x | stable |
+| **NOC** | Northrop Grumman | 10.9 | 13:30-14:00 **13:30** 2.00x (range 1.10x) | 07:30-08:30 **07:30** 1.99x (range 2.57x) | - | Thu / Mon 1.05x (1.0-1.12) | reliable / reliable | 0.95x | 1.69x | stable |
+| **NSC** | Norfolk Southern | 10.9 | 13:30-14:00 **13:30** 2.03x (range 1.09x) | 07:30-08:30 **07:30** 1.94x (range 2.60x) | - | Thu / Tue 1.03x (0.98-1.07) | reliable / weak | 1.04x | 1.99x | shifted |
+| **NVT** | nVent Electric plc | 8.5 | 13:30-14:00 **13:30** 2.22x (range 1.08x) | 07:30-09:00 **07:30** 1.67x (range 2.61x) | - | Thu / Mon 1.07x (1.02-1.13) | reliable / weak | 1.12x | 2.37x | stable |
+| **ODFL** | Old Dominion | 10.9 | 13:30-14:00 **13:30** 1.99x (range 1.02x) | 07:30-08:30 **07:30** 1.95x (range 2.72x) | - | Thu / Tue 1.05x (1.01-1.09) | reliable / weak | 1.05x | 1.87x | stable |
 | **OTIS** | Otis Worldwide | 6.6 | 13:30-14:00 **13:30** 2.19x (range 1.17x) | 07:30-08:30 **07:30** 1.98x (range 2.62x) | - | Thu / Mon 1.09x (1.02-1.14) | reliable / weak | 1.14x | 2.34x | stable |
+| **PAYX** | Paychex | 10.9 | 13:30-14:00 **13:30** 2.11x (range 1.13x) | 07:30-08:00 **07:30** 2.02x (range 2.58x) | - | Wed / Mon 1.05x (1.01-1.09) | reliable / weak | 1.01x | 2.00x | stable |
+| **PCAR** | Paccar | 10.9 | 07:30-08:00 **07:30** 2.10x (range 2.78x) | 13:30-14:00 **13:30** 2.08x (range 1.07x) | - | Thu / Mon 1.09x (1.04-1.13) | reliable / reliable | 1.10x | 1.87x | stable |
 | **PH** | Parker Hannifin | 10.9 | 13:30-14:00 **13:30** 1.96x (range 1.03x) | 07:30-08:30 **07:30** 1.92x (range 2.59x) | - | Thu / Mon 1.08x (1.02-1.11) | reliable / reliable | 1.16x | 2.04x | stable |
 | **PNR** | Pentair | 10.9 | 13:30-14:00 **13:30** 2.22x (range 1.07x) | 07:30-08:30 **07:30** 1.84x (range 2.61x) | - | Thu / Mon 1.11x (1.07-1.15) | reliable / weak | 1.09x | 2.09x | stable |
+| **POOL** | Pool Corporation | 10.9 | 13:30-14:00 **13:30** 2.14x (range 1.10x) | 07:30-08:30 **07:30** 1.82x (range 2.65x) | - | Thu / Mon 1.04x (1.0-1.09) | reliable / weak | 1.15x | 1.87x | stable |
 | **PWR** | Quanta Services | 10.9 | 13:30-14:00 **13:30** 1.98x (range 0.99x) | 07:30-08:30 **07:30** 1.87x (range 2.54x) | - | Thu / Mon 1.08x (1.03-1.13) | reliable / weak | 1.05x | 2.02x | stable |
+| **QXO** | QXO, Inc. | 7.2 | 07:30-08:00 **07:30** 2.18x (range 2.67x) | 13:30-14:00 **13:30** 1.80x (range 1.20x) | - | Wed / Mon 1.06x (0.97-1.18) | reliable / weak | 1.05x | 1.85x | stable |
+| **RBA** | RB Global, Inc. | 10.9 | 13:30-14:00 **13:30** 2.05x (range 1.02x) | 07:30-08:30 **07:30** 1.77x (range 2.58x) | - | Tue / Thu 1.04x (1.0-1.09) | reliable / weak | 1.08x | 1.73x | stable |
+| **RBC** | RBC Bearings Incorporated | 10.9 | 13:30-14:00 **13:30** 2.53x (range 1.19x) | 07:30-09:00 **07:30** 1.56x (range 2.49x) | - | Fri / Tue 1.05x (1.0-1.1) | reliable / weak | 1.06x | 1.86x | stable |
+| **RELX** | RELX plc | 10.9 | 07:30-09:30 **07:30** 1.93x (range 1.82x) | 13:30-14:00 **13:30** 1.56x (range 1.00x) | - | Thu / Mon 1.08x (1.05-1.12) | reliable / weak | 1.01x | 2.67x | stable |
+| **RKLB** | Rocket Lab | 5.9 | 07:30-08:00 **07:30** 2.75x (range 2.77x) | 13:30-14:00 **13:30** 1.36x (range 0.91x) | - | Thu / Fri 1.06x (0.99-1.14) | reliable / weak | 1.05x | 2.64x | stable |
+| **ROK** | Rockwell Automation | 10.9 | 13:30-14:00 **13:30** 2.00x (range 1.05x) | 07:30-08:30 **07:30** 1.93x (range 2.55x) | - | Thu / Mon 1.09x (1.05-1.14) | reliable / reliable | 0.99x | 2.22x | stable |
+| **ROL** | Rollins, Inc. | 10.9 | 13:30-14:00 **13:30** 2.23x (range 1.11x) | 07:30-08:30 **07:30** 1.77x (range 2.54x) | - | Wed / Mon 1.03x (0.99-1.09) | reliable / weak | 1.04x | 1.72x | stable |
+| **RRX** | Regal Rexnord Corporation | 10.9 | 13:30-14:00 **13:30** 2.40x (range 1.12x) | 07:30-09:00 **07:30** 1.58x (range 2.52x) | - | Thu / Mon 1.08x (1.03-1.13) | reliable / reliable | 1.06x | 1.77x | stable |
+| **RS** | Reliance, Inc. | 10.9 | 13:30-14:00 **13:30** 2.37x (range 1.09x) | 07:30-08:30 **07:30** 1.79x (range 2.67x) | - | Thu / Mon 1.05x (0.99-1.1) | reliable / weak | 1.02x | 1.96x | stable |
+| **RSG** | Republic Services | 10.9 | 13:30-14:00 **13:30** 2.25x (range 1.17x) | 07:30-08:30 **07:30** 1.90x (range 2.66x) | - | Wed / Mon 1.07x (1.02-1.12) | reliable / reliable | 1.05x | 1.67x | stable |
+| **RTX** | RTX Corporation | 10.9 | 07:30-08:00 **07:30** 2.11x (range 2.59x) | 13:30-14:00 **13:30** 1.83x (range 1.09x) | - | Thu / Fri 1.03x (0.99-1.06) | reliable / weak | 1.02x | 1.85x | stable |
+| **SEI** | Solaris Energy Infrastructur | 9.5 | 13:30-14:00 **13:30** 1.94x (range 1.00x) | 07:30-08:30 **07:30** 1.92x (range 2.56x) | - | Wed / Mon 1.09x (1.03-1.14) | reliable / weak | 1.07x | 1.70x | stable |
+| **SMR** | NuScale Power Corporation | 5.9 | 07:30-08:00 **07:30** 2.71x (range 2.73x) | 13:30-14:00 **13:30** 1.44x (range 1.00x) | - | Tue / Wed 1.06x (1.01-1.17) | reliable / weak | 1.03x | 2.20x | stable |
+| **SNA** | Snap-on | 10.9 | 13:30-14:00 **13:30** 2.21x (range 1.09x) | 07:30-08:30 **07:30** 1.78x (range 2.52x) | - | Thu / Mon 1.04x (0.99-1.08) | reliable / weak | 1.09x | 1.86x | stable |
+| **SNX** | TD SYNNEX Corporation | 10.9 | 13:30-14:00 **13:30** 2.38x (range 1.09x) | 07:30-09:00 **07:30** 1.62x (range 2.46x) | - | Wed / Mon 1.04x (0.99-1.08) | reliable / weak | 1.03x | 1.88x | stable |
+| **SPXC** | SPX Technologies, Inc. | 10.9 | 13:30-14:00 **13:30** 2.60x (range 1.19x) | 07:30-09:00 **07:30** 1.58x (range 2.48x) | - | Fri / Wed 1.01x (0.96-1.06) | reliable / weak | 1.14x | 1.70x | stable |
+| **STN** | Stantec Inc. | 10.9 | 07:30-08:00 **07:30** 2.40x (range 3.00x) | 13:30-14:00 **13:30** 2.24x (range 1.24x) | - | Wed / Fri 1.07x (1.01-1.12) | reliable / weak | 0.99x | 1.92x | stable |
+| **STRL** | Sterling Infrastructure, Inc | 10.9 | 07:30-08:00 **07:30** 2.09x (range 2.56x) | 13:30-14:00 **13:30** 1.91x (range 1.05x) | - | Tue / Fri 1.05x (1.0-1.11) | reliable / weak | 1.12x | 1.87x | stable |
+| **SUNB** | Sunbelt Rentals Holdings, In | 0.7 | 13:30-14:00 **13:30** 1.98x (range 1.20x) | 07:30-08:30 **07:30** 1.91x (range 2.40x) | 08:30-10:00 **09:00** 1.31x (range 1.19x) | Thu / Mon 1.28x (1.06-1.37) | reliable / reliable | 1.22x | 1.57x | stable |
+| **SWK** | Stanley Black & Decker | 10.9 | 13:30-14:00 **13:30** 2.00x (range 1.02x) | 07:30-08:30 **07:30** 1.87x (range 2.59x) | - | Thu / Mon 1.07x (1.02-1.12) | reliable / weak | 1.02x | 2.01x | stable |
+| **TDG** | TransDigm Group | 10.9 | 13:30-14:00 **13:30** 2.14x (range 1.08x) | 07:30-08:30 **07:30** 1.74x (range 2.47x) | - | Tue / Fri 1.05x (1.02-1.11) | reliable / weak | 1.08x | 1.70x | stable |
+| **TFII** | TFI International Inc. | 6.7 | 13:30-14:00 **13:30** 2.17x (range 1.04x) | 07:30-08:30 **07:30** 1.89x (range 2.71x) | - | Thu / Mon 1.04x (0.97-1.1) | reliable / weak | 1.11x | 2.25x | stable |
+| **TOL** | Toll Brothers, Inc. | 10.9 | 13:30-14:00 **13:30** 1.97x (range 0.98x) | 07:30-08:30 **07:30** 1.97x (range 2.67x) | - | Wed / Mon 1.12x (1.07-1.17) | reliable / reliable | 1.14x | 2.27x | stable |
+| **TRU** | TransUnion | 10.9 | 13:30-14:00 **13:30** 2.18x (range 1.08x) | 07:30-09:00 **07:30** 1.60x (range 2.55x) | - | Thu / Fri 1.06x (1.01-1.1) | reliable / weak | 0.98x | 2.02x | stable |
+| **TT** | Trane Technologies | 10.9 | 13:30-14:00 **13:30** 1.97x (range 1.06x) | 07:30-08:30 **07:30** 1.96x (range 2.62x) | - | Thu / Mon 1.06x (1.02-1.11) | reliable / weak | 1.13x | 2.09x | stable |
+| **TXT** | Textron | 10.9 | 13:30-14:00 **13:30** 2.18x (range 1.09x) | 07:30-09:00 **07:30** 1.67x (range 2.53x) | - | Wed / Mon 1.07x (1.03-1.1) | reliable / weak | 0.96x | 2.02x | stable |
+| **UAL** | United Airlines Holdings | 10.9 | 07:30-08:00 **07:30** 2.49x (range 2.81x) | 13:30-14:00 **13:30** 1.59x (range 0.93x) | - | Thu / Fri 1.12x (1.06-1.17) | reliable / reliable | 1.13x | 1.97x | stable |
+| **UBER** | Uber | 7.5 | 07:30-08:00 **07:30** 2.45x (range 2.73x) | 13:30-14:30 **13:30** 1.46x (range 0.94x) | - | Thu / Mon 1.06x (1.0-1.11) | reliable / weak | 1.32x | 2.24x | stable |
+| **UNP** | Union Pacific Corporation | 10.9 | 07:30-08:00 **07:30** 2.05x (range 2.63x) | 13:30-14:00 **13:30** 1.89x (range 1.08x) | - | Thu / Mon 1.07x (1.03-1.12) | reliable / weak | 1.00x | 1.84x | stable |
+| **UPS** | United Parcel Service | 10.9 | 07:30-08:00 **07:30** 2.03x (range 2.47x) | 13:30-14:00 **13:30** 1.84x (range 1.07x) | - | Tue / Mon 1.03x (1.0-1.07) | reliable / weak | 1.00x | 2.07x | stable |
+| **URI** | United Rentals | 10.9 | 07:30-08:30 **07:30** 2.10x (range 2.65x) | 13:30-14:00 **13:30** 1.82x (range 0.97x) | - | Thu / Mon 1.08x (1.05-1.12) | reliable / reliable | 1.06x | 2.22x | stable |
+| **VIK** | Viking Holdings Ltd | 2.5 | 13:30-14:00 **13:30** 2.20x (range 1.11x) | 07:30-08:30 **07:30** 1.84x (range 2.67x) | - | Wed / Mon 1.08x (0.96-1.14) | reliable / weak | 1.07x | 2.28x | stable |
+| **VLTO** | Veralto | 3.1 | 13:30-14:00 **13:30** 2.42x (range 1.21x) | 07:30-08:30 **07:30** 1.88x (range 2.89x) | - | Thu / Fri 1.12x (1.03-1.2) | reliable / weak | 1.30x | 2.19x | stable |
+| **VRSK** | Verisk Analytics | 10.9 | 13:30-14:00 **13:30** 2.15x (range 1.13x) | 07:30-08:00 **07:30** 2.05x (range 2.80x) | - | Wed / Mon 1.05x (1.01-1.09) | reliable / reliable | 1.11x | 2.09x | stable |
+| **VRT** | Vertiv | 7.0 | 07:30-08:30 **07:30** 2.26x (range 2.80x) | 13:30-14:00 **13:30** 1.71x (range 0.98x) | - | Thu / Mon 1.15x (1.08-1.23) | reliable / reliable | 1.05x | 2.35x | stable |
+| **WAB** | Wabtec | 10.9 | 13:30-14:00 **13:30** 2.10x (range 1.03x) | 07:30-08:30 **07:30** 1.80x (range 2.62x) | - | Wed / Mon 1.04x (1.0-1.07) | reliable / weak | 1.01x | 1.93x | shifted |
+| **WCC** | Wesco International Inc. | 10.9 | 13:30-14:00 **13:30** 2.23x (range 1.05x) | 07:30-09:00 **07:30** 1.69x (range 2.58x) | - | Wed / Mon 1.07x (1.03-1.12) | reliable / reliable | 1.06x | 2.13x | stable |
+| **WCN** | Waste Connections Inc. | 10.9 | 13:30-14:00 **13:30** 2.16x (range 1.09x) | 07:30-08:30 **07:30** 1.92x (range 2.63x) | - | Wed / Mon 1.09x (1.03-1.13) | reliable / weak | 1.10x | 1.69x | stable |
+| **WM** | Waste Management | 10.9 | 07:30-08:00 **07:30** 2.06x (range 2.59x) | 13:30-14:00 **13:30** 2.04x (range 1.13x) | - | Thu / Mon 1.11x (1.04-1.15) | reliable / reliable | 1.01x | 1.72x | stable |
+| **WSO** | Watsco, Inc. | 10.9 | 13:30-14:00 **13:30** 2.38x (range 1.12x) | 07:30-09:00 **07:30** 1.53x (range 2.44x) | - | Tue / Fri 1.04x (0.99-1.08) | reliable / weak | 1.04x | 1.90x | stable |
+| **WWD** | Woodward, Inc. | 10.9 | 13:30-14:00 **13:30** 2.32x (range 1.12x) | 07:30-08:30 **07:30** 1.89x (range 2.80x) | - | Wed / Mon 1.03x (0.99-1.08) | reliable / weak | 1.15x | 1.96x | stable |
+| **XPO** | XPO, Inc. | 10.9 | 13:30-14:00 **13:30** 1.91x (range 0.94x) | 07:30-08:30 **07:30** 1.84x (range 2.59x) | - | Thu / Fri 1.03x (0.99-1.07) | weak / weak | 1.08x | 1.93x | shifted |
+| **XYL** | Xylem Inc. | 10.9 | 13:30-14:00 **13:30** 2.09x (range 1.07x) | 07:30-08:30 **07:30** 1.96x (range 2.66x) | - | Tue / Mon 1.04x (1.0-1.09) | reliable / weak | 1.10x | 2.06x | stable |
+| **Z** | Zillow Group, Inc. Class C C | 10.9 | 07:30-08:30 **07:30** 2.09x (range 2.69x) | 13:30-14:00 **13:30** 1.80x (range 0.94x) | - | Wed / Mon 1.08x (1.03-1.13) | reliable / weak | 1.24x | 1.87x | stable |
+| **ZTO** | ZTO Express | 10.0 | 07:30-08:00 **07:30** 2.77x (range 3.69x) | 13:30-14:00 **13:30** 2.02x (range 1.06x) | - | Thu / Fri 1.05x (1.0-1.09) | reliable / weak | 1.05x | 1.75x | stable |
 
-### Information Technology (113)
+### Information Technology (186)
 
 | Symbol | Name | Years | Best 1 | Best 2 | Best 3 | Best / quiet day | Reliability (times / days) | NFP | FOMC | Era |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -505,7 +750,7 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **APLD** | Applied Digital Corporation | 4.6 | 07:30-08:00 **07:30** 2.49x (range 2.63x) | 13:30-14:00 **13:30** 1.38x (range 0.93x) | - | Wed / Thu 1.02x (0.97-1.09) | reliable / weak | 1.06x | 2.29x | stable |
 | **ARM** | Arm Holdings | 3.2 | 07:30-08:00 **07:30** 2.96x (range 2.98x) | 13:30-14:00 **13:30** 1.51x (range 0.97x) | - | Thu / Mon 1.12x (0.99-1.23) | reliable / weak | 1.14x | 2.82x | stable |
 | **ASML** | ASML Holding | 10.9 | 07:30-08:00 **07:30** 2.46x (range 2.02x) | 13:30-14:00 **13:30** 1.73x (range 1.07x) | - | Thu / Mon 1.09x (1.05-1.16) | reliable / weak | 1.10x | 2.34x | stable |
-| **ASX** | ASE Technology Holding | 10.9 | 07:30-08:00 **07:30** 2.11x (range 2.50x) | 13:30-14:00 **13:30** 1.96x (range 1.12x) | - | Thu / Tue 1.08x (1.02-1.13) | reliable / weak | 1.02x | 2.19x | stable |
+| **ASX** | ASE Technology Holding | 10.9 | 07:30-08:00 **07:30** 2.11x (range 2.50x) | 13:30-14:00 **13:30** 1.96x (range 1.13x) | - | Thu / Tue 1.08x (1.02-1.13) | reliable / weak | 1.02x | 2.19x | stable |
 | **AUR** | Aurora Innovation, Inc. | 5.5 | 07:30-08:30 **07:30** 2.09x (range 2.55x) | 13:30-14:00 **13:30** 1.66x (range 1.00x) | - | Thu / Tue 1.08x (0.99-1.15) | reliable / weak | 1.10x | 2.08x | stable |
 | **AVGO** | Broadcom | 10.9 | 07:30-08:00 **07:30** 2.43x (range 2.52x) | 13:30-14:30 **13:30** 1.76x (range 1.08x) | - | Thu / Mon 1.11x (1.07-1.15) | reliable / weak | 1.14x | 2.04x | stable |
 | **AVTR** | Avantor, Inc. | 7.5 | 13:30-14:00 **13:30** 1.99x (range 1.06x) | 07:30-08:30 **07:30** 1.84x (range 2.70x) | - | Wed / Mon 1.10x (1.03-1.16) | reliable / reliable | 1.19x | 1.83x | stable |
@@ -530,7 +775,7 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **CTSH** | Cognizant | 10.9 | 07:30-08:00 **07:30** 2.19x (range 2.72x) | 13:30-14:00 **13:30** 2.00x (range 1.10x) | - | Thu / Mon 1.07x (1.03-1.11) | reliable / weak | 1.13x | 1.95x | stable |
 | **DDOG** | Datadog | 7.2 | 07:30-08:00 **07:30** 2.64x (range 3.02x) | 13:30-14:00 **13:30** 1.65x (range 0.93x) | - | Thu / Tue 1.06x (1.0-1.13) | reliable / weak | 1.15x | 2.15x | stable |
 | **DELL** | Dell Technologies | 7.9 | 07:30-08:30 **07:30** 2.19x (range 2.61x) | 13:30-14:00 **13:30** 1.76x (range 1.03x) | - | Thu / Mon 1.09x (1.02-1.13) | reliable / reliable | 1.08x | 2.02x | stable |
-| **DOCN** | DigitalOcean Holdings, Inc. | 5.6 | 07:30-08:30 **07:30** 2.09x (range 2.69x) | 13:30-14:00 **13:30** 1.94x (range 0.98x) | - | Wed / Tue 1.07x (0.97-1.11) | reliable / weak | 1.21x | 3.10x | stable |
+| **DOCN** | DigitalOcean Holdings, Inc. | 5.6 | 07:30-08:30 **07:30** 2.09x (range 2.69x) | 13:30-14:00 **13:30** 1.95x (range 0.98x) | - | Wed / Tue 1.07x (0.97-1.11) | reliable / weak | 1.21x | 3.10x | stable |
 | **DOCU** | DocuSign, Inc. | 8.5 | 07:30-08:00 **07:30** 2.39x (range 2.85x) | 13:30-14:00 **13:30** 1.70x (range 0.96x) | - | Thu / Fri 1.06x (1.01-1.1) | reliable / reliable | 1.25x | 1.92x | stable |
 | **DSGX** | Descartes Systems Group Inc. | 10.9 | 13:30-14:00 **13:30** 2.07x (range 1.08x) | 07:30-08:00 **07:30** 1.95x (range 2.69x) | - | Thu / Fri 1.05x (1.01-1.1) | reliable / weak | 1.19x | 1.81x | stable |
 | **DT** | Dynatrace, Inc. | 7.3 | 07:30-08:30 **07:30** 1.99x (range 2.82x) | 13:30-14:00 **13:30** 1.95x (range 1.00x) | - | Thu / Mon 1.07x (1.0-1.11) | reliable / weak | 1.17x | 2.15x | stable |
@@ -581,27 +826,100 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **MKSI** | MKS Inc. | 10.9 | 13:30-14:00 **13:30** 2.15x (range 1.07x) | 07:30-08:30 **07:30** 1.95x (range 2.64x) | - | Thu / Mon 1.10x (1.05-1.15) | reliable / weak | 0.91x | 2.04x | shifted |
 | **MPWR** | Monolithic Power Systems | 10.9 | 13:30-14:00 **13:30** 2.16x (range 1.09x) | 07:30-08:30 **07:30** 2.00x (range 2.61x) | - | Thu / Tue 1.02x (0.97-1.06) | reliable / weak | 0.98x | 2.14x | shifted |
 | **MRVL** | Marvell Technology | 10.9 | 07:30-08:00 **07:30** 2.34x (range 2.60x) | 13:30-14:00 **13:30** 1.72x (range 1.00x) | - | Thu / Mon 1.09x (1.05-1.15) | reliable / reliable | 1.11x | 1.99x | stable |
-| **MSFT** | Microsoft | 2.0 | 07:30-08:00 **07:30** 2.48x (range 2.48x) | 13:30-14:30 **13:30** 1.70x (range 1.10x) | - | Fri / Mon 1.12x (1.05-1.24) | reliable / weak | 1.12x | 1.60x | stable |
+| **MSFT** | Microsoft | 10.9 | 07:30-08:00 **07:30** 2.54x (range 2.43x) | 13:30-14:30 **14:00** 1.72x (range 0.62x) | - | Fri / Mon 1.07x (1.03-1.12) | reliable / reliable | 1.10x | 2.19x | stable |
 | **MSI** | Motorola Solutions | 10.9 | 13:30-14:00 **13:30** 2.22x (range 1.13x) | 07:30-08:30 **07:30** 1.81x (range 2.50x) | - | Thu / Mon 1.05x (1.0-1.09) | reliable / weak | 1.18x | 1.76x | stable |
 | **MSTR** | MicroStrategy | 10.9 | 07:30-08:30 **07:30** 2.10x (range 2.23x) | 13:30-14:00 **13:30** 1.66x (range 1.00x) | - | Fri / Tue 1.08x (1.01-1.12) | weak / weak | 1.12x | 2.00x | shifted |
 | **MTCH** | Match Group, Inc. | 10.9 | 07:30-08:30 **07:30** 2.02x (range 2.64x) | 13:30-14:00 **13:30** 1.85x (range 1.00x) | - | Wed / Fri 1.03x (0.98-1.07) | reliable / weak | 1.11x | 2.04x | stable |
-| **MU** | Micron Technology | 6.8 | 07:30-08:00 **07:30** 2.95x (range 2.85x) | 13:30-14:30 **13:30** 1.37x (range 0.91x) | - | Wed / Mon 1.05x (1.02-1.12) | reliable / reliable | 1.00x | 1.72x | stable |
+| **MTSI** | MACOM Technology Solutions H | 10.9 | 13:30-14:00 **13:30** 1.98x (range 1.00x) | 07:30-08:30 **07:30** 1.85x (range 2.59x) | - | Thu / Tue 1.06x (1.01-1.11) | weak / weak | 1.13x | 2.04x | shifted |
+| **MU** | Micron Technology | 10.9 | 07:30-08:00 **07:30** 2.91x (range 2.82x) | 13:30-14:30 **13:30** 1.41x (range 0.94x) | - | Thu / Mon 1.06x (1.02-1.11) | reliable / weak | 1.01x | 2.15x | stable |
 | **MXL** | MaxLinear, Inc. | 10.9 | 13:30-14:00 **13:30** 2.01x (range 1.00x) | 07:30-08:30 **07:30** 1.91x (range 2.60x) | - | Tue / Fri 1.03x (0.98-1.07) | reliable / weak | 1.01x | 1.88x | stable |
 | **NBIS** | Nebius Group | 10.9 | 07:30-08:00 **07:30** 2.58x (range 2.62x) | 13:30-14:00 **13:30** 1.51x (range 0.91x) | - | Thu / Mon 1.05x (0.98-1.11) | reliable / weak | 1.05x | 1.61x | stable |
 | **NET** | Cloudflare, Inc. | 7.2 | 07:30-08:00 **07:30** 2.47x (range 2.86x) | 13:30-14:00 **13:30** 1.63x (range 0.94x) | - | Thu / Wed 1.06x (1.01-1.14) | reliable / reliable | 1.25x | 2.00x | stable |
+| **NOK** | Nokia | 10.9 | 07:30-09:30 **07:30** 1.95x (range 1.75x) | 13:30-14:00 **13:30** 1.36x (range 1.00x) | - | Thu / Mon 1.11x (1.06-1.16) | reliable / reliable | 0.98x | 1.96x | stable |
 | **NOW** | ServiceNow | 10.9 | 07:30-08:00 **07:30** 2.34x (range 2.82x) | 13:30-14:00 **13:30** 1.69x (range 0.96x) | - | Thu / Mon 1.06x (1.02-1.11) | reliable / weak | 1.19x | 1.93x | stable |
+| **NTAP** | NetApp | 10.9 | 07:30-08:00 **07:30** 2.09x (range 2.70x) | 13:30-14:00 **13:30** 1.97x (range 1.03x) | - | Thu / Mon 1.02x (0.99-1.07) | reliable / weak | 1.04x | 1.84x | stable |
 | **NTNX** | Nutanix, Inc. | 10.1 | 07:30-08:30 **07:30** 2.16x (range 2.70x) | 13:30-14:00 **13:30** 1.73x (range 0.95x) | - | Thu / Mon 1.03x (0.99-1.07) | reliable / weak | 1.09x | 1.92x | stable |
+| **NTSK** | Netskope, Inc. | 1.2 | 07:30-08:00 **07:30** 2.23x (range 2.95x) | 13:30-14:00 **13:30** 2.00x (range 1.15x) | - | Thu / Wed 1.09x (0.97-1.24) | reliable / weak | 1.17x | 1.59x | stable |
+| **NVDA** | Nvidia | 10.9 | 07:30-08:00 **07:30** 2.71x (range 2.61x) | 13:00-14:30 **13:30** 1.25x (range 0.96x) | - | Thu / Tue 1.04x (1.0-1.07) | reliable / weak | 1.03x | 1.98x | stable |
 | **NVTS** | Navitas Semiconductor Corpor | 5.8 | 07:30-08:00 **07:30** 2.57x (range 2.83x) | 13:30-14:00 **13:30** 1.53x (range 1.00x) | - | Wed / Mon 1.06x (0.98-1.1) | reliable / weak | 1.15x | 2.61x | stable |
+| **NXPI** | NXP Semiconductors | 10.9 | 07:30-08:00 **07:30** 2.19x (range 2.60x) | 13:30-14:00 **13:30** 1.99x (range 1.12x) | - | Thu / Mon 1.09x (1.05-1.14) | reliable / weak | 1.02x | 2.02x | stable |
 | **NXT** | Nextpower Inc. | 3.8 | 07:30-08:30 **07:30** 2.04x (range 2.74x) | 13:30-14:00 **13:30** 1.87x (range 0.98x) | - | Wed / Mon 1.06x (1.01-1.17) | reliable / weak | 1.16x | 2.47x | stable |
+| **OKTA** | Okta, Inc. | 9.6 | 07:30-08:00 **07:30** 2.46x (range 2.85x) | 13:30-14:00 **13:30** 1.68x (range 0.94x) | - | Mon / Fri 1.04x (0.99-1.08) | reliable / weak | 1.17x | 1.80x | stable |
+| **ON** | ON Semiconductor | 10.9 | 07:30-08:00 **07:30** 2.30x (range 2.64x) | 13:30-14:00 **13:30** 1.80x (range 1.00x) | - | Wed / Mon 1.07x (1.02-1.12) | reliable / weak | 1.10x | 2.04x | stable |
+| **ONDS** | Ondas Inc. | 5.9 | 07:30-08:00 **07:30** 2.17x (range 2.40x) | 13:00-14:00 **13:30** 1.33x (range 1.00x) | - | Wed / Thu 1.04x (0.94-1.11) | reliable / weak | 1.11x | 1.44x | stable |
+| **ONTO** | Onto Innovation Inc. | 10.9 | 13:30-14:00 **13:30** 2.18x (range 1.08x) | 07:30-08:30 **07:30** 1.97x (range 2.65x) | - | Wed / Mon 1.06x (1.01-1.1) | reliable / weak | 0.98x | 1.88x | shifted |
+| **ORCL** | Oracle Corporation | 10.9 | 07:30-08:00 **07:30** 2.21x (range 2.58x) | 13:30-14:30 **13:30** 1.72x (range 1.07x) | - | Thu / Mon 1.05x (1.01-1.11) | reliable / reliable | 1.04x | 1.80x | stable |
 | **OTEX** | Open Text Corporation | 10.9 | 07:30-08:00 **07:30** 2.13x (range 2.73x) | 13:30-14:00 **13:30** 1.98x (range 1.00x) | - | Wed / Fri 1.07x (1.05-1.12) | reliable / weak | 1.45x | 2.05x | stable |
-| **P** | Everpure | 4.7 | 07:30-08:30 **07:30** 1.90x (range 2.50x) | 13:30-14:00 **13:30** 1.71x (range 0.92x) | - | Wed / Tue 1.04x (0.99-1.12) | reliable / weak | 0.89x | 1.25x | stable |
+| **P** | Everpure | 10.9 | 07:30-08:30 **07:30** 1.99x (range 2.57x) | 13:30-14:00 **13:30** 1.88x (range 0.98x) | - | Thu / Tue 1.06x (1.01-1.1) | reliable / weak | 1.03x | 2.04x | stable |
 | **PANW** | Palo Alto Networks | 10.9 | 07:30-08:00 **07:30** 2.37x (range 2.77x) | 13:30-14:00 **13:30** 1.61x (range 0.93x) | - | Thu / Tue 1.04x (0.99-1.08) | reliable / weak | 1.16x | 1.76x | stable |
-| **PAYC** | PAYCOM SOFTWARE, INC. | 9.1 | 13:30-14:00 **13:30** 1.94x (range 0.96x) | 07:30-08:30 **07:30** 1.88x (range 2.56x) | - | Thu / Fri 1.05x (1.01-1.1) | weak / weak | 1.22x | 2.10x | shifted |
+| **PATH** | UiPath, Inc. | 5.6 | 07:30-08:00 **07:30** 2.33x (range 2.89x) | 13:30-14:00 **13:30** 1.60x (range 0.95x) | - | Thu / Wed 1.05x (0.99-1.11) | reliable / weak | 1.36x | 2.67x | stable |
+| **PAYC** | PAYCOM SOFTWARE, INC. | 10.9 | 13:30-14:00 **13:30** 2.03x (range 0.99x) | 07:30-08:30 **07:30** 1.88x (range 2.64x) | - | Thu / Fri 1.05x (1.01-1.09) | reliable / reliable | 1.23x | 2.04x | shifted |
 | **PCOR** | Procore Technologies, Inc. | 5.5 | 13:30-14:00 **13:30** 2.15x (range 1.02x) | 07:30-08:30 **07:30** 1.78x (range 2.77x) | - | Thu / Mon 1.08x (1.03-1.16) | reliable / weak | 1.25x | 2.77x | stable |
+| **PDD** | PDD Holdings | 8.3 | 07:30-08:00 **07:30** 3.64x (range 3.69x) | 13:30-14:00 **13:30** 1.41x (range 0.91x) | - | Wed / Thu 1.03x (0.97-1.12) | reliable / weak | 1.06x | 1.83x | stable |
 | **PENG** | Penguin Solutions, Inc. | 9.5 | 13:30-14:00 **13:30** 2.07x (range 1.09x) | 07:30-08:00 **07:30** 2.00x (range 2.56x) | - | Mon / Tue 1.02x (0.94-1.07) | weak / weak | 1.08x | 1.76x | shifted |
-| **QCOM** | Qualcomm | 3.2 | 07:30-08:00 **07:30** 2.36x (range 2.63x) | 13:30-14:00 **13:30** 1.66x (range 1.04x) | - | Wed / Mon 1.12x (1.03-1.21) | reliable / reliable | 0.80x | 1.73x | stable |
+| **PINS** | Pinterest, Inc. | 7.6 | 07:30-08:00 **07:30** 2.33x (range 2.78x) | 13:30-14:00 **13:30** 1.68x (range 0.98x) | - | Thu / Fri 1.10x (1.04-1.14) | reliable / weak | 1.23x | 2.13x | stable |
+| **PLTR** | Palantir Technologies | 6.1 | 07:30-08:00 **07:30** 2.84x (range 2.94x) | 13:00-14:00 **13:30** 1.15x (range 0.85x) | - | Thu / Mon 1.05x (0.98-1.12) | reliable / weak | 1.18x | 2.81x | stable |
+| **PTC** | PTC Inc. | 10.9 | 13:30-14:00 **13:30** 2.12x (range 1.06x) | 07:30-08:30 **07:30** 1.94x (range 2.67x) | - | Thu / Tue 1.06x (1.02-1.12) | reliable / weak | 1.10x | 2.04x | stable |
+| **Q** | Qnity Electronics | 1.0 | 07:30-08:30 **07:30** 2.03x (range 2.81x) | 13:30-14:00 **13:30** 1.93x (range 1.00x) | - | Thu / Fri 1.19x (1.06-1.37) | reliable / weak | 1.08x | 2.47x | stable |
+| **QBTS** | D-Wave Quantum Inc. | 5.9 | 07:30-08:00 **07:30** 2.49x (range 2.42x) | 13:30-14:00 **13:30** 1.25x (range 1.00x) | - | Fri / Tue 1.02x (0.9-1.1) | reliable / weak | 0.81x | 1.84x | stable |
+| **QCOM** | Qualcomm | 10.9 | 07:30-08:00 **07:30** 2.43x (range 2.56x) | 13:30-14:30 **13:30** 1.74x (range 1.08x) | - | Thu / Mon 1.05x (1.01-1.09) | reliable / weak | 0.98x | 2.31x | stable |
+| **QLYS** | Qualys, Inc. | 10.9 | 13:30-14:00 **13:30** 2.10x (range 1.05x) | 07:30-08:30 **07:30** 1.95x (range 2.67x) | - | Mon / Thu 1.05x (1.0-1.1) | reliable / weak | 1.12x | 2.02x | shifted |
+| **RBLX** | Roblox Corporation | 5.7 | 07:30-08:00 **07:30** 2.53x (range 2.95x) | 13:30-14:00 **13:30** 1.60x (range 0.96x) | - | Mon / Tue 1.04x (0.97-1.1) | reliable / weak | 1.25x | 2.28x | stable |
+| **RBRK** | Rubrik, Inc. | 2.6 | 07:30-08:00 **07:30** 2.34x (range 2.94x) | 13:30-14:00 **13:30** 1.88x (range 1.05x) | - | Fri / Wed 1.09x (1.01-1.19) | reliable / weak | 1.07x | 1.93x | stable |
+| **RGTI** | Rigetti Computing, Inc. | 5.1 | 07:30-08:00 **07:30** 2.58x (range 2.49x) | 13:30-14:00 **13:30** 1.31x (range 1.00x) | - | Thu / Fri 1.08x (0.97-1.2) | reliable / weak | 1.04x | 1.82x | stable |
+| **RMBS** | Rambus Inc. | 10.9 | 13:30-14:00 **13:30** 2.14x (range 1.07x) | 07:30-08:00 **07:30** 2.05x (range 2.67x) | - | Wed / Mon 1.05x (1.01-1.09) | reliable / weak | 1.03x | 1.95x | stable |
+| **RNG** | RINGCENTRAL, INC. | 10.9 | 07:30-08:30 **07:30** 2.01x (range 2.76x) | 13:30-14:00 **13:30** 1.97x (range 0.97x) | - | Tue / Fri 1.02x (0.98-1.06) | reliable / weak | 1.09x | 1.92x | stable |
+| **ROP** | Roper Technologies | 10.9 | 13:30-14:00 **13:30** 2.26x (range 1.16x) | 07:30-08:30 **07:30** 1.84x (range 2.48x) | - | Thu / Tue 1.03x (1.0-1.07) | reliable / reliable | 0.99x | 2.06x | stable |
+| **S** | SentinelOne, Inc. | 5.4 | 07:30-08:00 **07:30** 2.32x (range 2.85x) | 13:30-14:00 **13:30** 1.77x (range 0.97x) | - | Wed / Mon 1.04x (0.98-1.09) | reliable / weak | 1.16x | 2.62x | stable |
+| **SANM** | Sanmina Corporation | 10.9 | 13:30-14:00 **13:30** 2.23x (range 1.12x) | 07:30-08:30 **07:30** 1.88x (range 2.63x) | - | Tue / Mon 1.02x (0.97-1.07) | reliable / weak | 1.01x | 1.99x | stable |
+| **SAP** | SAP SE | 10.9 | 07:30-08:30 **07:30** 2.01x (range 1.84x) | 13:30-14:00 **13:30** 1.68x (range 1.00x) | - | Thu / Mon 1.12x (1.08-1.18) | reliable / reliable | 1.11x | 2.58x | stable |
+| **SHOP** | Shopify | 10.9 | 07:30-08:00 **07:30** 2.59x (range 2.82x) | 13:30-14:00 **13:30** 1.38x (range 0.87x) | - | Thu / Fri 1.03x (0.99-1.1) | reliable / weak | 1.13x | 1.97x | stable |
+| **SIMO** | Silicon Motion Technology Co | 10.9 | 07:30-08:30 **07:30** 1.98x (range 2.69x) | 13:30-14:00 **13:30** 1.84x (range 1.02x) | - | Thu / Tue 1.06x (1.0-1.1) | reliable / weak | 1.20x | 1.65x | stable |
+| **SITM** | SiTime Corporation | 7.0 | 13:30-14:00 **13:30** 2.13x (range 1.11x) | 07:30-08:30 **07:30** 1.90x (range 2.46x) | - | Thu / Mon 1.10x (1.01-1.19) | reliable / reliable | 1.24x | 2.75x | stable |
+| **SKHY** | SK hynix Inc. | 0.3 | 07:30-08:00 **07:30** 2.74x (range 2.44x) | 13:30-14:30 **13:30** 1.30x (range 0.99x) | 02:00-02:30 **02:00** 1.11x (range 2.39x) | - | reliable / - | - | - | stable |
+| **SMCI** | Supermicro | 10.9 | 07:30-08:00 **07:30** 2.30x (range 2.52x) | 13:30-14:00 **13:30** 1.70x (range 1.00x) | - | Fri / Wed 1.02x (0.98-1.08) | reliable / weak | 1.09x | 1.89x | shifted |
+| **SMTC** | Semtech Corporation | 10.9 | 13:30-14:00 **13:30** 2.14x (range 1.05x) | 07:30-08:30 **07:30** 1.89x (range 2.60x) | - | Wed / Mon 1.06x (1.01-1.11) | reliable / weak | 1.16x | 1.99x | stable |
+| **SNAP** | Snap Inc. | 9.7 | 07:30-08:00 **07:30** 2.28x (range 2.63x) | 13:30-14:00 **13:30** 1.48x (range 0.93x) | - | Thu / Tue 1.06x (1.02-1.11) | reliable / reliable | 1.19x | 1.93x | stable |
+| **SNDK** | Sandisk | 1.7 | 07:30-08:00 **07:30** 3.00x (range 3.02x) | 13:30-14:00 **13:30** 1.42x (range 1.08x) | - | Thu / Tue 1.20x (1.0-1.35) | reliable / weak | 1.18x | 2.32x | stable |
+| **SNOW** | Snowflake Inc. | 6.2 | 07:30-08:00 **07:30** 2.58x (range 2.87x) | 13:30-14:00 **13:30** 1.51x (range 0.94x) | - | Thu / Tue 1.11x (1.04-1.16) | reliable / reliable | 1.18x | 2.62x | stable |
+| **SNPS** | Synopsys | 10.9 | 07:30-08:00 **07:30** 2.23x (range 2.72x) | 13:30-14:00 **13:30** 2.01x (range 1.05x) | - | Fri / Mon 1.10x (1.04-1.13) | reliable / weak | 1.10x | 1.91x | stable |
+| **SSNC** | SS&C Technologies Holdings,  | 10.9 | 13:30-14:00 **13:30** 2.11x (range 1.11x) | 07:30-08:30 **07:30** 1.85x (range 2.80x) | - | Thu / Mon 1.04x (1.0-1.09) | reliable / weak | 1.03x | 2.02x | shifted |
+| **STM** | STMicroelectronics | 10.9 | 07:30-08:00 **07:30** 2.34x (range 2.04x) | 13:30-14:00 **13:30** 1.65x (range 1.00x) | - | Thu / Fri 1.11x (1.07-1.16) | reliable / reliable | 1.05x | 2.58x | stable |
+| **STX** | Seagate Technology | 10.9 | 07:30-08:00 **07:30** 2.29x (range 2.76x) | 13:30-14:00 **13:30** 1.74x (range 0.97x) | - | Tue / Fri 1.03x (0.98-1.09) | reliable / weak | 0.96x | 1.99x | stable |
+| **SWKS** | Skyworks Solutions | 10.9 | 07:30-08:00 **07:30** 2.27x (range 2.66x) | 13:30-14:00 **13:30** 2.02x (range 1.06x) | - | Thu / Mon 1.05x (1.01-1.11) | weak / weak | 1.15x | 2.09x | stable |
+| **SYNA** | Synaptics Incorporated | 10.9 | 13:30-14:00 **13:30** 2.10x (range 1.03x) | 07:30-08:30 **07:30** 1.99x (range 2.65x) | - | Thu / Mon 1.03x (1.0-1.07) | weak / weak | 1.24x | 1.93x | shifted |
+| **TDY** | Teledyne Technologies | 10.9 | 13:30-14:00 **13:30** 2.53x (range 1.17x) | 07:30-09:00 **07:30** 1.55x (range 2.34x) | - | Thu / Mon 1.04x (0.99-1.08) | reliable / weak | 0.99x | 1.88x | stable |
+| **TEAM** | Atlassian Corporation | 10.9 | 07:30-08:00 **07:30** 2.37x (range 2.96x) | 13:30-14:00 **13:30** 1.79x (range 0.96x) | - | Thu / Fri 1.06x (1.01-1.1) | reliable / reliable | 1.14x | 1.94x | stable |
+| **TEL** | TE Connectivity | 10.9 | 13:30-14:00 **13:30** 2.05x (range 1.09x) | 07:30-08:30 **07:30** 1.86x (range 2.56x) | - | Thu / Mon 1.10x (1.05-1.15) | reliable / reliable | 1.01x | 2.15x | stable |
+| **TEM** | Tempus AI, Inc. | 2.4 | 07:30-08:00 **07:30** 2.94x (range 2.93x) | 13:30-14:00 **13:30** 1.38x (range 0.93x) | - | Thu / Wed 1.09x (0.96-1.18) | reliable / weak | 1.14x | 2.40x | stable |
+| **TENB** | Tenable Holdings, Inc. | 8.3 | 13:30-14:00 **13:30** 2.02x (range 1.05x) | 07:30-08:30 **07:30** 1.97x (range 2.77x) | - | Thu / Fri 1.03x (0.98-1.07) | weak / weak | 1.08x | 2.15x | stable |
+| **TER** | Teradyne | 10.9 | 07:30-08:00 **07:30** 2.11x (range 2.66x) | 13:30-14:00 **13:30** 2.02x (range 1.03x) | - | Thu / Mon 1.06x (1.02-1.1) | reliable / reliable | 0.97x | 2.20x | stable |
+| **TOST** | Toast, Inc. | 5.1 | 07:30-08:30 **07:30** 2.13x (range 2.78x) | 13:30-14:00 **13:30** 1.87x (range 1.00x) | - | Wed / Mon 1.08x (1.02-1.16) | reliable / weak | 1.10x | 3.01x | stable |
+| **TRI** | Thomson Reuters | 10.9 | 13:30-14:00 **13:30** 2.12x (range 1.06x) | 07:30-08:00 **07:30** 2.05x (range 2.73x) | - | Wed / Mon 1.06x (1.01-1.11) | reliable / weak | 1.12x | 2.04x | shifted |
+| **TRMB** | Trimble Inc. | 10.9 | 13:30-14:00 **13:30** 2.12x (range 1.06x) | 07:30-08:00 **07:30** 2.00x (range 2.75x) | - | Thu / Mon 1.04x (1.0-1.08) | reliable / weak | 1.17x | 2.17x | stable |
+| **TSEM** | Tower Semiconductor Ltd. | 10.9 | 07:30-08:00 **07:30** 2.21x (range 2.33x) | 13:30-14:00 **13:30** 1.90x (range 1.04x) | - | Wed / Fri 1.13x (1.08-1.18) | reliable / reliable | 0.98x | 1.78x | stable |
+| **TSM** | Taiwan Semiconductor Manufac | 10.9 | 07:30-08:00 **07:30** 2.78x (range 2.71x) | 13:30-14:00 **13:30** 1.66x (range 1.04x) | - | Thu / Mon 1.07x (1.04-1.12) | reliable / reliable | 0.96x | 2.23x | stable |
+| **TTD** | The Trade Desk, Inc. | 10.1 | 07:30-08:00 **07:30** 2.48x (range 2.75x) | 13:30-14:00 **13:30** 1.50x (range 0.91x) | - | Wed / Fri 1.03x (0.99-1.09) | reliable / weak | 1.19x | 1.82x | stable |
+| **TTMI** | TTM Technologies, Inc. | 10.9 | 13:30-14:00 **13:30** 2.25x (range 1.12x) | 07:30-08:00 **07:30** 2.09x (range 2.78x) | - | Thu / Tue 1.04x (1.0-1.09) | reliable / weak | 1.07x | 2.01x | stable |
+| **TWLO** | Twilio | 10.4 | 07:30-08:00 **07:30** 2.40x (range 2.85x) | 13:30-14:00 **13:30** 1.56x (range 0.90x) | - | Thu / Mon 1.03x (1.0-1.08) | reliable / weak | 1.19x | 1.87x | stable |
+| **TXG** | 10x Genomics, Inc. | 7.2 | 07:30-08:30 **07:30** 2.04x (range 2.77x) | 13:30-14:00 **13:30** 1.92x (range 1.02x) | - | Wed / Mon 1.04x (0.99-1.1) | reliable / weak | 1.23x | 2.28x | stable |
+| **TXN** | Texas Instruments | 10.9 | 07:30-08:00 **07:30** 2.21x (range 2.46x) | 13:30-14:00 **13:30** 1.95x (range 1.11x) | - | Fri / Mon 1.08x (1.04-1.14) | reliable / weak | 1.00x | 2.12x | stable |
+| **TYL** | Tyler Technologies | 10.9 | 13:30-14:00 **13:30** 2.23x (range 1.08x) | 07:30-09:00 **07:30** 1.62x (range 2.48x) | - | Thu / Wed 1.03x (0.97-1.06) | reliable / weak | 1.09x | 1.86x | stable |
+| **U** | Unity Software Inc. | 6.2 | 07:30-08:00 **07:30** 2.61x (range 2.96x) | 13:30-14:00 **13:30** 1.49x (range 0.92x) | - | Thu / Tue 1.08x (1.01-1.15) | reliable / reliable | 1.16x | 2.69x | stable |
+| **UMC** | United Microelectronics | 10.9 | 13:30-14:00 **13:30** 2.18x (range 1.14x) | 07:30-08:00 **07:30** 2.13x (range 2.33x) | - | Thu / Mon 1.11x (1.06-1.15) | reliable / reliable | 1.09x | 1.63x | stable |
+| **VIAV** | Viavi Solutions Inc. | 10.9 | 13:30-14:00 **13:30** 2.14x (range 1.09x) | 07:30-08:00 **07:30** 1.98x (range 2.60x) | - | Tue / Mon 1.03x (0.99-1.07) | reliable / weak | 1.13x | 1.96x | shifted |
+| **VICR** | Vicor Corporation | 10.9 | 13:30-14:00 **13:30** 2.23x (range 1.13x) | 07:30-08:30 **07:30** 1.84x (range 2.40x) | - | Fri / Mon 1.04x (0.99-1.09) | reliable / weak | 1.01x | 1.99x | stable |
+| **VRNS** | Varonis Systems, Inc. | 10.9 | 13:30-14:00 **13:30** 2.09x (range 1.04x) | 07:30-08:30 **07:30** 1.91x (range 2.69x) | - | Mon / Fri 1.06x (1.01-1.12) | reliable / weak | 1.13x | 1.65x | shifted |
+| **VRSN** | Verisign | 10.9 | 13:30-14:00 **13:30** 2.25x (range 1.14x) | 07:30-08:00 **07:30** 2.01x (range 2.65x) | - | Thu / Mon 1.03x (0.98-1.07) | reliable / weak | 1.04x | 1.71x | shifted |
+| **WDAY** | Workday, Inc. | 10.9 | 07:30-08:00 **07:30** 2.20x (range 2.79x) | 13:30-14:00 **13:30** 1.81x (range 0.97x) | - | Thu / Mon 1.06x (1.01-1.12) | reliable / weak | 1.15x | 1.98x | stable |
+| **WDC** | Western Digital | 10.9 | 07:30-08:00 **07:30** 2.55x (range 2.90x) | 13:30-14:00 **13:30** 1.61x (range 0.91x) | - | Thu / Fri 1.04x (1.0-1.09) | reliable / weak | 0.95x | 2.14x | stable |
+| **WIT** | Wipro | 10.9 | 13:30-14:00 **13:30** 2.25x (range 1.22x) | 07:30-08:00 **07:30** 2.04x (range 2.50x) | - | Wed / Mon 1.07x (1.01-1.14) | reliable / weak | 0.90x | 1.50x | stable |
+| **ZBRA** | Zebra Technologies | 10.9 | 13:30-14:00 **13:30** 2.05x (range 1.06x) | 07:30-08:30 **07:30** 1.85x (range 2.54x) | - | Tue / Mon 1.02x (0.97-1.06) | reliable / weak | 1.11x | 1.81x | shifted |
+| **ZETA** | Zeta Global Holdings Corp. | 5.4 | 07:30-08:00 **07:30** 2.24x (range 2.76x) | 13:30-14:00 **13:30** 1.89x (range 1.03x) | - | Wed / Fri 1.03x (0.95-1.09) | reliable / weak | 1.06x | 2.45x | stable |
+| **ZM** | Zoom Communications, Inc. | 7.6 | 07:30-08:00 **07:30** 2.49x (range 2.84x) | 13:30-14:00 **13:30** 1.72x (range 0.98x) | - | Mon / Fri 1.04x (0.99-1.09) | reliable / weak | 1.16x | 2.00x | stable |
+| **ZS** | Zscaler, Inc. | 8.7 | 07:30-08:00 **07:30** 2.65x (range 3.00x) | 13:30-14:00 **13:30** 1.62x (range 0.91x) | - | Thu / Fri 1.03x (0.98-1.09) | reliable / weak | 1.09x | 1.92x | stable |
 
-### Materials (57)
+### Materials (87)
 
 | Symbol | Name | Years | Best 1 | Best 2 | Best 3 | Best / quiet day | Reliability (times / days) | NFP | FOMC | Era |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -636,7 +954,7 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **ECL** | Ecolab | 10.9 | 13:30-14:00 **13:30** 2.13x (range 1.14x) | 07:30-08:00 **07:30** 2.02x (range 2.65x) | - | Wed / Mon 1.03x (0.98-1.07) | reliable / weak | 1.16x | 1.85x | stable |
 | **EGO** | Eldorado Gold Corporation | 10.9 | 07:30-08:00 **07:30** 2.43x (range 2.70x) | 13:30-14:00 **13:30** 1.64x (range 0.92x) | - | Wed / Mon 1.07x (1.03-1.11) | reliable / weak | 1.12x | 2.84x | stable |
 | **ENTG** | Entegris, Inc. | 10.9 | 13:30-14:00 **13:30** 2.14x (range 1.06x) | 07:30-08:30 **07:30** 1.92x (range 2.67x) | - | Thu / Tue 1.07x (1.02-1.11) | reliable / reliable | 1.04x | 2.14x | stable |
-| **EQX** | Equinox Gold Corp. | 7.2 | 07:30-08:00 **07:30** 2.36x (range 2.80x) | 13:30-14:00 **13:30** 1.53x (range 0.95x) | - | Thu / Tue 1.06x (1.0-1.13) | reliable / weak | 1.12x | 2.93x | stable |
+| **EQX** | Equinox Gold Corp. | 7.2 | 07:30-08:00 **07:30** 2.36x (range 2.80x) | 13:30-14:00 **13:30** 1.53x (range 0.95x) | - | Thu / Tue 1.06x (1.0-1.13) | reliable / weak | 1.13x | 2.93x | stable |
 | **ERO** | Ero Copper Corp. | 5.4 | 07:30-08:00 **07:30** 2.59x (range 3.14x) | 13:30-14:00 **13:30** 1.83x (range 0.98x) | - | Tue / Fri 1.04x (0.95-1.1) | reliable / weak | 1.37x | 3.50x | stable |
 | **ESI** | Element Solutions Inc. | 10.9 | 13:30-14:00 **13:30** 2.16x (range 1.07x) | 07:30-09:00 **07:30** 1.70x (range 2.48x) | - | Wed / Fri 1.08x (1.02-1.13) | reliable / weak | 1.08x | 1.88x | stable |
 | **EXK** | Endeavour Silver Corp. | 10.9 | 07:30-08:00 **07:30** 2.58x (range 2.61x) | 13:30-14:00 **13:30** 1.24x (range 0.83x) | - | Thu / Mon 1.07x (1.02-1.12) | reliable / weak | 1.07x | 2.89x | stable |
@@ -646,13 +964,13 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **GFI** | Gold Fields | 10.9 | 07:30-08:30 **07:30** 2.43x (range 2.33x) | 13:30-14:00 **13:30** 1.73x (range 1.00x) | - | Wed / Mon 1.09x (1.04-1.13) | reliable / reliable | 1.11x | 3.16x | stable |
 | **HBM** | Hudbay Minerals Inc. | 10.9 | 07:30-08:00 **07:30** 2.40x (range 2.75x) | 13:30-14:00 **13:30** 1.56x (range 0.94x) | - | Wed / Mon 1.12x (1.07-1.17) | reliable / weak | 1.15x | 2.20x | stable |
 | **HL** | Hecla Mining Company | 10.9 | 07:30-08:00 **07:30** 2.42x (range 2.66x) | 13:30-14:00 **13:30** 1.44x (range 0.89x) | - | Tue / Mon 1.05x (1.0-1.09) | reliable / weak | 1.06x | 2.74x | stable |
-| **IAG** | Iamgold Corporation | 10.9 | 07:30-08:30 **07:30** 2.12x (range 2.47x) | 13:30-14:00 **13:30** 1.41x (range 0.90x) | - | Wed / Mon 1.08x (1.03-1.14) | reliable / reliable | 1.08x | 2.84x | stable |
+| **IAG** | Iamgold Corporation | 10.9 | 07:30-08:30 **07:30** 2.12x (range 2.46x) | 13:30-14:00 **13:30** 1.41x (range 0.90x) | - | Wed / Mon 1.08x (1.03-1.14) | reliable / reliable | 1.08x | 2.84x | stable |
 | **IAUX** | I-80 Gold Corp. | 4.5 | 07:30-08:00 **07:30** 2.13x (range 2.37x) | 13:30-14:00 **13:30** 1.46x (range 1.00x) | - | Thu / Mon 1.03x (0.97-1.11) | reliable / weak | 1.09x | 2.36x | stable |
 | **IFF** | International Flavors & Frag | 10.9 | 13:30-14:00 **13:30** 2.13x (range 1.07x) | 07:30-08:30 **07:30** 1.88x (range 2.62x) | - | Thu / Mon 1.08x (1.03-1.13) | reliable / reliable | 1.04x | 1.89x | stable |
 | **IP** | International Paper | 10.9 | 07:30-08:30 **07:30** 2.01x (range 2.58x) | 13:30-14:00 **13:30** 1.99x (range 1.05x) | - | Thu / Tue 1.02x (0.98-1.08) | reliable / weak | 1.09x | 1.76x | stable |
 | **JHX** | James Hardie Industries plc | 10.9 | 13:30-14:00 **13:30** 2.47x (range 1.43x) | 07:30-08:00 **07:30** 1.98x (range 2.43x) | 08:30-11:00 **09:00** 1.05x (range 1.11x) | Tue / Fri 1.10x (1.04-1.18) | reliable / reliable | 1.02x | 2.40x | stable |
 | **KGC** | Kinross Gold Corporation | 10.9 | 07:30-08:30 **07:30** 2.17x (range 2.50x) | 13:30-14:00 **13:30** 1.42x (range 0.93x) | - | Wed / Mon 1.09x (1.06-1.13) | reliable / weak | 1.09x | 2.95x | stable |
-| **LAC** | Lithium Americas Corp. | 8.8 | 07:30-08:00 **07:30** 2.88x (range 3.00x) | 13:30-14:00 **13:30** 1.27x (range 0.89x) | - | Mon / Fri 1.11x (1.03-1.16) | reliable / weak | 1.02x | 1.79x | stable |
+| **LAC** | Lithium Americas Corp. | 8.8 | 07:30-08:00 **07:30** 2.88x (range 2.99x) | 13:30-14:00 **13:30** 1.27x (range 0.89x) | - | Mon / Fri 1.11x (1.03-1.16) | reliable / weak | 1.02x | 1.79x | stable |
 | **LIN** | Linde plc | 8.0 | 07:30-08:00 **07:30** 2.14x (range 2.21x) | 13:30-14:00 **13:30** 2.07x (range 1.21x) | - | Thu / Mon 1.08x (1.02-1.13) | reliable / weak | 1.04x | 2.24x | stable |
 | **LYB** | LyondellBasell | 10.9 | 07:30-08:00 **07:30** 2.15x (range 2.87x) | 13:30-14:00 **13:30** 1.90x (range 0.99x) | - | Thu / Wed 1.04x (1.0-1.08) | reliable / weak | 1.07x | 1.84x | stable |
 | **MEOH** | Methanex Corporation | 10.9 | 07:30-08:00 **07:30** 2.16x (range 2.90x) | 13:30-14:00 **13:30** 1.85x (range 0.93x) | - | Thu / Fri 1.07x (1.02-1.12) | reliable / weak | 1.10x | 1.79x | stable |
@@ -660,10 +978,40 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **MOS** | Mosaic Company (The) | 10.9 | 07:30-08:00 **07:30** 2.30x (range 2.87x) | 13:30-14:00 **13:30** 1.74x (range 0.90x) | - | Wed / Fri 1.05x (1.01-1.09) | reliable / weak | 1.09x | 1.84x | stable |
 | **MP** | MP Materials Corp. | 6.4 | 07:30-08:00 **07:30** 2.38x (range 2.67x) | 13:30-14:00 **13:30** 1.56x (range 0.91x) | - | Thu / Fri 1.06x (1.0-1.1) | reliable / weak | 1.24x | 2.63x | stable |
 | **NEM** | Newmont | 10.9 | 07:30-08:00 **07:30** 2.46x (range 2.68x) | 13:30-14:00 **13:30** 1.66x (range 0.92x) | - | Wed / Mon 1.05x (1.02-1.1) | reliable / weak | 1.11x | 3.15x | stable |
+| **NG** | NovaGold Resources Inc. | 10.9 | 07:30-08:00 **07:30** 2.24x (range 2.59x) | 13:30-14:00 **13:30** 1.76x (range 1.00x) | - | Fri / Mon 1.08x (1.03-1.12) | reliable / weak | 1.04x | 2.70x | stable |
+| **NTR** | Nutrien Ltd. | 8.9 | 07:30-08:00 **07:30** 2.32x (range 2.94x) | 13:30-14:00 **13:30** 1.81x (range 0.99x) | - | Tue / Fri 1.06x (1.03-1.1) | reliable / weak | 1.10x | 1.85x | stable |
+| **NUE** | Nucor | 10.9 | 07:30-08:00 **07:30** 2.19x (range 2.77x) | 13:30-14:00 **13:30** 1.85x (range 0.96x) | - | Tue / Mon 1.04x (1.0-1.08) | reliable / reliable | 1.04x | 1.98x | stable |
+| **OGC** | OceanaGold Corporation | 0.6 | 07:30-08:30 **07:30** 2.10x (range 3.18x) | 13:30-14:00 **13:30** 2.09x (range 1.03x) | - | Tue / Mon 1.09x (0.92-1.24) | reliable / weak | 0.94x | 4.12x | stable |
+| **ONON** | On Holding AG | 5.2 | 07:30-08:00 **07:30** 2.24x (range 2.82x) | 13:30-14:00 **13:30** 1.79x (range 0.98x) | - | Wed / Fri 1.05x (0.98-1.14) | reliable / weak | 1.05x | 2.63x | stable |
 | **OR** | Osisko Gold Royalties Ltd. | 10.4 | 07:30-08:00 **07:30** 2.26x (range 2.71x) | 13:30-14:00 **13:30** 1.86x (range 1.00x) | - | Wed / Tue 1.04x (0.99-1.09) | reliable / weak | 1.12x | 2.81x | stable |
+| **PAAS** | Pan American Silver Corp. | 10.9 | 07:30-08:00 **07:30** 2.58x (range 2.75x) | 13:30-14:00 **13:30** 1.54x (range 0.84x) | - | Thu / Mon 1.07x (1.03-1.15) | reliable / reliable | 1.14x | 3.30x | stable |
+| **PKG** | Packaging Corporation of Ame | 10.9 | 13:30-14:00 **13:30** 2.29x (range 1.09x) | 07:30-08:30 **07:30** 1.82x (range 2.60x) | - | Thu / Wed 1.03x (0.98-1.07) | reliable / weak | 1.00x | 1.89x | stable |
+| **PKX** | POSCO Holdings | 10.9 | 07:30-08:00 **07:30** 2.16x (range 2.58x) | 13:30-14:00 **13:30** 1.98x (range 1.07x) | - | Thu / Mon 1.10x (1.05-1.16) | reliable / reliable | 1.14x | 2.73x | stable |
 | **PPG** | PPG Industries | 10.9 | 13:30-14:00 **13:30** 2.16x (range 1.09x) | 07:30-08:30 **07:30** 1.84x (range 2.64x) | - | Thu / Mon 1.08x (1.03-1.13) | reliable / reliable | 1.02x | 2.18x | stable |
+| **PPTA** | Perpetua Resources Corp. | 5.7 | 07:30-08:00 **07:30** 2.44x (range 2.74x) | 13:30-14:00 **13:30** 1.78x (range 1.09x) | - | Mon / Thu 1.04x (0.97-1.13) | reliable / weak | 1.19x | 2.67x | stable |
+| **RIO** | Rio Tinto | 10.9 | 07:30-08:30 **07:30** 2.31x (range 2.17x) | 13:30-14:00 **13:30** 1.55x (range 0.93x) | - | Tue / Mon 1.08x (1.03-1.12) | reliable / weak | 1.16x | 3.10x | stable |
+| **SA** | Seabridge Gold Inc. | 10.9 | 07:30-08:00 **07:30** 2.34x (range 2.57x) | 13:30-14:00 **13:30** 1.63x (range 0.92x) | - | Wed / Mon 1.05x (1.01-1.1) | reliable / weak | 1.12x | 2.90x | stable |
+| **SCCO** | Southern Copper Corporation | 10.9 | 07:30-08:30 **07:30** 2.14x (range 2.84x) | 13:30-14:00 **13:30** 1.92x (range 0.96x) | - | Thu / Mon 1.09x (1.04-1.15) | reliable / reliable | 1.06x | 2.49x | stable |
+| **SHW** | Sherwin-Williams | 10.9 | 13:30-14:00 **13:30** 2.00x (range 1.07x) | 07:30-08:30 **07:30** 1.95x (range 2.58x) | - | Thu / Mon 1.06x (1.02-1.11) | reliable / reliable | 1.08x | 2.17x | stable |
+| **SKE** | Skeena Resources Limited | 5.0 | 07:30-08:00 **07:30** 2.49x (range 3.09x) | 13:30-14:00 **13:30** 1.77x (range 1.02x) | - | Mon / Thu 1.06x (0.98-1.13) | reliable / weak | 0.96x | 4.34x | stable |
+| **SOLS** | Solstice Advanced Materials  | 1.1 | 07:30-08:30 **07:30** 2.01x (range 2.73x) | 13:30-14:00 **13:30** 1.97x (range 1.05x) | - | Wed / Mon 1.15x (1.0-1.33) | reliable / weak | 1.01x | 2.14x | stable |
+| **SQM** | Sociedad Quimica y Minera de | 10.9 | 07:30-08:00 **07:30** 2.44x (range 2.95x) | 13:30-14:00 **13:30** 1.68x (range 0.93x) | - | Thu / Fri 1.08x (1.03-1.13) | reliable / reliable | 1.07x | 1.82x | stable |
+| **SSRM** | SSR Mining Inc. | 10.9 | 07:30-08:00 **07:30** 2.42x (range 2.76x) | 13:30-14:00 **13:30** 1.66x (range 0.89x) | - | Wed / Mon 1.07x (1.03-1.11) | reliable / reliable | 0.98x | 3.20x | stable |
+| **STLD** | Steel Dynamics | 10.9 | 07:30-08:00 **07:30** 2.20x (range 2.87x) | 13:30-14:00 **13:30** 1.90x (range 1.00x) | - | Tue / Fri 1.05x (1.01-1.11) | reliable / weak | 1.13x | 1.84x | stable |
+| **SVM** | Silvercorp Metals Inc. | 9.5 | 07:30-08:00 **07:30** 2.63x (range 2.81x) | 13:30-14:00 **13:30** 1.45x (range 1.00x) | - | Fri / Mon 1.02x (0.98-1.09) | reliable / weak | 1.08x | 2.78x | stable |
+| **SW** | Smurfit Westrock | 10.9 | 07:30-08:30 **07:30** 2.06x (range 2.68x) | 13:30-14:00 **13:30** 1.98x (range 1.03x) | - | Thu / Fri 1.05x (1.01-1.1) | reliable / weak | 1.07x | 1.86x | stable |
+| **TECK** | Teck Resources Limited | 10.9 | 07:30-08:00 **07:30** 2.53x (range 2.87x) | 13:30-14:00 **13:30** 1.61x (range 0.86x) | - | Thu / Mon 1.08x (1.02-1.13) | reliable / weak | 1.07x | 2.40x | stable |
+| **TFPM** | Triple Flag Precious Metals  | 4.0 | 07:30-08:00 **07:30** 2.20x (range 2.89x) | 13:30-14:00 **13:30** 2.05x (range 1.10x) | - | Fri / Tue 1.04x (0.98-1.13) | reliable / weak | 0.96x | 2.91x | stable |
+| **TGB** | Taseko Mines Limited | 10.9 | 07:30-08:00 **07:30** 2.36x (range 2.50x) | 13:30-14:00 **13:30** 1.40x (range 1.00x) | - | Wed / Fri 1.05x (1.0-1.1) | reliable / weak | 1.07x | 1.72x | stable |
+| **USAR** | USA Rare Earth, Inc. | 1.7 | 07:30-08:00 **07:30** 2.92x (range 2.92x) | 13:30-14:00 **13:30** 1.30x (range 0.93x) | - | Thu / Wed 1.18x (1.02-1.32) | reliable / weak | 1.08x | 2.12x | stable |
+| **USAS** | Americas Gold And Silver Cor | 9.8 | 07:30-08:00 **07:30** 2.55x (range 2.59x) | 13:30-14:00 **13:30** 1.43x (range 1.09x) | - | Fri / Tue 1.05x (0.99-1.11) | reliable / weak | 1.17x | 2.08x | stable |
+| **VALE** | Vale | 10.9 | 07:30-08:30 **07:30** 2.03x (range 2.11x) | 13:30-14:00 **13:30** 1.44x (range 0.91x) | - | Wed / Mon 1.09x (1.04-1.13) | reliable / weak | 1.01x | 2.50x | stable |
+| **VMC** | Vulcan Materials Company | 10.9 | 13:30-14:00 **13:30** 2.04x (range 1.02x) | 07:30-08:30 **07:30** 1.83x (range 2.58x) | - | Wed / Mon 1.08x (1.05-1.12) | reliable / weak | 1.14x | 2.00x | shifted |
+| **VZLA** | Vizsla Silver Corp. | 4.8 | 07:30-08:00 **07:30** 2.41x (range 2.75x) | 13:30-14:00 **13:30** 1.41x (range 1.02x) | - | Mon / Thu 1.05x (0.97-1.11) | reliable / weak | 1.15x | 2.38x | stable |
+| **WFG** | West Fraser Timber Co. Ltd. | 5.8 | 07:30-08:30 **07:30** 2.06x (range 2.78x) | 13:30-14:00 **13:30** 2.04x (range 1.08x) | - | Wed / Mon 1.11x (1.05-1.17) | weak / reliable | 1.15x | 2.50x | stable |
+| **WPM** | Wheaton Precious Metals Corp | 10.9 | 07:30-08:00 **07:30** 2.41x (range 2.73x) | 13:30-14:00 **13:30** 1.73x (range 0.90x) | - | Wed / Mon 1.07x (1.02-1.12) | reliable / reliable | 1.12x | 3.26x | stable |
 
-### Real Estate (29)
+### Real Estate (42)
 
 | Symbol | Name | Years | Best 1 | Best 2 | Best 3 | Best / quiet day | Reliability (times / days) | NFP | FOMC | Era |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -695,9 +1043,22 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **KIM** | Kimco Realty | 10.9 | 13:30-14:00 **13:30** 2.09x (range 1.11x) | 07:30-08:30 **07:30** 1.95x (range 2.60x) | - | Fri / Mon 1.05x (1.01-1.08) | reliable / weak | 1.14x | 1.88x | shifted |
 | **MAA** | Mid-America Apartment Commun | 10.9 | 13:30-14:00 **13:30** 2.39x (range 1.18x) | 07:30-08:30 **07:30** 1.74x (range 2.55x) | - | Thu / Mon 1.04x (1.0-1.09) | reliable / weak | 1.20x | 1.81x | stable |
 | **NLY** | Annaly Capital Management. I | 10.9 | 07:30-08:00 **07:30** 2.14x (range 2.43x) | 13:30-14:00 **13:30** 1.72x (range 1.02x) | - | Mon / Fri 1.03x (0.98-1.06) | reliable / weak | 1.12x | 2.12x | stable |
-| **NNN** | NNN REIT, Inc. | 5.9 | 13:30-14:00 **13:30** 2.15x (range 1.12x) | 07:30-08:30 **07:30** 1.77x (range 2.67x) | - | Wed / Fri 1.07x (1.01-1.12) | reliable / reliable | 1.05x | 1.73x | stable |
+| **NNN** | NNN REIT, Inc. | 10.9 | 13:30-14:00 **13:30** 2.27x (range 1.18x) | 07:30-08:30 **07:30** 1.74x (range 2.56x) | - | Wed / Fri 1.06x (1.02-1.1) | reliable / reliable | 1.05x | 2.03x | stable |
+| **O** | Realty Income | 10.9 | 07:30-08:00 **07:30** 2.15x (range 2.54x) | 13:30-14:00 **13:30** 1.93x (range 1.15x) | - | Thu / Tue 1.04x (1.0-1.08) | reliable / weak | 1.16x | 2.10x | stable |
+| **PLD** | Prologis | 10.9 | 13:30-14:00 **13:30** 2.10x (range 1.16x) | 07:30-08:00 **07:30** 1.96x (range 2.55x) | - | Wed / Mon 1.09x (1.06-1.13) | reliable / weak | 1.09x | 2.04x | stable |
+| **PSA** | Public Storage | 10.9 | 13:30-14:00 **13:30** 2.21x (range 1.15x) | 07:30-08:30 **07:30** 1.87x (range 2.57x) | - | Wed / Mon 1.06x (1.02-1.09) | reliable / weak | 1.16x | 2.08x | shifted |
+| **REG** | Regency Centers | 10.9 | 13:30-14:00 **13:30** 2.35x (range 1.17x) | 07:30-08:30 **07:30** 1.83x (range 2.72x) | - | Tue / Mon 1.05x (1.01-1.09) | reliable / weak | 1.12x | 2.06x | stable |
+| **SBAC** | SBA Communications | 10.9 | 13:30-14:00 **13:30** 2.17x (range 1.15x) | 07:30-08:30 **07:30** 1.93x (range 2.78x) | - | Thu / Mon 1.03x (0.99-1.06) | reliable / weak | 1.06x | 1.64x | shifted |
+| **SPG** | Simon Property Group | 10.9 | 07:30-08:30 **07:30** 2.04x (range 2.62x) | 13:30-14:00 **13:30** 1.98x (range 1.08x) | - | Wed / Mon 1.06x (1.0-1.1) | weak / weak | 1.09x | 2.05x | stable |
+| **SUI** | Sun Communities, Inc | 10.9 | 13:30-14:00 **13:30** 2.38x (range 1.19x) | 07:30-09:00 **07:30** 1.59x (range 2.49x) | - | Wed / Fri 1.06x (1.02-1.1) | reliable / reliable | 1.05x | 1.83x | stable |
+| **UDR** | UDR, Inc. | 10.9 | 13:30-14:00 **13:30** 2.35x (range 1.18x) | 07:30-08:30 **07:30** 1.86x (range 2.59x) | - | Wed / Mon 1.09x (1.04-1.15) | reliable / reliable | 1.17x | 1.97x | stable |
+| **VICI** | Vici Properties | 8.8 | 13:30-14:00 **13:30** 2.24x (range 1.23x) | 07:30-08:30 **07:30** 1.84x (range 2.50x) | - | Thu / Tue 1.03x (0.99-1.09) | reliable / weak | 1.24x | 1.90x | stable |
+| **VMRK** | Vivmark Residential | 10.9 | 13:30-14:00 **13:30** 2.23x (range 1.16x) | 07:30-08:30 **07:30** 1.84x (range 2.58x) | - | Wed / Tue 1.04x (0.99-1.07) | reliable / weak | 1.11x | 1.94x | stable |
+| **VTR** | Ventas | 10.9 | 13:30-14:00 **13:30** 2.16x (range 1.12x) | 07:30-08:30 **07:30** 1.89x (range 2.64x) | - | Fri / Mon 1.07x (1.02-1.11) | reliable / reliable | 1.22x | 1.98x | shifted |
+| **WELL** | Welltower | 10.9 | 13:30-14:00 **13:30** 2.10x (range 1.12x) | 07:30-08:30 **07:30** 1.95x (range 2.69x) | - | Wed / Mon 1.07x (1.02-1.11) | reliable / weak | 1.11x | 2.00x | shifted |
+| **WY** | Weyerhaeuser | 10.9 | 13:30-14:00 **13:30** 2.02x (range 1.06x) | 07:30-08:30 **07:30** 1.92x (range 2.50x) | - | Fri / Mon 1.04x (1.0-1.08) | reliable / weak | 1.09x | 1.99x | stable |
 
-### Utilities (32)
+### Utilities (45)
 
 | Symbol | Name | Years | Best 1 | Best 2 | Best 3 | Best / quiet day | Reliability (times / days) | NFP | FOMC | Era |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -719,7 +1080,7 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **EIX** | Edison International | 10.9 | 13:30-14:00 **13:30** 2.16x (range 1.14x) | 07:30-08:30 **07:30** 1.86x (range 2.50x) | - | Wed / Mon 1.08x (1.03-1.14) | reliable / weak | 1.01x | 1.89x | stable |
 | **EMA** | Emera Incorporated | 1.5 | 13:30-14:00 **13:30** 3.15x (range 1.33x) | 07:30-08:00 **07:30** 1.92x (range 2.90x) | - | Thu / Tue 1.11x (1.01-1.2) | reliable / reliable | 1.15x | 1.57x | stable |
 | **EPD** | Enterprise Products Partners | 10.9 | 07:30-08:30 **07:30** 1.92x (range 2.31x) | 13:30-14:00 **13:30** 1.76x (range 1.11x) | - | Mon / Fri 1.05x (1.02-1.09) | reliable / weak | 1.04x | 1.60x | stable |
-| **ES** | Eversource Energy | 10.9 | 13:30-14:00 **13:30** 2.22x (range 1.15x) | 07:30-08:30 **07:30** 1.85x (range 2.61x) | - | Thu / Mon 1.06x (1.03-1.09) | reliable / weak | 1.17x | 1.84x | stable |
+| **ES** | Eversource Energy | 10.9 | 13:30-14:00 **13:30** 2.22x (range 1.15x) | 07:30-08:30 **07:30** 1.85x (range 2.61x) | - | Thu / Mon 1.06x (1.03-1.09) | reliable / weak | 1.18x | 1.84x | stable |
 | **ET** | Energy Transfer LP | 10.9 | 07:30-08:30 **07:30** 2.00x (range 2.33x) | 13:30-14:00 **13:30** 1.59x (range 1.07x) | - | Wed / Fri 1.04x (0.99-1.1) | reliable / weak | 1.10x | 1.65x | stable |
 | **ETR** | Entergy | 10.9 | 13:30-14:00 **13:30** 2.25x (range 1.16x) | 07:30-08:30 **07:30** 1.81x (range 2.53x) | - | Thu / Mon 1.06x (1.02-1.1) | reliable / weak | 1.08x | 1.88x | stable |
 | **EVRG** | Evergy | 8.4 | 13:30-14:00 **13:30** 2.41x (range 1.24x) | 07:30-08:30 **07:30** 1.77x (range 2.52x) | - | Thu / Mon 1.03x (0.97-1.09) | reliable / weak | 1.02x | 1.61x | stable |
@@ -728,8 +1089,21 @@ Columns: the three best half-hour windows (Calgary, peak in bold, activity x typ
 | **FTS** | Fortis Inc. | 10.1 | 13:30-14:00 **13:30** 2.33x (range 1.15x) | 07:30-08:00 **07:30** 2.18x (range 2.64x) | - | Wed / Mon 1.08x (1.04-1.11) | reliable / reliable | 1.00x | 2.00x | shifted |
 | **KEP** | Korea Electric Power | 10.9 | 07:30-08:00 **07:30** 2.39x (range 2.97x) | 13:30-14:00 **13:30** 2.36x (range 1.33x) | 08:30-11:00 **09:00** 1.01x (range 1.03x) | Tue / Fri 1.04x (1.0-1.09) | reliable / weak | 0.93x | 2.50x | stable |
 | **LNG** | Cheniere Energy Inc | 10.9 | 07:30-08:30 **07:30** 1.98x (range 2.63x) | 13:30-14:00 **13:30** 1.93x (range 1.05x) | - | Wed / Mon 1.06x (1.03-1.1) | reliable / reliable | 1.14x | 1.66x | stable |
-| **LNT** | Alliant Energy | 10.6 | 13:30-14:00 **13:30** 2.31x (range 1.20x) | 07:30-08:00 **07:30** 2.01x (range 2.64x) | - | Fri / Mon 1.06x (1.03-1.11) | reliable / weak | 1.08x | 1.92x | stable |
+| **LNT** | Alliant Energy | 10.9 | 13:30-14:00 **13:30** 2.31x (range 1.20x) | 07:30-08:00 **07:30** 2.00x (range 2.65x) | - | Fri / Mon 1.06x (1.03-1.1) | reliable / reliable | 1.08x | 1.94x | stable |
+| **NEE** | NextEra Energy | 10.9 | 07:30-08:00 **07:30** 2.12x (range 2.57x) | 13:30-14:00 **13:30** 1.89x (range 1.11x) | - | Thu / Mon 1.07x (1.04-1.12) | reliable / weak | 1.02x | 2.04x | stable |
 | **NGG** | National Grid | 9.5 | 07:30-08:30 **07:30** 2.07x (range 1.90x) | 13:30-14:00 **13:30** 1.61x (range 1.03x) | 08:30-10:00 **09:00** 1.30x (range 1.24x) | Thu / Fri 1.05x (1.0-1.09) | reliable / weak | 1.09x | 2.21x | stable |
-| **NRG** | NRG Energy | 10.0 | 13:30-14:00 **13:30** 2.00x (range 1.01x) | 07:30-08:30 **07:30** 1.83x (range 2.52x) | - | Wed / Fri 1.04x (1.0-1.07) | reliable / weak | 1.05x | 1.69x | stable |
+| **NI** | NiSource | 10.9 | 13:30-14:00 **13:30** 2.29x (range 1.17x) | 07:30-08:30 **07:30** 1.88x (range 2.48x) | - | Wed / Mon 1.05x (1.02-1.09) | reliable / reliable | 1.09x | 1.75x | stable |
+| **NRG** | NRG Energy | 10.9 | 13:30-14:00 **13:30** 2.00x (range 1.01x) | 07:30-08:30 **07:30** 1.84x (range 2.53x) | - | Wed / Mon 1.04x (1.0-1.08) | reliable / weak | 1.06x | 1.75x | stable |
+| **OKLO** | Oklo Inc. | 3.6 | 07:30-08:00 **07:30** 2.86x (range 2.91x) | 13:30-14:00 **13:30** 1.40x (range 1.00x) | - | Tue / Fri 1.04x (0.92-1.13) | reliable / weak | 1.17x | 2.30x | stable |
+| **PCG** | PG&E Corporation | 10.9 | 07:30-08:30 **07:30** 1.93x (range 2.56x) | 13:30-14:00 **13:30** 1.90x (range 1.08x) | - | Wed / Mon 1.07x (1.01-1.12) | reliable / weak | 0.97x | 1.67x | stable |
 | **PEG** | Public Service Enterprise Gr | 10.9 | 13:30-14:00 **13:30** 2.23x (range 1.16x) | 07:30-08:30 **07:30** 1.88x (range 2.52x) | - | Fri / Mon 1.04x (1.0-1.08) | reliable / weak | 1.16x | 1.91x | stable |
+| **PNW** | Pinnacle West Capital | 10.9 | 13:30-14:00 **13:30** 2.42x (range 1.17x) | 07:30-08:30 **07:30** 1.74x (range 2.51x) | - | Thu / Mon 1.06x (1.02-1.1) | reliable / reliable | 1.12x | 1.87x | stable |
 | **PPL** | PPL Corporation | 10.9 | 13:30-14:00 **13:30** 2.15x (range 1.16x) | 07:30-08:30 **07:30** 1.93x (range 2.41x) | - | Thu / Mon 1.07x (1.03-1.11) | reliable / weak | 1.20x | 1.79x | shifted |
+| **SO** | Southern Company | 10.9 | 07:30-08:30 **07:30** 2.05x (range 2.45x) | 13:30-14:00 **13:30** 2.04x (range 1.18x) | - | Thu / Mon 1.10x (1.05-1.14) | reliable / reliable | 1.05x | 1.90x | stable |
+| **SRE** | Sempra | 10.9 | 13:30-14:00 **13:30** 2.22x (range 1.15x) | 07:30-08:30 **07:30** 1.80x (range 2.56x) | - | Thu / Mon 1.05x (1.0-1.09) | reliable / weak | 1.10x | 1.98x | stable |
+| **TAC** | TransAlta Corporation | 10.9 | 13:30-14:00 **13:30** 2.24x (range 1.19x) | 07:30-08:00 **07:30** 2.04x (range 2.60x) | - | Wed / Mon 1.07x (1.02-1.12) | reliable / weak | 1.06x | 1.95x | shifted |
+| **TLN** | Talen Energy Corporation | 2.3 | 07:30-08:30 **07:30** 2.00x (range 2.75x) | 13:30-14:00 **13:30** 1.92x (range 1.04x) | - | Wed / Thu 1.13x (0.97-1.25) | reliable / weak | 1.31x | 2.15x | stable |
+| **VG** | Venture Global, Inc. | 10.9 | 07:30-08:30 **07:30** 1.90x (range 2.45x) | 13:30-14:00 **13:30** 1.86x (range 1.00x) | - | Tue / Fri 1.04x (1.0-1.1) | reliable / weak | 1.07x | 1.46x | stable |
+| **VST** | Vistra Corp. | 9.5 | 07:30-08:30 **07:30** 1.97x (range 2.59x) | 13:30-14:00 **13:30** 1.93x (range 1.05x) | - | Wed / Fri 1.05x (1.0-1.1) | weak / weak | 1.20x | 1.87x | shifted |
+| **WEC** | WEC Energy Group | 10.9 | 13:30-14:00 **13:30** 2.22x (range 1.16x) | 07:30-08:30 **07:30** 1.87x (range 2.56x) | - | Wed / Mon 1.05x (1.0-1.09) | reliable / weak | 1.10x | 1.98x | stable |
+| **XEL** | Xcel Energy | 10.9 | 13:30-14:00 **13:30** 2.13x (range 1.16x) | 07:30-08:00 **07:30** 2.11x (range 2.60x) | - | Thu / Mon 1.10x (1.06-1.14) | reliable / reliable | 1.10x | 1.74x | stable |

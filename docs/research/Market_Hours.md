@@ -1,17 +1,17 @@
 # Market hours: when does each market move? (Calgary time)
 
-Generated 2026-11-14 22:08 UTC by `tools/research/market_hours/deep.py` + `report.py` (workflow `market-hours.yml`). Coverage: **123 forex / metal / CFD instruments** (OANDA M30, 2005-01-01 to 2026-11-13, median 21.9 years each) and **646 US stocks / ETFs** (Alpaca 30-minute, feed sip, median 10.9 years). Stocks have their own file: [Market_Hours_Stocks.md](Market_Hours_Stocks.md); every symbol is searchable in the app (Market hours page). All times are **Calgary (America/Edmonton)**; New York is always 2 h ahead. Descriptive statistics only - no trading signal, no profit claim.
+Generated 2026-11-15 02:49 UTC by `tools/research/market_hours/deep.py` + `report.py` (workflow `market-hours.yml`). Coverage: **109 forex / metal / CFD instruments** (OANDA M30, 2005-01-01 to 2026-11-13, median 21.9 years each) and **1014 US stocks / ETFs** (Alpaca 30-minute, feed sip, median 10.9 years). Stocks have their own file: [Market_Hours_Stocks.md](Market_Hours_Stocks.md); every symbol is searchable in the app (Market hours page). All times are **Calgary (America/Edmonton)**; New York is always 2 h ahead. Descriptive statistics only - no trading signal, no profit claim.
 
 ## In plain words
 
-- **Forex currencies (68 pairs, median 21.9 years):** the strongest half-hours start at 08:00 (1.98x), 06:30 (1.81x), 01:00 (1.58x) Calgary. 06:30 (US data) 1.81x, 07:30 (NYSE open) 1.88x, 08:00 1.98x, London open 01:00 1.58x; quietest around 15:00 (rollover) 0.49x.
-- **Each pair's own best half-hour:** 08:00 for 52 pairs, 08:30 for 9 pairs, 09:00 for 2 pairs, 01:00 for 2 pairs. 97.1% of pairs have reliable best times (both halves of the history agree).
+- **Forex currencies (68 pairs, median 21.9 years):** the strongest half-hours start at 08:00 (1.98x), 06:30 (1.81x), 01:00 (1.59x) Calgary. 06:30 (US data) 1.81x, 07:30 (NYSE open) 1.89x, 08:00 1.98x, London open 01:00 1.59x; quietest around 15:00 (rollover) 0.49x.
+- **Each pair's own best half-hour:** 08:00 for 53 pairs, 08:30 for 9 pairs, 09:00 for 2 pairs, 01:00 for 2 pairs. 97.1% of pairs have reliable best times (both halves of the history agree).
 - **Metals (23):** peaks at 07:30 (2.37x), 06:30 (2.12x), 01:00 (1.32x).
-- **Index / commodity CFDs (32):** peaks at 07:30 (2.37x), 01:00 (1.40x), 12:00 (1.05x) - the cash-market opens dominate.
-- **Weekdays, forex currencies:** day activity Mon 0.91x / Tue 0.99x / Wed 1.02x / Thu 1.05x / Fri 1.02x - only 15% between the busiest and the quietest weekday. Best weekday reliable for 64.7% of instruments (mostly Thu 38, Fri 6).
-- **NFP Fridays:** the 06:30 Calgary half-hour moves 2.35x as far as on other Fridays (median pair, IQR 2.21-2.73, 260 NFP days). **FOMC days:** 12:00 Calgary 3.32x, press conference 12:30 2.59x vs a normal day.
-- **Era check:** last 2 years vs whole history: median rho 0.95 (forex), 0.99 (stocks); 11.8% of pairs and 6.8% of stocks shifted.
-- Stocks in short: strongest half-hours 07:30 (2.04x), 13:30 (1.95x) Calgary (details in Market_Hours_Stocks.md).
+- **Index / commodity CFDs (18):** peaks at 07:30 (2.46x), 18:00 (1.48x), 01:00 (1.35x) - the cash-market opens dominate.
+- **Weekdays, forex currencies:** day activity Mon 0.91x / Tue 0.99x / Wed 1.02x / Thu 1.05x / Fri 1.02x - only 15% between the busiest and the quietest weekday. Best weekday reliable for 64.7% of instruments (mostly Thu 39, Fri 5).
+- **NFP Fridays:** the 06:30 Calgary half-hour moves 2.35x as far as on other Fridays (median pair, IQR 2.21-2.73, 260 NFP days). **FOMC days:** 12:00 Calgary 3.32x, press conference 12:30 2.62x vs a normal day.
+- **Era check:** last 2 years vs whole history: median rho 0.95 (forex), 0.99 (stocks); 11.8% of pairs and 8.5% of stocks shifted.
+- Stocks in short: strongest half-hours 07:30 (2.05x), 13:30 (1.95x) Calgary (details in Market_Hours_Stocks.md).
 
 ## When to open the charts (group profiles, Mon-Fri)
 
@@ -19,17 +19,18 @@ Activity = sqrt(volume x range) of a half-hour relative to a typical half-hour o
 
 | Calgary window | Market | Peak | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|---|
-| 00:00-05:00 | Forex currencies | **01:00** | 03:00 ET | 1.58x | 1.71x | 1.46x | 23.4% | London open 08:00 (normal weeks) |
+| 18:00-18:30 | Index / commodity CFDs | **18:00** | 20:00 ET | 1.48x | 0.74x | 0.94x | 13.2% | Asia morning (Tokyo 09:00-10:00 JST, Tokyo fix 09:55) |
+| 00:00-05:00 | Forex currencies | **01:00** | 03:00 ET | 1.59x | 1.71x | 1.49x | 23.9% | London open 08:00 (normal weeks) |
 | 00:00-05:00 | Metals | **01:00** | 03:00 ET | 1.32x | 1.42x | 1.25x | 14.4% | London open 08:00 (normal weeks) |
-| 01:00-03:30 | Index / commodity CFDs | **01:00** | 03:00 ET | 1.40x | 1.46x | 1.29x | 15.9% | London open 08:00 (normal weeks) |
-| 05:30-07:00 | Forex currencies | **06:30** | 08:30 ET | 1.81x | 2.02x | 1.58x | 32.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| 06:00-07:00 | Metals | **06:30** | 08:30 ET | 2.12x | 2.35x | 1.99x | 49.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| 07:00-10:00 | Forex currencies | **08:00** | 10:00 ET | 1.98x | 2.31x | 1.67x | 34.5% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| 01:00-03:30 | Index / commodity CFDs | **01:00** | 03:00 ET | 1.35x | 1.42x | 1.27x | 15.7% | London open 08:00 (normal weeks) |
+| 05:30-07:00 | Forex currencies | **06:30** | 08:30 ET | 1.81x | 2.04x | 1.58x | 32.2% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| 06:00-07:00 | Metals | **06:30** | 08:30 ET | 2.12x | 2.35x | 1.99x | 49.3% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| 07:00-10:00 | Forex currencies | **08:00** | 10:00 ET | 1.98x | 2.33x | 1.67x | 34.5% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | 07:00-09:30 | Metals | **07:30** | 09:30 ET | 2.37x | 2.72x | 2.08x | 53.7% | NYSE open 09:30 ET |
-| 07:30-09:30 | Index / commodity CFDs | **07:30** | 09:30 ET | 2.37x | 3.18x | 1.75x | 37.3% | NYSE open 09:30 ET |
-| 07:30-08:30 | US stocks | **07:30** | 09:30 ET | 2.04x | 1.61x | 2.62x | 75.1% | NYSE open 09:30 ET |
-| 10:30-13:00 | Metals | **11:00** | 13:00 ET | 1.28x | 1.29x | 1.30x | 19.7% |  |
-| 13:30-14:00 | US stocks | **13:30** | 15:30 ET | 1.95x | 3.62x | 1.05x | 6.4% | last regular stock half-hour |
+| 07:30-09:30 | Index / commodity CFDs | **07:30** | 09:30 ET | 2.46x | 3.26x | 1.85x | 40.3% | NYSE open 09:30 ET |
+| 07:30-08:30 | US stocks | **07:30** | 09:30 ET | 2.05x | 1.61x | 2.63x | 75.3% | NYSE open 09:30 ET |
+| 10:30-13:00 | Metals | **11:00** | 13:00 ET | 1.28x | 1.29x | 1.30x | 19.8% |  |
+| 13:30-14:00 | US stocks | **13:30** | 15:30 ET | 1.95x | 3.63x | 1.05x | 6.5% | last regular stock half-hour |
 
 ![Forex heatmap](market_hours_fx.png)
 
@@ -40,23 +41,24 @@ For every instrument the Mon-Fri half-hour profile of the last 2 years is compar
 | Group | Instruments | Median rho last 2 y vs all | Median rho pre vs post 2020 | Shifted | Group peak before 2020 | Group peak since 2020 |
 |---|---|---|---|---|---|---|
 | Forex currencies | 68 | 0.95 | 0.97 | 11.8% | 08:00 | 08:00 |
-| Majors | 7 | 0.98 | 0.97 | 0.0% | 06:30 | 08:00 |
+| Majors | 7 | 0.97 | 0.97 | 0.0% | 08:00 | 08:00 |
 | Crosses | 21 | 0.94 | 0.97 | 4.8% | 08:00 | 08:00 |
 | Exotics | 40 | 0.94 | 0.97 | 17.5% | 08:00 | 08:00 |
 | Metals | 23 | 0.89 | 0.92 | 8.7% | 08:00 | 07:30 |
-| Index / commodity CFDs | 32 | 0.97 | 0.95 | 18.8% | 07:30 | 07:30 |
-| Stocks (all) | 646 | 0.99 | 0.99 | 6.8% | 07:30 | 07:30 |
-| Sector: Communication Services | 20 | 0.99 | 0.99 | 0.0% | 07:30 | 07:30 |
-| Sector: Consumer Discretionary | 69 | 0.99 | 0.98 | 11.6% | 07:30 | 07:30 |
-| Sector: Consumer Staples | 38 | 0.97 | 0.98 | 2.6% | 07:30 | 13:30 |
-| Sector: Energy | 25 | 0.98 | 0.95 | 0.0% | 07:30 | 07:30 |
-| Sector: Financials | 97 | 0.99 | 0.99 | 3.1% | 07:30 | 13:30 |
-| Sector: Health Care | 70 | 1.00 | 0.99 | 11.4% | 07:30 | 13:30 |
-| Sector: Industrials | 96 | 1.00 | 1.00 | 6.2% | 13:30 | 13:30 |
-| Sector: Information Technology | 113 | 0.98 | 0.97 | 9.7% | 07:30 | 07:30 |
-| Sector: Materials | 57 | 0.98 | 0.97 | 3.5% | 07:30 | 07:30 |
-| Sector: Real Estate | 29 | 1.00 | 1.00 | 6.9% | 13:30 | 13:30 |
-| Sector: Utilities | 32 | 1.00 | 0.99 | 9.4% | 13:30 | 13:30 |
+| Index / commodity CFDs | 18 | 0.97 | 0.94 | 22.2% | 08:00 | 07:30 |
+| Stocks (all) | 1014 | 0.99 | 0.99 | 8.5% | 07:30 | 07:30 |
+| Sector: Communication Services | 38 | 0.99 | 0.98 | 2.6% | 07:30 | 07:30 |
+| Sector: Consumer Discretionary | 106 | 0.98 | 0.98 | 14.2% | 07:30 | 07:30 |
+| Sector: Consumer Staples | 51 | 0.98 | 0.98 | 5.9% | 07:30 | 13:30 |
+| Sector: ETF | 4 | 0.98 | 0.97 | 0.0% | 07:30 | 07:30 |
+| Sector: Energy | 52 | 0.98 | 0.96 | 3.8% | 07:30 | 07:30 |
+| Sector: Financials | 145 | 1.00 | 0.99 | 4.8% | 07:30 | 13:30 |
+| Sector: Health Care | 108 | 1.00 | 0.99 | 12.0% | 07:30 | 13:30 |
+| Sector: Industrials | 150 | 1.00 | 1.00 | 6.0% | 13:30 | 13:30 |
+| Sector: Information Technology | 186 | 0.98 | 0.97 | 11.8% | 07:30 | 07:30 |
+| Sector: Materials | 87 | 0.98 | 0.97 | 3.4% | 07:30 | 07:30 |
+| Sector: Real Estate | 42 | 1.00 | 1.00 | 14.3% | 13:30 | 13:30 |
+| Sector: Utilities | 45 | 1.00 | 0.99 | 11.1% | 13:30 | 13:30 |
 
 ![Era check](market_hours_era.png)
 
@@ -66,8 +68,8 @@ New York events never move on the Calgary clock (both follow US DST dates). Lond
 
 | Calgary | Normal weeks | Mismatch weeks |
 |---|---|---|
-| 01:00 | 1.73x | 1.29x |
-| 02:00 | 1.53x | 1.71x |
+| 01:00 | 1.75x | 1.29x |
+| 02:00 | 1.54x | 1.71x |
 
 Asian evening (Sun-Thu) by Calgary season: Calgary on MST (Nov-Mar) vs MDT (Mar-Nov):
 
@@ -85,11 +87,11 @@ Asian evening (Sun-Thu) by Calgary season: Calgary on MST (Nov-Mar) vs MDT (Mar-
 | Group | Event | Median range ratio | IQR over instruments | Instruments | Event days (median) |
 |---|---|---|---|---|---|
 | Forex currencies | NFP | 2.35x | 2.21x-2.73x | 68 | 260 |
-| Forex currencies | FOMC 12:00 | 3.32x | 2.96x-4.55x | 67 | 182 |
-| Forex currencies | FOMC 12:30 | 2.59x | 2.37x-3.58x | 67 | 182 |
-| Majors | NFP | 2.90x | 2.69x-3.04x | 7 | 260 |
-| Majors | FOMC 12:00 | 4.75x | 4.61x-5.25x | 6 | 182 |
-| Majors | FOMC 12:30 | 3.67x | 3.46x-3.99x | 6 | 182 |
+| Forex currencies | FOMC 12:00 | 3.32x | 2.97x-4.60x | 68 | 182 |
+| Forex currencies | FOMC 12:30 | 2.62x | 2.38x-3.63x | 68 | 182 |
+| Majors | NFP | 2.90x | 2.69x-2.99x | 7 | 260 |
+| Majors | FOMC 12:00 | 4.81x | 4.64x-5.22x | 7 | 182 |
+| Majors | FOMC 12:30 | 3.73x | 3.51x-3.99x | 7 | 182 |
 | Crosses | NFP | 2.28x | 2.21x-2.33x | 21 | 260 |
 | Crosses | FOMC 12:00 | 3.07x | 2.92x-3.15x | 21 | 182 |
 | Crosses | FOMC 12:30 | 2.36x | 2.16x-2.47x | 21 | 182 |
@@ -99,45 +101,48 @@ Asian evening (Sun-Thu) by Calgary season: Calgary on MST (Nov-Mar) vs MDT (Mar-
 | Metals | NFP | 2.15x | 2.01x-2.24x | 23 | 241 |
 | Metals | FOMC 12:00 | 3.42x | 3.31x-3.72x | 23 | 173 |
 | Metals | FOMC 12:30 | 3.12x | 2.77x-3.43x | 23 | 173 |
-| Index / commodity CFDs | NFP | 2.35x | 1.83x-2.83x | 32 | 251 |
-| Index / commodity CFDs | FOMC 12:00 | 2.63x | 1.96x-2.83x | 31 | 177 |
-| Index / commodity CFDs | FOMC 12:30 | 2.44x | 2.31x-3.29x | 31 | 165 |
-| Stocks (all) | NFP | 1.08x | 1.04x-1.13x | 645 | 124 |
-| Stocks (all) | FOMC 12:00 | 1.85x | 1.69x-2.02x | 642 | 92 |
-| Stocks (all) | FOMC 12:30 | 1.94x | 1.79x-2.16x | 642 | 92 |
-| Sector: Communication Services | NFP | 1.09x | 1.04x-1.12x | 20 | 124 |
-| Sector: Communication Services | FOMC 12:00 | 1.81x | 1.71x-1.89x | 20 | 92 |
-| Sector: Communication Services | FOMC 12:30 | 1.98x | 1.80x-2.14x | 20 | 92 |
-| Sector: Consumer Discretionary | NFP | 1.08x | 1.02x-1.14x | 69 | 124 |
-| Sector: Consumer Discretionary | FOMC 12:00 | 1.81x | 1.69x-1.97x | 69 | 92 |
-| Sector: Consumer Discretionary | FOMC 12:30 | 1.95x | 1.83x-2.10x | 69 | 92 |
-| Sector: Consumer Staples | NFP | 1.06x | 1.03x-1.09x | 38 | 124 |
-| Sector: Consumer Staples | FOMC 12:00 | 1.75x | 1.67x-1.94x | 38 | 92 |
-| Sector: Consumer Staples | FOMC 12:30 | 1.73x | 1.62x-1.89x | 38 | 92 |
-| Sector: Energy | NFP | 1.14x | 1.07x-1.18x | 25 | 124 |
-| Sector: Energy | FOMC 12:00 | 1.65x | 1.57x-1.76x | 25 | 92 |
-| Sector: Energy | FOMC 12:30 | 1.78x | 1.67x-1.91x | 25 | 92 |
-| Sector: Financials | NFP | 1.09x | 1.05x-1.13x | 97 | 124 |
-| Sector: Financials | FOMC 12:00 | 1.94x | 1.75x-2.20x | 97 | 92 |
-| Sector: Financials | FOMC 12:30 | 2.09x | 1.84x-2.36x | 97 | 92 |
-| Sector: Health Care | NFP | 1.06x | 1.03x-1.11x | 70 | 124 |
-| Sector: Health Care | FOMC 12:00 | 1.64x | 1.54x-1.76x | 70 | 92 |
-| Sector: Health Care | FOMC 12:30 | 1.73x | 1.60x-1.85x | 70 | 92 |
-| Sector: Industrials | NFP | 1.08x | 1.02x-1.12x | 95 | 124 |
-| Sector: Industrials | FOMC 12:00 | 1.88x | 1.73x-2.02x | 94 | 92 |
-| Sector: Industrials | FOMC 12:30 | 1.99x | 1.85x-2.11x | 94 | 92 |
-| Sector: Information Technology | NFP | 1.11x | 1.04x-1.16x | 113 | 124 |
-| Sector: Information Technology | FOMC 12:00 | 1.85x | 1.70x-1.99x | 112 | 92 |
-| Sector: Information Technology | FOMC 12:30 | 2.00x | 1.86x-2.17x | 112 | 92 |
-| Sector: Materials | NFP | 1.08x | 1.04x-1.11x | 57 | 124 |
-| Sector: Materials | FOMC 12:00 | 2.02x | 1.85x-2.78x | 56 | 92 |
-| Sector: Materials | FOMC 12:30 | 2.31x | 1.90x-2.90x | 56 | 92 |
-| Sector: Real Estate | NFP | 1.08x | 1.05x-1.13x | 29 | 124 |
-| Sector: Real Estate | FOMC 12:00 | 1.96x | 1.89x-2.05x | 29 | 92 |
-| Sector: Real Estate | FOMC 12:30 | 1.92x | 1.84x-2.08x | 29 | 92 |
-| Sector: Utilities | NFP | 1.09x | 1.05x-1.14x | 32 | 124 |
-| Sector: Utilities | FOMC 12:00 | 1.98x | 1.78x-2.04x | 32 | 92 |
-| Sector: Utilities | FOMC 12:30 | 1.87x | 1.80x-1.93x | 32 | 92 |
+| Index / commodity CFDs | NFP | 2.21x | 1.79x-2.79x | 18 | 243 |
+| Index / commodity CFDs | FOMC 12:00 | 2.67x | 1.79x-2.96x | 18 | 172 |
+| Index / commodity CFDs | FOMC 12:30 | 2.88x | 2.35x-3.45x | 18 | 119 |
+| Stocks (all) | NFP | 1.08x | 1.04x-1.13x | 1011 | 124 |
+| Stocks (all) | FOMC 12:00 | 1.84x | 1.69x-2.02x | 1008 | 92 |
+| Stocks (all) | FOMC 12:30 | 1.95x | 1.79x-2.18x | 1008 | 92 |
+| Sector: Communication Services | NFP | 1.07x | 1.04x-1.11x | 37 | 124 |
+| Sector: Communication Services | FOMC 12:00 | 1.77x | 1.68x-1.85x | 37 | 92 |
+| Sector: Communication Services | FOMC 12:30 | 1.83x | 1.75x-1.98x | 37 | 92 |
+| Sector: Consumer Discretionary | NFP | 1.08x | 1.03x-1.13x | 106 | 124 |
+| Sector: Consumer Discretionary | FOMC 12:00 | 1.81x | 1.70x-1.96x | 106 | 92 |
+| Sector: Consumer Discretionary | FOMC 12:30 | 1.93x | 1.82x-2.11x | 106 | 92 |
+| Sector: Consumer Staples | NFP | 1.06x | 1.02x-1.09x | 51 | 124 |
+| Sector: Consumer Staples | FOMC 12:00 | 1.74x | 1.65x-1.88x | 51 | 92 |
+| Sector: Consumer Staples | FOMC 12:30 | 1.73x | 1.62x-1.88x | 51 | 92 |
+| Sector: ETF | NFP | 1.17x | 1.15x-1.19x | 4 | 124 |
+| Sector: ETF | FOMC 12:00 | 2.62x | 2.59x-2.64x | 4 | 92 |
+| Sector: ETF | FOMC 12:30 | 2.83x | 2.81x-2.89x | 4 | 92 |
+| Sector: Energy | NFP | 1.12x | 1.07x-1.17x | 52 | 124 |
+| Sector: Energy | FOMC 12:00 | 1.67x | 1.58x-1.76x | 52 | 92 |
+| Sector: Energy | FOMC 12:30 | 1.78x | 1.70x-1.94x | 52 | 92 |
+| Sector: Financials | NFP | 1.08x | 1.05x-1.12x | 145 | 124 |
+| Sector: Financials | FOMC 12:00 | 2.00x | 1.79x-2.22x | 145 | 92 |
+| Sector: Financials | FOMC 12:30 | 2.14x | 1.89x-2.36x | 145 | 92 |
+| Sector: Health Care | NFP | 1.07x | 1.03x-1.11x | 108 | 124 |
+| Sector: Health Care | FOMC 12:00 | 1.67x | 1.55x-1.77x | 108 | 92 |
+| Sector: Health Care | FOMC 12:30 | 1.75x | 1.67x-1.92x | 108 | 92 |
+| Sector: Industrials | NFP | 1.07x | 1.02x-1.12x | 149 | 124 |
+| Sector: Industrials | FOMC 12:00 | 1.88x | 1.75x-2.01x | 148 | 92 |
+| Sector: Industrials | FOMC 12:30 | 1.98x | 1.85x-2.11x | 148 | 92 |
+| Sector: Information Technology | NFP | 1.10x | 1.04x-1.16x | 185 | 124 |
+| Sector: Information Technology | FOMC 12:00 | 1.84x | 1.71x-1.97x | 184 | 92 |
+| Sector: Information Technology | FOMC 12:30 | 2.00x | 1.87x-2.18x | 184 | 92 |
+| Sector: Materials | NFP | 1.08x | 1.04x-1.12x | 87 | 124 |
+| Sector: Materials | FOMC 12:00 | 2.02x | 1.82x-2.65x | 86 | 92 |
+| Sector: Materials | FOMC 12:30 | 2.40x | 1.98x-2.90x | 86 | 92 |
+| Sector: Real Estate | NFP | 1.10x | 1.06x-1.14x | 42 | 124 |
+| Sector: Real Estate | FOMC 12:00 | 1.98x | 1.89x-2.13x | 42 | 92 |
+| Sector: Real Estate | FOMC 12:30 | 1.98x | 1.88x-2.07x | 42 | 92 |
+| Sector: Utilities | NFP | 1.09x | 1.06x-1.14x | 45 | 124 |
+| Sector: Utilities | FOMC 12:00 | 1.89x | 1.72x-2.02x | 45 | 92 |
+| Sector: Utilities | FOMC 12:30 | 1.87x | 1.79x-1.97x | 45 | 92 |
 
 ## Every forex pair, metal and CFD
 
@@ -157,8 +162,8 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Thu**: 1.21x the quietest (Mon), 95% CI 1.17-1.24, 5672 days - **weak** |
 | Day activity Mon-Fri | Mon 0.88x / Tue 1.00x / Wed 1.04x / Thu 1.06x / Fri 1.01x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.9x other Fridays (260 NFP days; big moves 93.1% vs 34.8%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 4.81x a normal Wednesday (182 FOMC days; big moves 87.9% vs 5.3%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.9x other Fridays (260 NFP days; big moves 93.1% vs 34.9%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 4.81x a normal Wednesday (182 FOMC days; big moves 88.5% vs 5.3%) |
 | FOMC 14:30 ET press conf. (12:30) | range 4.08x a normal Wednesday (182 FOMC days; big moves 80.2% vs 3.9%) |
 | Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.97; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
 
@@ -168,15 +173,15 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-09:30 (peak **08:00**) | 10:00 ET | 2.26x | 2.62x | 1.96x | 47.8% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 1 | 07:00-09:30 (peak **08:00**) | 10:00 ET | 2.26x | 2.62x | 1.96x | 47.7% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.03x | 2.24x | 1.85x | 44.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.78x | 1.93x | 1.64x | 31.4% | London open 08:00 (normal weeks) |
+| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.78x | 1.93x | 1.64x | 31.3% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.2x the quietest (Mon), 95% CI 1.17-1.23, 5670 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.89x / Tue 0.98x / Wed 1.02x / Thu 1.07x / Fri 1.03x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.93x other Fridays (260 NFP days; big moves 95.4% vs 49.3%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.93x other Fridays (260 NFP days; big moves 95.4% vs 49.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 5.55x a normal Wednesday (182 FOMC days; big moves 91.8% vs 6.7%) |
 | FOMC 14:30 ET press conf. (12:30) | range 4.23x a normal Wednesday (182 FOMC days; big moves 82.4% vs 5.0%) |
 | Era check | last 2 y vs all rho 0.99; before vs since 2020 rho 0.99; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
@@ -206,7 +211,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-09:30 (peak **08:00**) | 10:00 ET | 1.89x | 2.19x | 1.63x | 30.7% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 1 | 07:00-09:30 (peak **08:00**) | 10:00 ET | 1.89x | 2.19x | 1.63x | 30.6% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.62x | 1.80x | 1.46x | 28.0% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.44x | 1.55x | 1.34x | 14.0% | London open 08:00 (normal weeks) |
 
@@ -214,7 +219,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Thu**: 1.22x the quietest (Mon), 95% CI 1.18-1.24, 5671 days - **weak** |
 | Day activity Mon-Fri | Mon 0.88x / Tue 1.00x / Wed 1.06x / Thu 1.07x / Fri 1.00x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.87x other Fridays (260 NFP days; big moves 93.1% vs 33.9%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.87x other Fridays (260 NFP days; big moves 93.1% vs 34.1%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.7x a normal Wednesday (182 FOMC days; big moves 83.0% vs 5.3%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.62x a normal Wednesday (182 FOMC days; big moves 74.7% vs 4.3%) |
 | Era check | last 2 y vs all rho 0.96; before vs since 2020 rho 0.96; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
@@ -226,34 +231,36 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 2.35x | 2.68x | 2.05x | 52.2% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.15x | 2.34x | 1.97x | 48.6% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.41x | 1.48x | 1.33x | 15.5% | London open 08:00 (normal weeks) |
+| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.15x | 2.34x | 1.97x | 48.7% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.41x | 1.48x | 1.33x | 15.6% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Fri**: 1.19x the quietest (Mon), 95% CI 1.16-1.22, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.89x / Tue 1.00x / Wed 1.03x / Thu 1.03x / Fri 1.06x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.2x other Fridays (260 NFP days; big moves 93.8% vs 62.2%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.2x other Fridays (260 NFP days; big moves 93.8% vs 62.4%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.79x a normal Wednesday (182 FOMC days; big moves 88.5% vs 8.9%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.91x a normal Wednesday (182 FOMC days; big moves 76.4% vs 7.3%) |
 | Era check | last 2 y vs all rho 0.97; before vs since 2020 rho 0.95; peak 08:00 -> 07:30 (last 2 y 07:30) - **stable** |
 
 ### USDCHF (USD_CHF) - Majors - watchlist
 
-2005-01-02 to 2005-05-24 (0.4 years, 5,000 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-11-13 (21.9 years, 275,741 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 06:00-08:00 (peak **06:30**) | 08:30 ET | 2.04x | 1.82x | 2.30x | 59.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 2 | 08:00-10:30 (peak **08:00**) | 10:00 ET | 1.96x | 1.84x | 2.10x | 51.5% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 3 | 00:00-04:30 (peak **00:30**) | 02:30 ET | 1.48x | 1.52x | 1.45x | 21.8% |  |
+| Best window 1 | 07:00-09:30 (peak **08:00**) | 10:00 ET | 2.21x | 2.52x | 1.93x | 47.0% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.00x | 2.20x | 1.82x | 43.6% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:00-06:00 (peak **01:00**) | 03:00 ET | 1.75x | 1.89x | 1.63x | 30.7% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
-| Best weekday | **Fri**: 1.26x the quietest (Mon), 95% CI 1.08-1.48, 101 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.88x / Tue 0.98x / Wed 1.08x / Thu 1.01x / Fri 1.11x |
-| NFP 08:30 ET (06:30 Calgary) | range 3.15x other Fridays (5 NFP days; big moves 100.0% vs 66.7%) |
-| Era check | last 2 y vs all rho 1.00; before vs since 2020 rho -; peak 06:30 -> - (last 2 y 06:30) - **stable** |
+| Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.16-1.23, 5671 days - **reliable** |
+| Day activity Mon-Fri | Mon 0.90x / Tue 0.98x / Wed 1.02x / Thu 1.08x / Fri 1.04x |
+| NFP 08:30 ET (06:30 Calgary) | range 3.04x other Fridays (260 NFP days; big moves 94.2% vs 48.1%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 5.04x a normal Wednesday (182 FOMC days; big moves 90.7% vs 6.6%) |
+| FOMC 14:30 ET press conf. (12:30) | range 3.9x a normal Wednesday (182 FOMC days; big moves 78.6% vs 5.2%) |
+| Era check | last 2 y vs all rho 0.97; before vs since 2020 rho 0.97; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
 
 ### USDJPY (USD_JPY) - Majors - watchlist
 
@@ -269,8 +276,8 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.13-1.18, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.98x / Wed 1.03x / Thu 1.04x / Fri 1.03x |
-| NFP 08:30 ET (06:30 Calgary) | range 3.3x other Fridays (260 NFP days; big moves 93.5% vs 43.3%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 5.4x a normal Wednesday (182 FOMC days; big moves 86.8% vs 7.1%) |
+| NFP 08:30 ET (06:30 Calgary) | range 3.3x other Fridays (260 NFP days; big moves 93.5% vs 43.1%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 5.4x a normal Wednesday (182 FOMC days; big moves 86.8% vs 7.0%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.73x a normal Wednesday (182 FOMC days; big moves 74.2% vs 4.9%) |
 | Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.98; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
 
@@ -280,7 +287,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:30**) | 10:30 ET | 1.88x | 2.18x | 1.62x | 29.2% | first stock hour |
+| Best window 1 | 07:00-10:00 (peak **08:30**) | 10:30 ET | 1.88x | 2.18x | 1.62x | 29.4% | first stock hour |
 | Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.72x | 1.96x | 1.52x | 29.2% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.33x | 1.48x | 1.20x | 8.4% | London open 08:00 (normal weeks) |
 
@@ -290,7 +297,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 | Day activity Mon-Fri | Mon 0.88x / Tue 0.99x / Wed 1.03x / Thu 1.05x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.25x other Fridays (260 NFP days; big moves 90.0% vs 42.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.32x a normal Wednesday (182 FOMC days; big moves 74.2% vs 3.0%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.51x a normal Wednesday (182 FOMC days; big moves 59.3% vs 2.7%) |
+| FOMC 14:30 ET press conf. (12:30) | range 2.51x a normal Wednesday (182 FOMC days; big moves 58.8% vs 2.7%) |
 | Era check | last 2 y vs all rho 0.80; before vs since 2020 rho 0.89; peak 08:30 -> 08:00 (last 2 y 08:00) - **stable** |
 
 ### AUDCHF (AUD_CHF) - Crosses - watchlist
@@ -299,17 +306,17 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.91x | 2.36x | 1.54x | 26.0% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 05:30-07:00 (peak **06:30**) | 08:30 ET | 1.66x | 2.00x | 1.38x | 22.5% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.53x | 1.71x | 1.38x | 16.4% | London open 08:00 (normal weeks) |
+| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.91x | 2.36x | 1.54x | 26.1% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 2 | 05:30-07:00 (peak **06:30**) | 08:30 ET | 1.66x | 2.00x | 1.38x | 22.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.53x | 1.71x | 1.37x | 16.4% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.16-1.21, 5672 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 1.00x / Wed 1.03x / Thu 1.07x / Fri 1.01x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.41x other Fridays (260 NFP days; big moves 87.7% vs 26.1%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 3.13x a normal Wednesday (182 FOMC days; big moves 68.1% vs 3.8%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.56x a normal Wednesday (182 FOMC days; big moves 54.9% vs 3.2%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.41x other Fridays (260 NFP days; big moves 87.7% vs 25.8%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 3.13x a normal Wednesday (182 FOMC days; big moves 68.1% vs 3.7%) |
+| FOMC 14:30 ET press conf. (12:30) | range 2.56x a normal Wednesday (182 FOMC days; big moves 54.9% vs 3.3%) |
 | Era check | last 2 y vs all rho 0.91; before vs since 2020 rho 0.95; peak 08:00 -> 08:00 (last 2 y 08:30) - **stable** |
 
 ### AUDJPY (AUD_JPY) - Crosses - watchlist
@@ -318,7 +325,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-09:30 (peak **08:00**) | 10:00 ET | 1.79x | 2.06x | 1.55x | 27.1% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 1 | 07:00-09:30 (peak **08:00**) | 10:00 ET | 1.79x | 2.06x | 1.55x | 27.0% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.50x | 1.68x | 1.34x | 21.8% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.44x | 1.55x | 1.33x | 16.1% | London open 08:00 (normal weeks) |
 
@@ -328,7 +335,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 | Day activity Mon-Fri | Mon 0.90x / Tue 1.01x / Wed 1.02x / Thu 1.05x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.45x other Fridays (260 NFP days; big moves 88.5% vs 24.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.32x a normal Wednesday (182 FOMC days; big moves 68.1% vs 5.2%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.44x a normal Wednesday (182 FOMC days; big moves 54.4% vs 3.7%) |
+| FOMC 14:30 ET press conf. (12:30) | range 2.44x a normal Wednesday (182 FOMC days; big moves 55.5% vs 3.8%) |
 | Era check | last 2 y vs all rho 0.96; before vs since 2020 rho 0.97; peak 08:00 -> 07:30 (last 2 y 08:00) - **stable** |
 
 ### AUDNZD (AUD_NZD) - Crosses - watchlist
@@ -337,15 +344,15 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.63x | 2.00x | 1.32x | 13.7% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 03:30-07:00 (peak **06:30**) | 08:30 ET | 1.40x | 1.64x | 1.20x | 13.1% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.63x | 2.00x | 1.32x | 13.6% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 2 | 03:30-07:00 (peak **06:30**) | 08:30 ET | 1.40x | 1.64x | 1.20x | 13.2% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-03:30 (peak **01:00**) | 03:00 ET | 1.34x | 1.50x | 1.20x | 8.3% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.17x the quietest (Mon), 95% CI 1.14-1.2, 5670 days - **weak** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.06x / Thu 1.06x / Fri 0.99x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.32x other Fridays (260 NFP days; big moves 78.1% vs 13.9%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.32x other Fridays (260 NFP days; big moves 78.5% vs 13.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.77x a normal Wednesday (182 FOMC days; big moves 55.5% vs 1.9%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.05x a normal Wednesday (182 FOMC days; big moves 40.7% vs 2.5%) |
 | Era check | last 2 y vs all rho 0.94; before vs since 2020 rho 0.92; peak 08:00 -> 07:30 (last 2 y 08:30) - **stable** |
@@ -364,8 +371,8 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Fri**: 1.16x the quietest (Mon), 95% CI 1.13-1.18, 5671 days - **weak** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.98x / Wed 1.02x / Thu 1.04x / Fri 1.05x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.23x other Fridays (260 NFP days; big moves 92.3% vs 56.1%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 2.84x a normal Wednesday (182 FOMC days; big moves 73.6% vs 5.5%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.23x other Fridays (260 NFP days; big moves 92.3% vs 56.0%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 2.84x a normal Wednesday (182 FOMC days; big moves 73.6% vs 5.6%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.08x a normal Wednesday (182 FOMC days; big moves 50.5% vs 4.3%) |
 | Era check | last 2 y vs all rho 0.95; before vs since 2020 rho 0.96; peak 08:00 -> 07:30 (last 2 y 07:30) - **stable** |
 
@@ -384,8 +391,8 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 | Best weekday | **Fri**: 1.18x the quietest (Mon), 95% CI 1.15-1.21, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.99x / Wed 1.02x / Thu 1.04x / Fri 1.06x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.27x other Fridays (260 NFP days; big moves 92.7% vs 49.7%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 2.94x a normal Wednesday (182 FOMC days; big moves 74.2% vs 6.5%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.17x a normal Wednesday (182 FOMC days; big moves 54.4% vs 4.7%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 2.94x a normal Wednesday (182 FOMC days; big moves 73.6% vs 6.5%) |
+| FOMC 14:30 ET press conf. (12:30) | range 2.17x a normal Wednesday (182 FOMC days; big moves 53.8% vs 4.7%) |
 | Era check | last 2 y vs all rho 0.89; before vs since 2020 rho 0.95; peak 08:00 -> 07:30 (last 2 y 08:00) - **stable** |
 
 ### CHFJPY (CHF_JPY) - Crosses - watchlist
@@ -395,14 +402,14 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.85x | 2.20x | 1.56x | 28.0% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 05:00-07:00 (peak **06:30**) | 08:30 ET | 1.67x | 1.91x | 1.47x | 27.0% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 2 | 05:00-07:00 (peak **06:30**) | 08:30 ET | 1.67x | 1.91x | 1.47x | 27.1% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.59x | 1.68x | 1.50x | 24.0% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 1.00x / Wed 1.01x / Thu 1.05x / Fri 1.02x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.28x other Fridays (260 NFP days; big moves 86.2% vs 29.5%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.28x other Fridays (260 NFP days; big moves 86.2% vs 29.7%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.19x a normal Wednesday (182 FOMC days; big moves 67.0% vs 3.4%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.24x a normal Wednesday (182 FOMC days; big moves 44.0% vs 2.6%) |
 | Era check | last 2 y vs all rho 0.94; before vs since 2020 rho 0.98; peak 08:00 -> 08:00 (last 2 y 08:30) - **stable** |
@@ -413,15 +420,15 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.81x | 2.15x | 1.52x | 24.5% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 05:00-07:00 (peak **06:30**) | 08:30 ET | 1.59x | 1.82x | 1.39x | 22.9% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.81x | 2.15x | 1.52x | 24.6% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 2 | 05:00-07:00 (peak **06:30**) | 08:30 ET | 1.59x | 1.82x | 1.39x | 23.0% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.48x | 1.65x | 1.32x | 15.0% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.17x the quietest (Mon), 95% CI 1.15-1.21, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 1.00x / Wed 1.02x / Thu 1.06x / Fri 1.00x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.37x other Fridays (260 NFP days; big moves 87.3% vs 25.3%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.37x other Fridays (260 NFP days; big moves 87.3% vs 25.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.07x a normal Wednesday (182 FOMC days; big moves 71.4% vs 3.2%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.46x a normal Wednesday (182 FOMC days; big moves 51.6% vs 3.0%) |
 | Era check | last 2 y vs all rho 0.94; before vs since 2020 rho 0.96; peak 08:00 -> 07:30 (last 2 y 08:30) - **stable** |
@@ -433,14 +440,14 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 2.14x | 2.46x | 1.86x | 42.2% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.99x | 2.13x | 1.85x | 43.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.53x | 1.65x | 1.41x | 18.0% | London open 08:00 (normal weeks) |
+| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.99x | 2.13x | 1.85x | 43.5% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.53x | 1.65x | 1.41x | 17.9% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.16, 5672 days - **weak** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.02x / Thu 1.04x / Fri 1.04x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.21x other Fridays (260 NFP days; big moves 94.2% vs 57.3%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.21x other Fridays (260 NFP days; big moves 94.2% vs 57.4%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.94x a normal Wednesday (182 FOMC days; big moves 81.9% vs 5.5%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.22x a normal Wednesday (182 FOMC days; big moves 57.1% vs 4.2%) |
 | Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.98; peak 08:00 -> 07:30 (last 2 y 08:30) - **stable** |
@@ -451,17 +458,17 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:30**) | 10:30 ET | 1.99x | 2.26x | 1.75x | 38.2% | first stock hour |
-| Best window 2 | 04:30-07:00 (peak **06:30**) | 08:30 ET | 1.78x | 2.05x | 1.55x | 30.0% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.74x | 1.89x | 1.61x | 31.4% | London open 08:00 (normal weeks) |
+| Best window 1 | 07:00-10:00 (peak **08:30**) | 10:30 ET | 1.99x | 2.26x | 1.75x | 38.0% | first stock hour |
+| Best window 2 | 04:30-07:00 (peak **06:30**) | 08:30 ET | 1.78x | 2.05x | 1.55x | 29.9% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.74x | 1.89x | 1.61x | 31.3% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.18, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.98x / Wed 1.01x / Thu 1.06x / Fri 1.02x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.0x other Fridays (260 NFP days; big moves 86.5% vs 30.1%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 2.89x a normal Wednesday (182 FOMC days; big moves 67.6% vs 5.3%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.16x a normal Wednesday (182 FOMC days; big moves 48.4% vs 5.1%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.0x other Fridays (260 NFP days; big moves 86.2% vs 29.9%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 2.89x a normal Wednesday (182 FOMC days; big moves 67.0% vs 5.3%) |
+| FOMC 14:30 ET press conf. (12:30) | range 2.16x a normal Wednesday (182 FOMC days; big moves 47.8% vs 5.1%) |
 | Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.97; peak 08:00 -> 08:30 (last 2 y 08:30) - **stable** |
 
 ### EURGBP (EUR_GBP) - Crosses - watchlist
@@ -470,15 +477,15 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:30**) | 10:30 ET | 1.98x | 2.19x | 1.79x | 38.2% | first stock hour |
-| Best window 2 | 03:30-07:00 (peak **06:30**) | 08:30 ET | 1.82x | 2.05x | 1.61x | 32.9% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-03:30 (peak **01:00**) | 03:00 ET | 1.80x | 1.93x | 1.68x | 32.2% | London open 08:00 (normal weeks) |
+| Best window 1 | 07:00-10:00 (peak **08:30**) | 10:30 ET | 1.98x | 2.19x | 1.79x | 38.1% | first stock hour |
+| Best window 2 | 03:30-07:00 (peak **06:30**) | 08:30 ET | 1.82x | 2.05x | 1.61x | 32.8% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:00-03:30 (peak **01:00**) | 03:00 ET | 1.80x | 1.93x | 1.68x | 32.3% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.18, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.01x / Thu 1.05x / Fri 1.01x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.95x other Fridays (260 NFP days; big moves 89.2% vs 35.5%) |
+| NFP 08:30 ET (06:30 Calgary) | range 1.95x other Fridays (260 NFP days; big moves 89.2% vs 35.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.92x a normal Wednesday (182 FOMC days; big moves 67.0% vs 3.2%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.1x a normal Wednesday (182 FOMC days; big moves 36.8% vs 2.6%) |
 | Era check | last 2 y vs all rho 0.97; before vs since 2020 rho 0.97; peak 08:00 -> 08:30 (last 2 y 08:30) - **stable** |
@@ -489,15 +496,15 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.84x | 2.12x | 1.59x | 31.4% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 05:30-07:00 (peak **06:30**) | 08:30 ET | 1.66x | 1.84x | 1.51x | 30.6% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.84x | 2.12x | 1.59x | 31.3% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 2 | 05:30-07:00 (peak **06:30**) | 08:30 ET | 1.66x | 1.84x | 1.51x | 30.7% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.62x | 1.70x | 1.54x | 26.5% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.13x the quietest (Mon), 95% CI 1.1-1.17, 5672 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.99x / Wed 1.00x / Thu 1.06x / Fri 1.02x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.29x other Fridays (260 NFP days; big moves 87.7% vs 34.2%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.29x other Fridays (260 NFP days; big moves 88.1% vs 34.4%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.3x a normal Wednesday (182 FOMC days; big moves 71.4% vs 4.0%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.38x a normal Wednesday (182 FOMC days; big moves 47.3% vs 3.1%) |
 | Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.98; peak 08:00 -> 08:00 (last 2 y 07:30) - **stable** |
@@ -516,8 +523,8 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.16-1.21, 5668 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.99x / Wed 1.04x / Thu 1.07x / Fri 1.00x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.41x other Fridays (260 NFP days; big moves 86.5% vs 25.3%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 3.13x a normal Wednesday (182 FOMC days; big moves 67.0% vs 3.0%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.41x other Fridays (260 NFP days; big moves 86.5% vs 25.2%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 3.13x a normal Wednesday (182 FOMC days; big moves 67.0% vs 3.1%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.56x a normal Wednesday (182 FOMC days; big moves 58.2% vs 3.1%) |
 | Era check | last 2 y vs all rho 0.89; before vs since 2020 rho 0.95; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
 
@@ -546,16 +553,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:30**) | 10:30 ET | 2.11x | 2.33x | 1.92x | 45.6% | first stock hour |
-| Best window 2 | 05:00-07:00 (peak **06:30**) | 08:30 ET | 1.94x | 2.09x | 1.81x | 42.0% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.54x | 1.65x | 1.43x | 19.3% | London open 08:00 (normal weeks) |
+| Best window 1 | 07:00-10:00 (peak **08:30**) | 10:30 ET | 2.11x | 2.33x | 1.92x | 45.5% | first stock hour |
+| Best window 2 | 05:00-07:00 (peak **06:30**) | 08:30 ET | 1.94x | 2.09x | 1.81x | 41.9% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.54x | 1.65x | 1.43x | 19.4% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.16, 5668 days - **weak** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 1.00x / Wed 1.03x / Thu 1.04x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.9x other Fridays (260 NFP days; big moves 90.4% vs 55.9%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 2.47x a normal Wednesday (182 FOMC days; big moves 65.9% vs 4.1%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 2.47x a normal Wednesday (182 FOMC days; big moves 67.0% vs 4.1%) |
 | FOMC 14:30 ET press conf. (12:30) | range 1.96x a normal Wednesday (182 FOMC days; big moves 44.0% vs 3.3%) |
 | Era check | last 2 y vs all rho 0.97; before vs since 2020 rho 0.98; peak 08:30 -> 08:30 (last 2 y 08:30) - **stable** |
 
@@ -567,7 +574,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:30**) | 10:30 ET | 2.01x | 2.28x | 1.76x | 37.5% | first stock hour |
 | Best window 2 | 03:30-07:00 (peak **06:30**) | 08:30 ET | 1.81x | 2.06x | 1.59x | 30.9% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-03:30 (peak **01:00**) | 03:00 ET | 1.75x | 1.85x | 1.65x | 32.2% | London open 08:00 (normal weeks) |
+| Best window 3 | 00:00-03:30 (peak **01:00**) | 03:00 ET | 1.75x | 1.85x | 1.65x | 32.4% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
@@ -586,13 +593,13 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.85x | 2.17x | 1.59x | 29.7% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | Best window 2 | 03:30-07:00 (peak **06:30**) | 08:30 ET | 1.66x | 1.88x | 1.47x | 26.6% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-03:30 (peak **01:00**) | 03:00 ET | 1.62x | 1.72x | 1.52x | 25.6% | London open 08:00 (normal weeks) |
+| Best window 3 | 00:00-03:30 (peak **01:00**) | 03:00 ET | 1.62x | 1.72x | 1.52x | 25.5% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 1.00x / Wed 1.02x / Thu 1.04x / Fri 1.02x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.28x other Fridays (260 NFP days; big moves 85.0% vs 30.9%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.28x other Fridays (260 NFP days; big moves 85.0% vs 31.0%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.94x a normal Wednesday (182 FOMC days; big moves 65.4% vs 3.8%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.16x a normal Wednesday (182 FOMC days; big moves 40.7% vs 2.8%) |
 | Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.99; peak 08:00 -> 07:30 (last 2 y 08:00) - **stable** |
@@ -603,7 +610,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.81x | 2.23x | 1.48x | 21.8% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.81x | 2.23x | 1.48x | 21.7% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | Best window 2 | 03:30-07:00 (peak **06:30**) | 08:30 ET | 1.63x | 1.93x | 1.37x | 21.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-03:30 (peak **01:00**) | 03:00 ET | 1.52x | 1.71x | 1.35x | 14.3% | London open 08:00 (normal weeks) |
 
@@ -624,13 +631,13 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.91x | 2.38x | 1.54x | 24.9% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.75x | 2.04x | 1.50x | 28.2% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.35x | 1.50x | 1.21x | 8.5% | London open 08:00 (normal weeks) |
+| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.35x | 1.50x | 1.21x | 8.4% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Wed**: 1.18x the quietest (Mon), 95% CI 1.16-1.22, 5668 days - **weak** |
 | Day activity Mon-Fri | Mon 0.89x / Tue 0.99x / Wed 1.05x / Thu 1.04x / Fri 1.02x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.29x other Fridays (260 NFP days; big moves 88.5% vs 39.4%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.29x other Fridays (260 NFP days; big moves 88.8% vs 39.4%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.15x a normal Wednesday (182 FOMC days; big moves 67.6% vs 3.2%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.52x a normal Wednesday (182 FOMC days; big moves 58.2% vs 3.1%) |
 | Era check | last 2 y vs all rho 0.78; before vs since 2020 rho 0.89; peak 08:00 -> 08:00 (last 2 y 08:00) - **shifted** |
@@ -641,7 +648,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.87x | 2.31x | 1.52x | 23.4% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.87x | 2.31x | 1.52x | 23.5% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | Best window 2 | 05:30-07:00 (peak **06:30**) | 08:30 ET | 1.64x | 1.97x | 1.37x | 22.1% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-05:30 (peak **01:00**) | 03:00 ET | 1.50x | 1.67x | 1.36x | 15.1% | London open 08:00 (normal weeks) |
 
@@ -649,9 +656,9 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.16-1.22, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.99x / Wed 1.04x / Thu 1.07x / Fri 1.00x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.33x other Fridays (260 NFP days; big moves 87.7% vs 24.8%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.33x other Fridays (260 NFP days; big moves 87.3% vs 24.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.12x a normal Wednesday (182 FOMC days; big moves 63.2% vs 3.6%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.47x a normal Wednesday (182 FOMC days; big moves 54.4% vs 3.3%) |
+| FOMC 14:30 ET press conf. (12:30) | range 2.47x a normal Wednesday (182 FOMC days; big moves 54.4% vs 3.2%) |
 | Era check | last 2 y vs all rho 0.85; before vs since 2020 rho 0.92; peak 08:00 -> 08:00 (last 2 y 08:30) - **stable** |
 
 ### NZDJPY (NZD_JPY) - Crosses - watchlist
@@ -660,16 +667,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.79x | 2.12x | 1.51x | 25.4% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.79x | 2.12x | 1.51x | 25.3% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.54x | 1.77x | 1.33x | 20.9% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.45x | 1.57x | 1.33x | 15.2% | London open 08:00 (normal weeks) |
+| Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.45x | 1.57x | 1.33x | 15.1% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.14-1.21, 5668 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 1.00x / Wed 1.03x / Thu 1.05x / Fri 1.01x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.55x other Fridays (260 NFP days; big moves 87.7% vs 23.6%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 3.2x a normal Wednesday (182 FOMC days; big moves 69.8% vs 4.2%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.55x other Fridays (260 NFP days; big moves 87.7% vs 23.8%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 3.2x a normal Wednesday (182 FOMC days; big moves 69.8% vs 4.1%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.59x a normal Wednesday (182 FOMC days; big moves 56.6% vs 3.7%) |
 | Era check | last 2 y vs all rho 0.97; before vs since 2020 rho 0.97; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
 
@@ -681,13 +688,13 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.77x | 2.08x | 1.51x | 24.6% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.55x | 1.77x | 1.36x | 22.2% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.40x | 1.55x | 1.26x | 10.8% | London open 08:00 (normal weeks) |
+| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.40x | 1.55x | 1.26x | 10.7% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.16-1.22, 5672 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.89x / Tue 0.99x / Wed 1.04x / Thu 1.06x / Fri 1.01x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.65x other Fridays (260 NFP days; big moves 90.8% vs 27.0%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.65x other Fridays (260 NFP days; big moves 91.2% vs 27.2%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.32x a normal Wednesday (182 FOMC days; big moves 84.1% vs 4.0%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.2x a normal Wednesday (182 FOMC days; big moves 68.7% vs 2.9%) |
 | Era check | last 2 y vs all rho 0.86; before vs since 2020 rho 0.95; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
@@ -698,15 +705,15 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:30**) | 10:30 ET | 2.37x | 2.56x | 2.19x | 55.6% | first stock hour |
-| Best window 2 | 00:30-06:00 (peak **01:00**) | 03:00 ET | 2.32x | 2.28x | 2.35x | 60.0% | London open 08:00 (normal weeks) |
-| Best window 3 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.24x | 2.50x | 2.00x | 50.1% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 1 | 07:00-10:00 (peak **08:30**) | 10:30 ET | 2.37x | 2.56x | 2.19x | 55.7% | first stock hour |
+| Best window 2 | 00:30-06:00 (peak **01:00**) | 03:00 ET | 2.32x | 2.28x | 2.35x | 60.1% | London open 08:00 (normal weeks) |
+| Best window 3 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.24x | 2.50x | 2.00x | 50.2% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.08x the quietest (Tue), 95% CI 1.05-1.11, 5669 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.98x / Tue 0.96x / Wed 1.01x / Thu 1.04x / Fri 1.00x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.57x other Fridays (260 NFP days; big moves 77.7% vs 48.5%) |
+| NFP 08:30 ET (06:30 Calgary) | range 1.57x other Fridays (260 NFP days; big moves 77.7% vs 48.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.92x a normal Wednesday (182 FOMC days; big moves 37.4% vs 9.7%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.49x a normal Wednesday (182 FOMC days; big moves 34.1% vs 8.6%) |
 | Era check | last 2 y vs all rho 0.74; before vs since 2020 rho 0.92; peak 08:30 -> 01:00 (last 2 y 07:30) - **shifted** |
@@ -717,14 +724,14 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 05:00-10:00 (peak **08:00**) | 10:00 ET | 2.39x | 2.73x | 2.09x | 53.2% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 2.33x | 2.30x | 2.36x | 61.0% | London open 08:00 (normal weeks) |
+| Best window 1 | 05:00-10:00 (peak **08:00**) | 10:00 ET | 2.39x | 2.73x | 2.09x | 53.3% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 2 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 2.33x | 2.30x | 2.36x | 61.2% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.1x the quietest (Mon), 95% CI 1.06-1.12, 5653 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.95x / Tue 1.00x / Wed 1.00x / Thu 1.04x / Fri 1.00x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.92x other Fridays (259 NFP days; big moves 86.9% vs 48.9%) |
+| NFP 08:30 ET (06:30 Calgary) | range 1.92x other Fridays (259 NFP days; big moves 86.9% vs 49.1%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.2x a normal Wednesday (181 FOMC days; big moves 48.1% vs 9.1%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.86x a normal Wednesday (181 FOMC days; big moves 43.1% vs 7.7%) |
 | Era check | last 2 y vs all rho 0.90; before vs since 2020 rho 0.94; peak 08:00 -> 08:00 (last 2 y 08:30) - **stable** |
@@ -753,14 +760,14 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 03:30-10:00 (peak **08:00**) | 10:00 ET | 2.32x | 2.80x | 1.92x | 47.1% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 1 | 03:30-10:00 (peak **08:00**) | 10:00 ET | 2.32x | 2.80x | 1.92x | 46.9% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | Best window 2 | 00:00-03:30 (peak **01:00**) | 03:00 ET | 2.31x | 2.40x | 2.21x | 58.2% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.07x the quietest (Mon), 95% CI 1.04-1.11, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.97x / Tue 0.98x / Wed 1.01x / Thu 1.03x / Fri 1.00x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.82x other Fridays (260 NFP days; big moves 83.5% vs 44.7%) |
+| NFP 08:30 ET (06:30 Calgary) | range 1.82x other Fridays (260 NFP days; big moves 83.5% vs 44.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.03x a normal Wednesday (182 FOMC days; big moves 48.9% vs 7.5%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.96x a normal Wednesday (182 FOMC days; big moves 44.5% vs 6.9%) |
 | Era check | last 2 y vs all rho 0.96; before vs since 2020 rho 0.97; peak 08:00 -> 01:00 (last 2 y 08:30) - **stable** |
@@ -780,7 +787,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 | Day activity Mon-Fri | Mon 0.95x / Tue 1.00x / Wed 1.01x / Thu 1.03x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.71x other Fridays (260 NFP days; big moves 71.9% vs 32.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.38x a normal Wednesday (182 FOMC days; big moves 48.4% vs 5.1%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.34x a normal Wednesday (182 FOMC days; big moves 45.1% vs 4.6%) |
+| FOMC 14:30 ET press conf. (12:30) | range 2.34x a normal Wednesday (182 FOMC days; big moves 45.1% vs 4.7%) |
 | Era check | last 2 y vs all rho 0.96; before vs since 2020 rho 0.97; peak 08:30 -> 08:30 (last 2 y 08:00) - **stable** |
 
 ### EURSGD (EUR_SGD) - Exotics - watchlist
@@ -797,9 +804,9 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Thu**: 1.17x the quietest (Mon), 95% CI 1.14-1.2, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.98x / Wed 1.00x / Thu 1.06x / Fri 1.04x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.75x other Fridays (260 NFP days; big moves 93.5% vs 35.5%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.75x other Fridays (260 NFP days; big moves 93.5% vs 36.0%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.82x a normal Wednesday (182 FOMC days; big moves 87.9% vs 4.4%) |
-| FOMC 14:30 ET press conf. (12:30) | range 3.05x a normal Wednesday (182 FOMC days; big moves 65.9% vs 3.1%) |
+| FOMC 14:30 ET press conf. (12:30) | range 3.05x a normal Wednesday (182 FOMC days; big moves 66.5% vs 3.1%) |
 | Era check | last 2 y vs all rho 0.88; before vs since 2020 rho 0.98; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
 
 ### EURTRY (EUR_TRY) - Exotics - watchlist
@@ -847,16 +854,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.86x | 2.16x | 1.61x | 29.5% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 03:30-07:00 (peak **06:30**) | 08:30 ET | 1.73x | 1.95x | 1.54x | 28.6% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-03:30 (peak **01:00**) | 03:00 ET | 1.61x | 1.74x | 1.50x | 22.5% | London open 08:00 (normal weeks) |
+| Best window 2 | 03:30-07:00 (peak **06:30**) | 08:30 ET | 1.73x | 1.95x | 1.54x | 28.7% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:00-03:30 (peak **01:00**) | 03:00 ET | 1.61x | 1.74x | 1.50x | 22.4% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.12x the quietest (Mon), 95% CI 1.09-1.15, 5671 days - **weak** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.99x / Wed 1.03x / Thu 1.03x / Fri 1.02x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.26x other Fridays (260 NFP days; big moves 89.2% vs 32.3%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 3.71x a normal Wednesday (182 FOMC days; big moves 76.9% vs 3.1%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.43x a normal Wednesday (182 FOMC days; big moves 47.8% vs 2.0%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.26x other Fridays (260 NFP days; big moves 89.2% vs 32.4%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 3.71x a normal Wednesday (182 FOMC days; big moves 77.5% vs 3.1%) |
+| FOMC 14:30 ET press conf. (12:30) | range 2.43x a normal Wednesday (182 FOMC days; big moves 47.8% vs 2.1%) |
 | Era check | last 2 y vs all rho 0.88; before vs since 2020 rho 0.98; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
 
 ### SGDJPY (SGD_JPY) - Exotics - watchlist
@@ -866,15 +873,15 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.76x | 2.06x | 1.50x | 27.1% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.60x | 1.80x | 1.43x | 27.9% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.45x | 1.59x | 1.32x | 16.1% | London open 08:00 (normal weeks) |
+| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.60x | 1.80x | 1.43x | 27.8% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.45x | 1.59x | 1.32x | 16.0% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Fri**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5671 days - **weak** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.98x / Wed 1.02x / Thu 1.04x / Fri 1.04x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.87x other Fridays (260 NFP days; big moves 92.7% vs 31.7%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 4.04x a normal Wednesday (182 FOMC days; big moves 80.8% vs 5.0%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.87x other Fridays (260 NFP days; big moves 92.3% vs 32.0%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 4.04x a normal Wednesday (182 FOMC days; big moves 81.3% vs 4.9%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.59x a normal Wednesday (182 FOMC days; big moves 54.9% vs 3.6%) |
 | Era check | last 2 y vs all rho 0.95; before vs since 2020 rho 0.98; peak 08:00 -> 07:30 (last 2 y 08:00) - **stable** |
 
@@ -893,7 +900,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 | Best weekday | **Wed**: 1.11x the quietest (Mon), 95% CI 1.07-1.14, 3752 days - **weak** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.98x / Wed 1.03x / Thu 1.03x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.84x other Fridays (150 NFP days; big moves 82.0% vs 25.2%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 3.8x a normal Wednesday (128 FOMC days; big moves 68.0% vs 8.6%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 3.81x a normal Wednesday (128 FOMC days; big moves 68.0% vs 8.6%) |
 | FOMC 14:30 ET press conf. (12:30) | range 4.07x a normal Wednesday (129 FOMC days; big moves 62.0% vs 5.0%) |
 | Era check | last 2 y vs all rho 0.99; before vs since 2020 rho 0.91; peak 19:30 -> 19:30 (last 2 y 19:30) - **stable** |
 
@@ -922,7 +929,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 08:00-10:00 (peak **09:00**) | 11:00 ET | 1.69x | 1.82x | 1.56x | 35.3% | London 16:00 close / WM-R fix (normal weeks) |
+| Best window 1 | 08:00-10:00 (peak **09:00**) | 11:00 ET | 1.69x | 1.82x | 1.56x | 35.4% | London 16:00 close / WM-R fix (normal weeks) |
 | Best window 2 | 00:00-04:30 (peak **02:00**) | 04:00 ET | 1.44x | 1.65x | 1.25x | 23.5% | London 2nd hour / London open in DST-mismatch weeks |
 | Best window 3 | 17:30-21:00 (peak **19:00**) | 21:00 ET | 1.43x | 1.43x | 1.43x | 33.1% |  |
 
@@ -930,9 +937,9 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Fri**: 1.11x the quietest (Mon), 95% CI 1.08-1.14, 5631 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.96x / Tue 0.97x / Wed 0.99x / Thu 1.03x / Fri 1.06x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.45x other Fridays (259 NFP days; big moves 33.6% vs 18.8%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 1.65x a normal Wednesday (181 FOMC days; big moves 26.5% vs 11.3%) |
-| FOMC 14:30 ET press conf. (12:30) | range 1.61x a normal Wednesday (180 FOMC days; big moves 25.6% vs 12.3%) |
+| NFP 08:30 ET (06:30 Calgary) | range 1.45x other Fridays (259 NFP days; big moves 34.4% vs 18.9%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 1.65x a normal Wednesday (181 FOMC days; big moves 26.5% vs 11.4%) |
+| FOMC 14:30 ET press conf. (12:30) | range 1.61x a normal Wednesday (180 FOMC days; big moves 24.4% vs 12.3%) |
 | Era check | last 2 y vs all rho 0.86; before vs since 2020 rho 0.78; peak 09:00 -> 19:00 (last 2 y 19:00) - **shifted** |
 
 ### USDHUF (USD_HUF) - Exotics - watchlist
@@ -943,13 +950,13 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 2.31x | 2.60x | 2.05x | 52.2% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | Best window 2 | 05:30-07:00 (peak **06:30**) | 08:30 ET | 2.16x | 2.36x | 1.98x | 49.2% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-05:30 (peak **01:00**) | 03:00 ET | 1.99x | 2.00x | 1.98x | 49.1% | London open 08:00 (normal weeks) |
+| Best window 3 | 00:00-05:30 (peak **01:00**) | 03:00 ET | 1.99x | 2.00x | 1.98x | 49.0% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.14-1.19, 5665 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.01x / Thu 1.06x / Fri 1.02x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.5x other Fridays (259 NFP days; big moves 95.0% vs 53.8%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.5x other Fridays (259 NFP days; big moves 95.0% vs 53.7%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.88x a normal Wednesday (182 FOMC days; big moves 87.4% vs 6.1%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.98x a normal Wednesday (182 FOMC days; big moves 75.3% vs 5.0%) |
 | Era check | last 2 y vs all rho 0.94; before vs since 2020 rho 0.98; peak 08:00 -> 08:00 (last 2 y 08:30) - **stable** |
@@ -960,7 +967,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:30 (peak **07:30**) | 09:30 ET | 2.53x | 3.17x | 2.02x | 51.2% | NYSE open 09:30 ET |
+| Best window 1 | 07:00-10:30 (peak **07:30**) | 09:30 ET | 2.53x | 3.17x | 2.02x | 51.3% | NYSE open 09:30 ET |
 | Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.41x | 2.75x | 2.11x | 54.3% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 10:30-14:00 (peak **12:00**) | 14:00 ET | 1.57x | 1.81x | 1.37x | 23.8% | US 14:00 ET (FOMC days; oil settles 14:30 ET) |
 
@@ -987,7 +994,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Thu**: 1.13x the quietest (Mon), 95% CI 1.11-1.17, 5671 days - **weak** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 1.00x / Wed 1.03x / Thu 1.04x / Fri 1.02x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.51x other Fridays (260 NFP days; big moves 93.5% vs 41.8%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.51x other Fridays (260 NFP days; big moves 93.5% vs 41.7%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.13x a normal Wednesday (182 FOMC days; big moves 86.8% vs 5.9%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.53x a normal Wednesday (182 FOMC days; big moves 75.3% vs 3.9%) |
 | Era check | last 2 y vs all rho 0.93; before vs since 2020 rho 0.96; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
@@ -999,7 +1006,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-09:30 (peak **08:00**) | 10:00 ET | 2.37x | 2.79x | 2.01x | 50.6% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 05:30-07:00 (peak **06:30**) | 08:30 ET | 2.18x | 2.50x | 1.89x | 45.7% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 2 | 05:30-07:00 (peak **06:30**) | 08:30 ET | 2.18x | 2.50x | 1.89x | 45.8% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-05:30 (peak **01:00**) | 03:00 ET | 2.02x | 2.13x | 1.92x | 45.7% | London open 08:00 (normal weeks) |
 
 |  |  |
@@ -1036,36 +1043,36 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.66x | 1.86x | 1.49x | 26.1% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 05:00-07:00 (peak **06:30**) | 08:30 ET | 1.51x | 1.64x | 1.38x | 26.6% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.49x | 1.61x | 1.37x | 17.8% | London open 08:00 (normal weeks) |
+| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.66x | 1.86x | 1.49x | 26.0% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 2 | 05:00-07:00 (peak **06:30**) | 08:30 ET | 1.51x | 1.64x | 1.38x | 26.5% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.49x | 1.61x | 1.37x | 17.7% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.12-1.17, 5668 days - **weak** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.97x / Wed 1.03x / Thu 1.04x / Fri 1.03x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.93x other Fridays (260 NFP days; big moves 88.5% vs 29.9%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 4.67x a normal Wednesday (182 FOMC days; big moves 76.9% vs 5.0%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.93x other Fridays (260 NFP days; big moves 88.5% vs 29.7%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 4.67x a normal Wednesday (182 FOMC days; big moves 76.9% vs 4.9%) |
 | FOMC 14:30 ET press conf. (12:30) | range 4.0x a normal Wednesday (182 FOMC days; big moves 67.0% vs 4.3%) |
 | Era check | last 2 y vs all rho 0.95; before vs since 2020 rho 0.95; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
 
 ### USDTHB (USD_THB) - Exotics - watchlist
 
-2005-01-02 to 2026-11-13 (21.9 years, 246,286 half-hours). Best times: **reliable** (first vs second half rho 0.88).
+2005-01-02 to 2026-11-13 (21.9 years, 246,286 half-hours). Best times: **reliable** (first vs second half rho 0.87).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 00:00-04:00 (peak **01:00**) | 03:00 ET | 1.70x | 1.94x | 1.50x | 30.3% | London open 08:00 (normal weeks) |
-| Best window 2 | 18:00-21:30 (peak **19:00**) | 21:00 ET | 1.66x | 1.66x | 1.67x | 37.6% |  |
-| Best window 3 | 07:00-09:30 (peak **08:00**) | 10:00 ET | 1.39x | 1.50x | 1.29x | 23.9% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 1 | 00:00-04:00 (peak **01:00**) | 03:00 ET | 1.70x | 1.94x | 1.50x | 29.3% | London open 08:00 (normal weeks) |
+| Best window 2 | 18:00-21:30 (peak **19:00**) | 21:00 ET | 1.66x | 1.66x | 1.67x | 36.8% |  |
+| Best window 3 | 07:00-09:30 (peak **08:00**) | 10:00 ET | 1.39x | 1.50x | 1.29x | 23.5% | 10:00 ET data (ISM, JOLTS, sentiment) |
 
 |  |  |
 |---|---|
 | Best weekday | **Wed**: 1.12x the quietest (Mon), 95% CI 1.09-1.15, 5437 days - **weak** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.98x / Wed 1.03x / Thu 1.02x / Fri 1.02x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.73x other Fridays (252 NFP days; big moves 71.0% vs 24.5%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 4.74x a normal Wednesday (172 FOMC days; big moves 51.2% vs 5.3%) |
-| FOMC 14:30 ET press conf. (12:30) | range 5.33x a normal Wednesday (156 FOMC days; big moves 55.1% vs 4.4%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.73x other Fridays (252 NFP days; big moves 71.8% vs 24.8%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 4.74x a normal Wednesday (172 FOMC days; big moves 51.2% vs 5.1%) |
+| FOMC 14:30 ET press conf. (12:30) | range 5.34x a normal Wednesday (156 FOMC days; big moves 55.1% vs 4.2%) |
 | Era check | last 2 y vs all rho 0.83; before vs since 2020 rho 0.85; peak 18:30 -> 07:30 (last 2 y 07:30) - **shifted** |
 
 ### USDTRY (USD_TRY) - Exotics - watchlist
@@ -1076,14 +1083,14 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 2.27x | 3.09x | 1.67x | 38.0% | London open 08:00 (normal weeks) |
 | Best window 2 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 2.25x | 3.09x | 1.64x | 36.4% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 3 | 05:00-07:00 (peak **06:30**) | 08:30 ET | 2.16x | 3.00x | 1.56x | 33.3% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 05:00-07:00 (peak **06:30**) | 08:30 ET | 2.16x | 3.00x | 1.56x | 33.2% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.09x the quietest (Mon), 95% CI 1.06-1.14, 4778 days - **weak** |
 | Day activity Mon-Fri | Mon 0.95x / Tue 1.00x / Wed 1.01x / Thu 1.04x / Fri 1.01x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.21x other Fridays (233 NFP days; big moves 81.5% vs 34.8%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 3.88x a normal Wednesday (154 FOMC days; big moves 64.9% vs 10.4%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.21x other Fridays (233 NFP days; big moves 81.5% vs 34.7%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 3.88x a normal Wednesday (154 FOMC days; big moves 64.9% vs 10.5%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.15x a normal Wednesday (153 FOMC days; big moves 57.5% vs 8.8%) |
 | Era check | last 2 y vs all rho 0.73; before vs since 2020 rho 0.90; peak 08:00 -> 00:00 (last 2 y 00:00) - **shifted** |
 
@@ -1112,17 +1119,17 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.97x | 2.23x | 1.73x | 35.6% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 05:30-07:00 (peak **06:30**) | 08:30 ET | 1.82x | 2.04x | 1.63x | 33.6% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-05:30 (peak **01:00**) | 03:00 ET | 1.70x | 1.74x | 1.66x | 31.2% | London open 08:00 (normal weeks) |
+| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.97x | 2.23x | 1.73x | 35.4% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 2 | 05:30-07:00 (peak **06:30**) | 08:30 ET | 1.82x | 2.04x | 1.63x | 33.7% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:00-05:30 (peak **01:00**) | 03:00 ET | 1.70x | 1.74x | 1.66x | 31.3% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.14-1.21, 5671 days - **weak** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.98x / Wed 1.01x / Thu 1.06x / Fri 1.03x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.46x other Fridays (260 NFP days; big moves 92.7% vs 37.2%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 3.25x a normal Wednesday (182 FOMC days; big moves 68.7% vs 5.9%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.74x a normal Wednesday (182 FOMC days; big moves 56.6% vs 4.7%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.46x other Fridays (260 NFP days; big moves 92.3% vs 37.2%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 3.25x a normal Wednesday (182 FOMC days; big moves 67.6% vs 6.0%) |
+| FOMC 14:30 ET press conf. (12:30) | range 2.74x a normal Wednesday (182 FOMC days; big moves 56.6% vs 4.8%) |
 | Era check | last 2 y vs all rho 0.91; before vs since 2020 rho 0.94; peak 08:00 -> 07:30 (last 2 y 08:00) - **stable** |
 
 ### XAGAUD (XAG_AUD) - Metals - watchlist
@@ -1131,15 +1138,15 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-09:30 (peak **07:30**) | 09:30 ET | 2.38x | 2.66x | 2.13x | 55.4% | NYSE open 09:30 ET |
+| Best window 1 | 07:00-09:30 (peak **07:30**) | 09:30 ET | 2.38x | 2.66x | 2.13x | 55.3% | NYSE open 09:30 ET |
 | Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.09x | 2.23x | 1.96x | 48.2% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.32x | 1.43x | 1.22x | 13.4% | London open 08:00 (normal weeks) |
+| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.32x | 1.43x | 1.22x | 13.3% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.18, 5341 days - **weak** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.99x / Wed 1.01x / Thu 1.05x / Fri 1.03x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.03x other Fridays (241 NFP days; big moves 90.9% vs 49.6%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.03x other Fridays (241 NFP days; big moves 90.9% vs 49.7%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.47x a normal Wednesday (173 FOMC days; big moves 72.8% vs 6.9%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.94x a normal Wednesday (173 FOMC days; big moves 63.0% vs 5.2%) |
 | Era check | last 2 y vs all rho 0.92; before vs since 2020 rho 0.91; peak 07:30 -> 07:30 (last 2 y 07:30) - **stable** |
@@ -1150,9 +1157,9 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-09:30 (peak **07:30**) | 09:30 ET | 2.46x | 2.71x | 2.23x | 59.9% | NYSE open 09:30 ET |
+| Best window 1 | 07:00-09:30 (peak **07:30**) | 09:30 ET | 2.46x | 2.71x | 2.23x | 60.0% | NYSE open 09:30 ET |
 | Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.21x | 2.35x | 2.07x | 52.5% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.42x | 1.63x | 1.25x | 15.0% | London open 08:00 (normal weeks) |
+| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.42x | 1.63x | 1.25x | 15.1% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
@@ -1169,7 +1176,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 06:00-09:30 (peak **07:30**) | 09:30 ET | 2.91x | 3.71x | 2.29x | 62.6% | NYSE open 09:30 ET |
+| Best window 1 | 06:00-09:30 (peak **07:30**) | 09:30 ET | 2.91x | 3.71x | 2.29x | 62.5% | NYSE open 09:30 ET |
 | Best window 2 | 10:30-12:00 (peak **11:00**) | 13:00 ET | 1.50x | 1.67x | 1.34x | 22.3% |  |
 | Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.31x | 1.36x | 1.27x | 16.3% | London open 08:00 (normal weeks) |
 
@@ -1177,7 +1184,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Thu**: 1.11x the quietest (Mon), 95% CI 1.08-1.16, 5333 days - **weak** |
 | Day activity Mon-Fri | Mon 0.94x / Tue 0.98x / Wed 1.00x / Thu 1.04x / Fri 1.03x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.19x other Fridays (241 NFP days; big moves 93.8% vs 58.1%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.19x other Fridays (241 NFP days; big moves 93.8% vs 57.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.9x a normal Wednesday (173 FOMC days; big moves 79.2% vs 8.8%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.91x a normal Wednesday (173 FOMC days; big moves 72.3% vs 6.5%) |
 | Era check | last 2 y vs all rho 0.87; before vs since 2020 rho 0.87; peak 07:30 -> 07:30 (last 2 y 07:30) - **stable** |
@@ -1284,14 +1291,14 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-09:30 (peak **07:30**) | 09:30 ET | 2.70x | 3.32x | 2.20x | 59.1% | NYSE open 09:30 ET |
-| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.38x | 2.77x | 2.04x | 51.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 10:30-12:30 (peak **11:00**) | 13:00 ET | 1.41x | 1.54x | 1.29x | 19.3% |  |
+| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.38x | 2.77x | 2.04x | 51.3% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 10:30-12:30 (peak **11:00**) | 13:00 ET | 1.41x | 1.54x | 1.29x | 19.2% |  |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.12-1.19, 5335 days - **weak** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.01x / Thu 1.06x / Fri 1.04x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.54x other Fridays (241 NFP days; big moves 94.2% vs 57.3%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.54x other Fridays (241 NFP days; big moves 94.2% vs 57.2%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.72x a normal Wednesday (173 FOMC days; big moves 88.4% vs 10.0%) |
 | FOMC 14:30 ET press conf. (12:30) | range 4.37x a normal Wednesday (173 FOMC days; big moves 76.3% vs 6.4%) |
 | Era check | last 2 y vs all rho 0.86; before vs since 2020 rho 0.91; peak 08:00 -> 07:30 (last 2 y 07:30) - **stable** |
@@ -1334,25 +1341,6 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 | FOMC 14:30 ET press conf. (12:30) | range 2.71x a normal Wednesday (177 FOMC days; big moves 57.1% vs 12.5%) |
 | Era check | last 2 y vs all rho 0.90; before vs since 2020 rho 0.90; peak 06:30 -> 07:30 (last 2 y 07:30) - **shifted** |
 
-### AUS200 (AU200_AUD) - Index / commodity CFDs - watchlist
-
-2005-01-03 to 2026-11-13 (21.9 years, 205,540 half-hours). Best times: **reliable** (first vs second half rho 0.84).
-
-|  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
-|---|---|---|---|---|---|---|---|
-| Best window 1 | 16:00-16:30 (peak **16:00**) | 18:00 ET | 2.91x | 3.78x | 2.24x | 59.7% |  |
-| Best window 2 | 18:00-19:00 (peak **18:00**) | 20:00 ET | 2.41x | 2.99x | 1.94x | 45.3% | Asia morning (Tokyo 09:00-10:00 JST, Tokyo fix 09:55) |
-| Best window 3 | 16:30-18:00 (peak **17:00**) | 19:00 ET | 2.04x | 2.38x | 1.75x | 38.1% | Tokyo 09:00 (winter) |
-
-|  |  |
-|---|---|
-| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.11-1.18, 4927 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.92x / Tue 1.00x / Wed 1.02x / Thu 1.06x / Fri 1.00x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.35x other Fridays (177 NFP days; big moves 57.6% vs 8.0%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 2.79x a normal Wednesday (148 FOMC days; big moves 56.1% vs 5.6%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.72x a normal Wednesday (148 FOMC days; big moves 52.7% vs 5.3%) |
-| Era check | last 2 y vs all rho 0.62; before vs since 2020 rho 0.65; peak 16:00 -> 07:30 (last 2 y 07:30) - **shifted** |
-
 ### CHINAH (CHINAH_HKD) - Index / commodity CFDs - watchlist
 
 2021-11-01 to 2026-11-13 (5.0 years, 40,333 half-hours). Best times: **reliable** (first vs second half rho 0.97).
@@ -1386,7 +1374,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Fri**: 1.07x the quietest (Wed), 95% CI 1.03-1.12, 3752 days - **weak** |
 | Day activity Mon-Fri | Mon 1.01x / Tue 0.97x / Wed 0.96x / Thu 1.01x / Fri 1.03x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.21x other Fridays (164 NFP days; big moves 39.0% vs 6.5%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.21x other Fridays (164 NFP days; big moves 38.4% vs 6.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.78x a normal Wednesday (84 FOMC days; big moves 41.7% vs 2.4%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.25x a normal Wednesday (83 FOMC days; big moves 47.0% vs 2.1%) |
 | Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.92; peak 18:30 -> 18:30 (last 2 y 18:30) - **stable** |
@@ -1397,15 +1385,15 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 06:00-10:00 (peak **07:30**) | 09:30 ET | 2.44x | 3.22x | 1.84x | 42.9% | NYSE open 09:30 ET |
-| Best window 2 | 00:00-02:00 (peak **01:00**) | 03:00 ET | 1.57x | 1.63x | 1.51x | 26.3% | London open 08:00 (normal weeks) |
+| Best window 1 | 06:00-10:00 (peak **07:30**) | 09:30 ET | 2.44x | 3.22x | 1.84x | 43.0% | NYSE open 09:30 ET |
+| Best window 2 | 00:00-02:00 (peak **01:00**) | 03:00 ET | 1.57x | 1.63x | 1.51x | 26.4% | London open 08:00 (normal weeks) |
 | Best window 3 | 02:00-03:30 (peak **02:00**) | 04:00 ET | 1.44x | 1.44x | 1.43x | 24.4% | London 2nd hour / London open in DST-mismatch weeks |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.11x the quietest (Mon), 95% CI 1.08-1.14, 5099 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 1.00x / Wed 0.99x / Thu 1.03x / Fri 1.00x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.76x other Fridays (239 NFP days; big moves 80.3% vs 35.2%) |
+| NFP 08:30 ET (06:30 Calgary) | range 1.76x other Fridays (239 NFP days; big moves 80.3% vs 35.4%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.82x a normal Wednesday (168 FOMC days; big moves 51.2% vs 5.7%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.2x a normal Wednesday (165 FOMC days; big moves 42.4% vs 2.6%) |
 | Era check | last 2 y vs all rho 0.97; before vs since 2020 rho 0.96; peak 08:00 -> 07:30 (last 2 y 07:30) - **stable** |
@@ -1416,17 +1404,17 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:30-08:00 (peak **07:30**) | 09:30 ET | 5.95x | 9.34x | 3.79x | 90.5% | NYSE open 09:30 ET |
-| Best window 2 | 08:00-10:00 (peak **08:30**) | 10:30 ET | 4.69x | 6.83x | 3.22x | 78.2% | first stock hour |
-| Best window 3 | 11:00-13:00 (peak **11:30**) | 13:30 ET | 2.87x | 4.11x | 2.00x | 46.6% |  |
+| Best window 1 | 07:30-08:00 (peak **07:30**) | 09:30 ET | 5.95x | 9.34x | 3.79x | 90.7% | NYSE open 09:30 ET |
+| Best window 2 | 08:00-10:00 (peak **08:30**) | 10:30 ET | 4.69x | 6.83x | 3.22x | 78.4% | first stock hour |
+| Best window 3 | 11:00-13:00 (peak **11:30**) | 13:30 ET | 2.87x | 4.11x | 2.00x | 47.0% |  |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.04x the quietest (Fri), 95% CI 1.01-1.07, 5320 days - **weak** |
 | Day activity Mon-Fri | Mon 1.01x / Tue 0.98x / Wed 0.99x / Thu 1.01x / Fri 0.97x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.27x other Fridays (161 NFP days; big moves 19.3% vs 11.1%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 1.0x a normal Wednesday (182 FOMC days; big moves 51.1% vs 51.0%) |
-| FOMC 14:30 ET press conf. (12:30) | range 0.55x a normal Wednesday (5 FOMC days; big moves 0.0% vs 50.3%) |
+| NFP 08:30 ET (06:30 Calgary) | range 1.27x other Fridays (161 NFP days; big moves 18.6% vs 11.1%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 1.0x a normal Wednesday (182 FOMC days; big moves 51.6% vs 50.9%) |
+| FOMC 14:30 ET press conf. (12:30) | range 0.55x a normal Wednesday (5 FOMC days; big moves 0.0% vs 51.0%) |
 | Era check | last 2 y vs all rho 0.97; before vs since 2020 rho 0.94; peak 07:30 -> 07:30 (last 2 y 07:30) - **stable** |
 
 ### EUSTX50 (EU50_EUR) - Index / commodity CFDs - watchlist
@@ -1436,14 +1424,14 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 01:00-01:30 (peak **01:00**) | 03:00 ET | 2.64x | 3.27x | 2.12x | 52.7% | London open 08:00 (normal weeks) |
-| Best window 2 | 07:30-09:30 (peak **07:30**) | 09:30 ET | 2.11x | 2.66x | 1.67x | 33.0% | NYSE open 09:30 ET |
-| Best window 3 | 05:30-07:30 (peak **06:30**) | 08:30 ET | 1.25x | 1.34x | 1.17x | 18.8% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 2 | 07:30-09:30 (peak **07:30**) | 09:30 ET | 2.11x | 2.66x | 1.67x | 33.1% | NYSE open 09:30 ET |
+| Best window 3 | 05:30-07:30 (peak **06:30**) | 08:30 ET | 1.25x | 1.34x | 1.18x | 18.8% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.13-1.22, 5554 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 1.00x / Wed 1.00x / Thu 1.07x / Fri 1.03x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.22x other Fridays (253 NFP days; big moves 73.1% vs 17.5%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.22x other Fridays (253 NFP days; big moves 72.7% vs 17.7%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.0x a normal Wednesday (156 FOMC days; big moves 48.7% vs 4.8%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.81x a normal Wednesday (150 FOMC days; big moves 39.3% vs 4.2%) |
 | Era check | last 2 y vs all rho 0.96; before vs since 2020 rho 0.90; peak 01:00 -> 01:00 (last 2 y 01:00) - **stable** |
@@ -1462,29 +1450,10 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.15-1.22, 5560 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.99x / Wed 1.00x / Thu 1.06x / Fri 1.04x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.18x other Fridays (253 NFP days; big moves 66.0% vs 12.3%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.18x other Fridays (253 NFP days; big moves 66.0% vs 12.2%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.7x a normal Wednesday (154 FOMC days; big moves 41.6% vs 2.2%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.38x a normal Wednesday (154 FOMC days; big moves 36.4% vs 2.0%) |
+| FOMC 14:30 ET press conf. (12:30) | range 2.38x a normal Wednesday (154 FOMC days; big moves 35.7% vs 2.0%) |
 | Era check | last 2 y vs all rho 0.99; before vs since 2020 rho 0.97; peak 01:00 -> 01:00 (last 2 y 01:00) - **stable** |
-
-### GER40 (DE30_EUR) - Index / commodity CFDs - watchlist
-
-2005-01-03 to 2026-11-13 (21.9 years, 179,693 half-hours). Best times: **reliable** (first vs second half rho 0.98).
-
-|  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
-|---|---|---|---|---|---|---|---|
-| Best window 1 | 01:00-02:30 (peak **01:00**) | 03:00 ET | 2.21x | 2.55x | 1.92x | 46.2% | London open 08:00 (normal weeks) |
-| Best window 2 | 07:30-09:30 (peak **07:30**) | 09:30 ET | 2.10x | 2.68x | 1.64x | 31.6% | NYSE open 09:30 ET |
-| Best window 3 | 05:30-07:30 (peak **06:30**) | 08:30 ET | 1.27x | 1.34x | 1.21x | 18.7% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-
-|  |  |
-|---|---|
-| Best weekday | **Thu**: 1.13x the quietest (Mon), 95% CI 1.1-1.17, 5552 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.92x / Tue 1.01x / Wed 1.01x / Thu 1.05x / Fri 1.00x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.13x other Fridays (253 NFP days; big moves 74.7% vs 18.6%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 2.84x a normal Wednesday (172 FOMC days; big moves 51.2% vs 3.5%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.44x a normal Wednesday (172 FOMC days; big moves 41.3% vs 3.1%) |
-| Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.98; peak 01:00 -> 01:00 (last 2 y 01:00) - **stable** |
 
 ### HK50 (HK33_HKD) - Index / commodity CFDs - watchlist
 
@@ -1493,7 +1462,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 18:30-19:00 (peak **18:30**) | 20:30 ET | 2.90x | 3.71x | 2.27x | 55.9% |  |
-| Best window 2 | 19:00-20:30 (peak **19:30**) | 21:30 ET | 2.24x | 2.57x | 1.95x | 48.9% |  |
+| Best window 2 | 19:00-20:30 (peak **19:30**) | 21:30 ET | 2.24x | 2.57x | 1.95x | 49.0% |  |
 | Best window 3 | 07:30-08:30 (peak **07:30**) | 09:30 ET | 1.67x | 1.79x | 1.56x | 28.6% | NYSE open 09:30 ET |
 
 |  |  |
@@ -1519,9 +1488,9 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Thu**: 1.17x the quietest (Mon), 95% CI 1.13-1.2, 5396 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 1.00x / Wed 1.01x / Thu 1.06x / Fri 1.04x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.82x other Fridays (250 NFP days; big moves 70.8% vs 12.4%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 2.49x a normal Wednesday (180 FOMC days; big moves 65.0% vs 9.3%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.37x a normal Wednesday (181 FOMC days; big moves 60.8% vs 8.1%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.82x other Fridays (250 NFP days; big moves 70.8% vs 12.2%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 2.49x a normal Wednesday (180 FOMC days; big moves 64.4% vs 9.3%) |
+| FOMC 14:30 ET press conf. (12:30) | range 2.37x a normal Wednesday (181 FOMC days; big moves 61.3% vs 8.0%) |
 | Era check | last 2 y vs all rho 0.90; before vs since 2020 rho 0.95; peak 07:30 -> 18:00 (last 2 y 07:30) - **stable** |
 
 ### NAS100 (NAS100_USD) - Index / commodity CFDs - watchlist
@@ -1530,56 +1499,18 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:30-08:30 (peak **07:30**) | 09:30 ET | 6.81x | 12.66x | 3.67x | 92.2% | NYSE open 09:30 ET |
-| Best window 2 | 10:30-14:00 (peak **13:30**) | 15:30 ET | 3.72x | 6.22x | 2.23x | 58.4% | last regular stock half-hour |
+| Best window 1 | 07:30-08:30 (peak **07:30**) | 09:30 ET | 6.81x | 12.66x | 3.67x | 92.1% | NYSE open 09:30 ET |
+| Best window 2 | 10:30-14:00 (peak **13:30**) | 15:30 ET | 3.72x | 6.22x | 2.23x | 58.5% | last regular stock half-hour |
 | Best window 3 | 06:00-07:30 (peak **06:30**) | 08:30 ET | 1.57x | 1.82x | 1.36x | 27.2% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5634 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.99x / Wed 1.02x / Thu 1.05x / Fri 0.98x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.86x other Fridays (259 NFP days; big moves 90.7% vs 30.0%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.86x other Fridays (259 NFP days; big moves 90.7% vs 30.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.54x a normal Wednesday (182 FOMC days; big moves 89.6% vs 43.0%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.34x a normal Wednesday (182 FOMC days; big moves 89.0% vs 41.3%) |
 | Era check | last 2 y vs all rho 0.97; before vs since 2020 rho 0.97; peak 07:30 -> 07:30 (last 2 y 07:30) - **stable** |
-
-### NATGAS (NATGAS_USD) - Index / commodity CFDs - watchlist
-
-2005-01-03 to 2026-11-13 (21.9 years, 247,734 half-hours). Best times: **weak** (first vs second half rho 0.92).
-
-|  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
-|---|---|---|---|---|---|---|---|
-| Best window 1 | 06:00-08:30 (peak **07:00**) | 09:00 ET | 4.46x | 6.64x | 3.00x | 78.5% | US 09:00 ET |
-| Best window 2 | 11:30-12:30 (peak **12:00**) | 14:00 ET | 4.28x | 7.13x | 2.57x | 69.4% | US 14:00 ET (FOMC days; oil settles 14:30 ET) |
-| Best window 3 | 08:30-11:30 (peak **08:30**) | 10:30 ET | 4.00x | 6.29x | 2.54x | 65.1% | first stock hour |
-
-|  |  |
-|---|---|
-| Best weekday | **Thu**: 1.23x the quietest (Fri), 95% CI 1.19-1.26, 5622 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.99x / Tue 0.99x / Wed 0.98x / Thu 1.14x / Fri 0.93x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.12x other Fridays (253 NFP days; big moves 72.3% vs 67.9%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 1.0x a normal Wednesday (182 FOMC days; big moves 72.5% vs 69.2%) |
-| FOMC 14:30 ET press conf. (12:30) | range 1.07x a normal Wednesday (171 FOMC days; big moves 19.3% vs 13.3%) |
-| Era check | last 2 y vs all rho 0.96; before vs since 2020 rho 0.93; peak 08:30 -> 07:00 (last 2 y 07:00) - **shifted** |
-
-### NETH25 (NL25_EUR) - Index / commodity CFDs - watchlist
-
-2008-01-18 to 2026-11-13 (18.8 years, 129,004 half-hours). Best times: **reliable** (first vs second half rho 0.97).
-
-|  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
-|---|---|---|---|---|---|---|---|
-| Best window 1 | 01:00-01:30 (peak **01:00**) | 03:00 ET | 2.40x | 2.90x | 2.00x | 49.1% | London open 08:00 (normal weeks) |
-| Best window 2 | 07:30-09:30 (peak **07:30**) | 09:30 ET | 2.08x | 2.69x | 1.61x | 28.8% | NYSE open 09:30 ET |
-| Best window 3 | 05:30-07:30 (peak **06:30**) | 08:30 ET | 1.07x | 1.09x | 1.04x | 12.8% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-
-|  |  |
-|---|---|
-| Best weekday | **Thu**: 1.17x the quietest (Mon), 95% CI 1.13-1.22, 4780 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.90x / Tue 0.97x / Wed 1.02x / Thu 1.06x / Fri 1.04x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.4x other Fridays (217 NFP days; big moves 66.4% vs 10.4%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 2.63x a normal Wednesday (126 FOMC days; big moves 42.1% vs 2.7%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.43x a normal Wednesday (126 FOMC days; big moves 39.7% vs 2.4%) |
-| Era check | last 2 y vs all rho 0.97; before vs since 2020 rho 0.94; peak 01:00 -> 01:00 (last 2 y 07:30) - **stable** |
 
 ### SOYBEANS (SOYBN_USD) - Index / commodity CFDs - watchlist
 
@@ -1588,15 +1519,15 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:30-08:00 (peak **07:30**) | 09:30 ET | 5.16x | 8.33x | 3.20x | 86.7% | NYSE open 09:30 ET |
-| Best window 2 | 08:00-10:00 (peak **08:30**) | 10:30 ET | 4.45x | 7.05x | 2.81x | 71.6% | first stock hour |
-| Best window 3 | 10:30-13:00 (peak **12:00**) | 14:00 ET | 2.69x | 3.93x | 1.85x | 43.1% | US 14:00 ET (FOMC days; oil settles 14:30 ET) |
+| Best window 2 | 08:00-10:00 (peak **08:30**) | 10:30 ET | 4.45x | 7.05x | 2.81x | 71.3% | first stock hour |
+| Best window 3 | 10:30-13:00 (peak **12:00**) | 14:00 ET | 2.69x | 3.93x | 1.85x | 42.9% | US 14:00 ET (FOMC days; oil settles 14:30 ET) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.03x the quietest (Wed), 95% CI 1.0-1.06, 5445 days - **weak** |
 | Day activity Mon-Fri | Mon 1.01x / Tue 1.01x / Wed 0.98x / Thu 1.01x / Fri 0.99x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.28x other Fridays (161 NFP days; big moves 14.9% vs 6.7%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 1.03x a normal Wednesday (182 FOMC days; big moves 46.7% vs 43.0%) |
+| NFP 08:30 ET (06:30 Calgary) | range 1.28x other Fridays (161 NFP days; big moves 14.9% vs 6.5%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 1.03x a normal Wednesday (182 FOMC days; big moves 46.2% vs 42.8%) |
 | FOMC 14:30 ET press conf. (12:30) | range 0.87x a normal Wednesday (7 FOMC days; big moves 28.6% vs 34.6%) |
 | Era check | last 2 y vs all rho 0.93; before vs since 2020 rho 0.89; peak 08:30 -> 07:30 (last 2 y 07:30) - **shifted** |
 
@@ -1618,32 +1549,13 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 | FOMC 14:30 ET press conf. (12:30) | range 4.22x a normal Wednesday (9 FOMC days; big moves 55.6% vs 0.0%) |
 | Era check | last 2 y vs all rho 0.95; before vs since 2020 rho 0.86; peak 01:00 -> 01:00 (last 2 y 01:00) - **stable** |
 
-### SPOTBRENT (BCO_USD) - Index / commodity CFDs - watchlist
-
-2005-01-04 to 2026-11-13 (21.9 years, 236,157 half-hours). Best times: **reliable** (first vs second half rho 0.97).
-
-|  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
-|---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **09:00**) | 11:00 ET | 2.97x | 4.20x | 2.09x | 54.2% | London 16:00 close / WM-R fix (normal weeks) |
-| Best window 2 | 12:00-12:30 (peak **12:00**) | 14:00 ET | 2.80x | 3.87x | 2.03x | 51.2% | US 14:00 ET (FOMC days; oil settles 14:30 ET) |
-| Best window 3 | 01:30-06:00 (peak **02:00**) | 04:00 ET | 1.59x | 1.80x | 1.41x | 18.5% | London 2nd hour / London open in DST-mismatch weeks |
-
-|  |  |
-|---|---|
-| Best weekday | **Wed**: 1.09x the quietest (Mon), 95% CI 1.07-1.11, 5563 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.96x / Tue 0.99x / Wed 1.04x / Thu 1.01x / Fri 0.97x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.57x other Fridays (249 NFP days; big moves 58.2% vs 24.5%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 1.22x a normal Wednesday (181 FOMC days; big moves 66.3% vs 50.7%) |
-| FOMC 14:30 ET press conf. (12:30) | range 1.37x a normal Wednesday (180 FOMC days; big moves 19.4% vs 4.4%) |
-| Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.96; peak 09:00 -> 07:30 (last 2 y 07:30) - **stable** |
-
 ### SPOTCRUDE (WTICO_USD) - Index / commodity CFDs - watchlist
 
 2005-01-03 to 2026-11-13 (21.9 years, 259,190 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:30**) | 10:30 ET | 3.59x | 5.41x | 2.38x | 63.6% | first stock hour |
+| Best window 1 | 07:00-10:00 (peak **08:30**) | 10:30 ET | 3.59x | 5.41x | 2.38x | 63.7% | first stock hour |
 | Best window 2 | 12:00-12:30 (peak **12:00**) | 14:00 ET | 3.56x | 5.47x | 2.31x | 61.6% | US 14:00 ET (FOMC days; oil settles 14:30 ET) |
 | Best window 3 | 01:30-05:00 (peak **02:00**) | 04:00 ET | 1.48x | 1.65x | 1.33x | 15.9% | London 2nd hour / London open in DST-mismatch weeks |
 
@@ -1651,29 +1563,10 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Wed**: 1.09x the quietest (Mon), 95% CI 1.06-1.11, 5631 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.97x / Tue 0.99x / Wed 1.06x / Thu 1.02x / Fri 0.97x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.57x other Fridays (253 NFP days; big moves 69.6% vs 37.8%) |
+| NFP 08:30 ET (06:30 Calgary) | range 1.57x other Fridays (253 NFP days; big moves 69.6% vs 37.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 1.27x a normal Wednesday (182 FOMC days; big moves 73.6% vs 61.2%) |
-| FOMC 14:30 ET press conf. (12:30) | range 1.4x a normal Wednesday (171 FOMC days; big moves 24.0% vs 6.2%) |
+| FOMC 14:30 ET press conf. (12:30) | range 1.4x a normal Wednesday (171 FOMC days; big moves 24.0% vs 6.3%) |
 | Era check | last 2 y vs all rho 0.97; before vs since 2020 rho 0.94; peak 12:00 -> 07:30 (last 2 y 07:30) - **shifted** |
-
-### SUGAR (SUGAR_USD) - Index / commodity CFDs - watchlist
-
-2005-01-03 to 2026-11-13 (21.9 years, 103,609 half-hours). Best times: **weak** (first vs second half rho 0.83).
-
-|  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
-|---|---|---|---|---|---|---|---|
-| Best window 1 | 10:30-11:30 (peak **11:00**) | 13:00 ET | 1.86x | 2.30x | 1.50x | 27.5% |  |
-| Best window 2 | 06:00-07:30 (peak **06:00**) | 08:00 ET | 1.68x | 1.87x | 1.51x | 26.4% | US pre-data hour |
-| Best window 3 | 07:30-10:30 (peak **07:30**) | 09:30 ET | 1.41x | 1.55x | 1.28x | 16.4% | NYSE open 09:30 ET |
-
-|  |  |
-|---|---|
-| Best weekday | **Thu**: 1.05x the quietest (Fri), 95% CI 1.02-1.08, 4975 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.98x / Tue 1.00x / Wed 1.00x / Thu 1.03x / Fri 0.98x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.2x other Fridays (224 NFP days; big moves 30.4% vs 15.8%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 1.52x a normal Wednesday (19 FOMC days; big moves 15.8% vs 2.9%) |
-| FOMC 14:30 ET press conf. (12:30) | range 1.31x a normal Wednesday (19 FOMC days; big moves 5.3% vs 2.0%) |
-| Era check | last 2 y vs all rho 0.92; before vs since 2020 rho 0.85; peak 11:00 -> 01:30 (last 2 y 01:30) - **stable** |
 
 ### SWI20 (CH20_CHF) - Index / commodity CFDs - watchlist
 
@@ -1694,82 +1587,6 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 | FOMC 14:30 ET press conf. (12:30) | range 2.96x a normal Wednesday (89 FOMC days; big moves 31.5% vs 1.6%) |
 | Era check | last 2 y vs all rho 0.88; before vs since 2020 rho 0.91; peak 01:00 -> 01:00 (last 2 y 01:00) - **stable** |
 
-### UK100 (UK100_GBP) - Index / commodity CFDs - watchlist
-
-2005-01-04 to 2026-11-13 (21.9 years, 180,651 half-hours). Best times: **reliable** (first vs second half rho 0.98).
-
-|  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
-|---|---|---|---|---|---|---|---|
-| Best window 1 | 01:00-01:30 (peak **01:00**) | 03:00 ET | 2.54x | 3.07x | 2.10x | 54.6% | London open 08:00 (normal weeks) |
-| Best window 2 | 07:30-10:00 (peak **07:30**) | 09:30 ET | 2.13x | 2.76x | 1.64x | 30.7% | NYSE open 09:30 ET |
-| Best window 3 | 05:30-07:30 (peak **06:30**) | 08:30 ET | 1.22x | 1.30x | 1.14x | 13.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-
-|  |  |
-|---|---|
-| Best weekday | **Thu**: 1.11x the quietest (Mon), 95% CI 1.08-1.14, 4653 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.93x / Tue 1.00x / Wed 1.01x / Thu 1.04x / Fri 1.02x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.01x other Fridays (251 NFP days; big moves 62.2% vs 11.5%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 2.38x a normal Wednesday (153 FOMC days; big moves 45.8% vs 4.1%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.28x a normal Wednesday (153 FOMC days; big moves 37.9% vs 3.3%) |
-| Era check | last 2 y vs all rho 0.99; before vs since 2020 rho 0.98; peak 01:00 -> 01:00 (last 2 y 01:00) - **stable** |
-
-### US2000 (US2000_USD) - Index / commodity CFDs - watchlist
-
-2005-01-02 to 2026-11-13 (21.9 years, 249,894 half-hours). Best times: **reliable** (first vs second half rho 0.95).
-
-|  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
-|---|---|---|---|---|---|---|---|
-| Best window 1 | 07:30-08:30 (peak **07:30**) | 09:30 ET | 8.45x | 17.57x | 4.07x | 95.5% | NYSE open 09:30 ET |
-| Best window 2 | 10:30-14:00 (peak **13:30**) | 15:30 ET | 4.25x | 7.96x | 2.27x | 60.9% | last regular stock half-hour |
-| Best window 3 | 06:00-07:30 (peak **06:30**) | 08:30 ET | 1.84x | 2.38x | 1.42x | 28.1% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-
-|  |  |
-|---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.1-1.18, 5624 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.93x / Tue 1.00x / Wed 1.03x / Thu 1.06x / Fri 1.00x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.9x other Fridays (260 NFP days; big moves 91.9% vs 28.7%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 2.43x a normal Wednesday (182 FOMC days; big moves 92.3% vs 44.4%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.47x a normal Wednesday (182 FOMC days; big moves 88.5% vs 41.9%) |
-| Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.96; peak 07:30 -> 07:30 (last 2 y 07:30) - **stable** |
-
-### US30 (US30_USD) - Index / commodity CFDs - watchlist
-
-2005-01-03 to 2026-11-13 (21.9 years, 255,791 half-hours). Best times: **reliable** (first vs second half rho 0.98).
-
-|  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
-|---|---|---|---|---|---|---|---|
-| Best window 1 | 07:30-08:30 (peak **07:30**) | 09:30 ET | 5.76x | 10.19x | 3.26x | 88.5% | NYSE open 09:30 ET |
-| Best window 2 | 12:00-14:00 (peak **13:30**) | 15:30 ET | 3.53x | 5.44x | 2.29x | 61.1% | last regular stock half-hour |
-| Best window 3 | 10:30-12:00 (peak **11:00**) | 13:00 ET | 2.26x | 3.17x | 1.62x | 33.9% |  |
-
-|  |  |
-|---|---|
-| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.19, 5620 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.91x / Tue 1.00x / Wed 1.01x / Thu 1.04x / Fri 1.01x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.85x other Fridays (259 NFP days; big moves 90.3% vs 28.0%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 2.61x a normal Wednesday (182 FOMC days; big moves 89.6% vs 40.2%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.38x a normal Wednesday (182 FOMC days; big moves 89.0% vs 38.7%) |
-| Era check | last 2 y vs all rho 0.99; before vs since 2020 rho 0.98; peak 07:30 -> 07:30 (last 2 y 07:30) - **stable** |
-
-### US500 (SPX500_USD) - Index / commodity CFDs - watchlist
-
-2005-01-02 to 2026-11-13 (21.9 years, 258,666 half-hours). Best times: **reliable** (first vs second half rho 0.96).
-
-|  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
-|---|---|---|---|---|---|---|---|
-| Best window 1 | 07:30-09:00 (peak **07:30**) | 09:30 ET | 4.76x | 7.82x | 2.90x | 81.7% | NYSE open 09:30 ET |
-| Best window 2 | 12:00-14:00 (peak **13:30**) | 15:30 ET | 3.09x | 4.24x | 2.26x | 59.5% | last regular stock half-hour |
-| Best window 3 | 10:30-12:00 (peak **11:00**) | 13:00 ET | 2.06x | 2.64x | 1.60x | 32.3% |  |
-
-|  |  |
-|---|---|
-| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.12-1.21, 5634 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.90x / Tue 0.99x / Wed 1.01x / Thu 1.05x / Fri 1.02x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.94x other Fridays (259 NFP days; big moves 92.3% vs 28.3%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 2.78x a normal Wednesday (182 FOMC days; big moves 91.2% vs 39.0%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.43x a normal Wednesday (182 FOMC days; big moves 87.9% vs 37.9%) |
-| Era check | last 2 y vs all rho 0.97; before vs since 2020 rho 0.97; peak 07:30 -> 07:30 (last 2 y 07:30) - **stable** |
-
 ### WHEAT (WHEAT_USD) - Index / commodity CFDs - watchlist
 
 2005-01-03 to 2026-11-13 (21.9 years, 179,474 half-hours). Best times: **weak** (first vs second half rho 0.87).
@@ -1777,16 +1594,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:30-08:00 (peak **07:30**) | 09:30 ET | 6.31x | 10.93x | 3.64x | 90.5% | NYSE open 09:30 ET |
-| Best window 2 | 08:00-09:30 (peak **08:30**) | 10:30 ET | 5.17x | 8.10x | 3.30x | 78.8% | first stock hour |
-| Best window 3 | 11:00-13:00 (peak **12:00**) | 14:00 ET | 3.13x | 4.53x | 2.17x | 54.6% | US 14:00 ET (FOMC days; oil settles 14:30 ET) |
+| Best window 2 | 08:00-09:30 (peak **08:30**) | 10:30 ET | 5.17x | 8.10x | 3.30x | 78.7% | first stock hour |
+| Best window 3 | 11:00-13:00 (peak **12:00**) | 14:00 ET | 3.13x | 4.53x | 2.17x | 54.8% | US 14:00 ET (FOMC days; oil settles 14:30 ET) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.04x the quietest (Fri), 95% CI 1.02-1.07, 5140 days - **weak** |
 | Day activity Mon-Fri | Mon 1.00x / Tue 0.99x / Wed 1.00x / Thu 1.01x / Fri 0.97x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.3x other Fridays (161 NFP days; big moves 15.5% vs 9.5%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 1.13x a normal Wednesday (177 FOMC days; big moves 59.9% vs 54.4%) |
-| FOMC 14:30 ET press conf. (12:30) | range 1.1x a normal Wednesday (5 FOMC days; big moves 80.0% vs 60.5%) |
+| NFP 08:30 ET (06:30 Calgary) | range 1.3x other Fridays (161 NFP days; big moves 14.3% vs 9.3%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 1.13x a normal Wednesday (177 FOMC days; big moves 60.5% vs 54.6%) |
+| FOMC 14:30 ET press conf. (12:30) | range 1.1x a normal Wednesday (5 FOMC days; big moves 80.0% vs 61.2%) |
 | Era check | last 2 y vs all rho 0.99; before vs since 2020 rho 0.95; peak 08:30 -> 07:30 (last 2 y 07:30) - **shifted** |
 
 ### AUDHKD (AUD_HKD) - Exotics
@@ -1796,7 +1613,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.85x | 2.07x | 1.66x | 32.8% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.60x | 1.69x | 1.50x | 28.9% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.60x | 1.69x | 1.50x | 28.8% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.44x | 1.54x | 1.35x | 15.5% | London open 08:00 (normal weeks) |
 
 |  |  |
@@ -1822,7 +1639,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Fri**: 1.19x the quietest (Mon), 95% CI 1.16-1.23, 5670 days - **weak** |
 | Day activity Mon-Fri | Mon 0.89x / Tue 0.99x / Wed 1.04x / Thu 1.02x / Fri 1.06x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.14x other Fridays (260 NFP days; big moves 93.8% vs 60.9%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.14x other Fridays (260 NFP days; big moves 93.8% vs 60.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.76x a normal Wednesday (182 FOMC days; big moves 87.4% vs 8.6%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.89x a normal Wednesday (182 FOMC days; big moves 76.4% vs 7.1%) |
 | Era check | last 2 y vs all rho 0.92; before vs since 2020 rho 0.94; peak 08:30 -> 07:30 (last 2 y 08:00) - **stable** |
@@ -1833,16 +1650,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 2.03x | 2.32x | 1.78x | 38.3% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.93x | 2.11x | 1.76x | 39.8% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 2.03x | 2.32x | 1.78x | 38.4% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.93x | 2.11x | 1.76x | 39.7% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.33x | 1.47x | 1.21x | 8.8% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Fri**: 1.18x the quietest (Mon), 95% CI 1.15-1.21, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.98x / Wed 1.02x / Thu 1.03x / Fri 1.07x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.06x other Fridays (260 NFP days; big moves 92.7% vs 54.0%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 3.07x a normal Wednesday (182 FOMC days; big moves 74.7% vs 5.8%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.06x other Fridays (260 NFP days; big moves 92.7% vs 53.8%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 3.07x a normal Wednesday (182 FOMC days; big moves 75.3% vs 5.8%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.26x a normal Wednesday (182 FOMC days; big moves 54.9% vs 4.5%) |
 | Era check | last 2 y vs all rho 0.76; before vs since 2020 rho 0.94; peak 08:00 -> 07:30 (last 2 y 07:30) - **shifted** |
 
@@ -1860,8 +1677,8 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.15-1.2, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.98x / Wed 1.02x / Thu 1.07x / Fri 1.04x |
-| NFP 08:30 ET (06:30 Calgary) | range 3.05x other Fridays (260 NFP days; big moves 94.2% vs 48.0%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 5.0x a normal Wednesday (182 FOMC days; big moves 90.1% vs 6.4%) |
+| NFP 08:30 ET (06:30 Calgary) | range 3.05x other Fridays (260 NFP days; big moves 94.2% vs 47.8%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 5.0x a normal Wednesday (182 FOMC days; big moves 90.1% vs 6.3%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.87x a normal Wednesday (182 FOMC days; big moves 79.7% vs 5.3%) |
 | Era check | last 2 y vs all rho 0.97; before vs since 2020 rho 0.98; peak 08:00 -> 08:30 (last 2 y 08:00) - **stable** |
 
@@ -1879,7 +1696,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.16, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.98x / Wed 1.02x / Thu 1.06x / Fri 1.01x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.22x other Fridays (260 NFP days; big moves 91.5% vs 37.2%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.22x other Fridays (260 NFP days; big moves 91.5% vs 37.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.83x a normal Wednesday (182 FOMC days; big moves 68.1% vs 6.0%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.46x a normal Wednesday (182 FOMC days; big moves 52.7% vs 5.4%) |
 | Era check | last 2 y vs all rho 0.93; before vs since 2020 rho 0.97; peak 08:00 -> 07:30 (last 2 y 07:30) - **stable** |
@@ -1890,16 +1707,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:30-09:30 (peak **09:00**) | 11:00 ET | 2.43x | 2.70x | 2.18x | 54.7% | London 16:00 close / WM-R fix (normal weeks) |
-| Best window 2 | 03:30-07:30 (peak **06:30**) | 08:30 ET | 1.54x | 1.78x | 1.33x | 29.5% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:30-03:30 (peak **01:00**) | 03:00 ET | 1.38x | 1.46x | 1.30x | 30.6% | London open 08:00 (normal weeks) |
+| Best window 1 | 07:30-09:30 (peak **09:00**) | 11:00 ET | 2.43x | 2.70x | 2.18x | 55.0% | London 16:00 close / WM-R fix (normal weeks) |
+| Best window 2 | 03:30-07:30 (peak **06:30**) | 08:30 ET | 1.54x | 1.78x | 1.33x | 29.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:30-03:30 (peak **01:00**) | 03:00 ET | 1.38x | 1.46x | 1.30x | 30.5% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Fri**: 1.06x the quietest (Mon), 95% CI 1.03-1.09, 5665 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.98x / Tue 0.98x / Wed 1.01x / Thu 1.02x / Fri 1.04x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.14x other Fridays (260 NFP days; big moves 36.2% vs 31.2%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 1.56x a normal Wednesday (182 FOMC days; big moves 36.3% vs 19.5%) |
+| NFP 08:30 ET (06:30 Calgary) | range 1.14x other Fridays (260 NFP days; big moves 35.8% vs 30.9%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 1.57x a normal Wednesday (182 FOMC days; big moves 35.7% vs 19.5%) |
 | FOMC 14:30 ET press conf. (12:30) | range 1.46x a normal Wednesday (179 FOMC days; big moves 25.1% vs 18.4%) |
 | Era check | last 2 y vs all rho 0.63; before vs since 2020 rho 0.79; peak 09:00 -> 08:30 (last 2 y 08:30) - **shifted** |
 
@@ -1929,7 +1746,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 2.05x | 2.27x | 1.86x | 42.3% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 03:30-07:00 (peak **06:30**) | 08:30 ET | 1.87x | 2.00x | 1.74x | 39.3% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 2 | 03:30-07:00 (peak **06:30**) | 08:30 ET | 1.87x | 2.00x | 1.74x | 39.2% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-03:30 (peak **01:00**) | 03:00 ET | 1.75x | 1.84x | 1.66x | 31.6% | London open 08:00 (normal weeks) |
 
 |  |  |
@@ -1955,7 +1772,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Thu**: 1.12x the quietest (Mon), 95% CI 1.09-1.15, 5671 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.99x / Wed 1.02x / Thu 1.05x / Fri 1.02x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.92x other Fridays (260 NFP days; big moves 85.0% vs 37.0%) |
+| NFP 08:30 ET (06:30 Calgary) | range 1.92x other Fridays (260 NFP days; big moves 85.0% vs 36.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.98x a normal Wednesday (182 FOMC days; big moves 59.9% vs 3.9%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.45x a normal Wednesday (182 FOMC days; big moves 45.1% vs 3.6%) |
 | Era check | last 2 y vs all rho 0.92; before vs since 2020 rho 0.98; peak 08:00 -> 08:30 (last 2 y 08:00) - **stable** |
@@ -1985,17 +1802,17 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-09:30 (peak **08:00**) | 10:00 ET | 1.90x | 2.07x | 1.74x | 36.7% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.73x | 1.77x | 1.68x | 37.9% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.48x | 1.59x | 1.38x | 18.9% | London open 08:00 (normal weeks) |
+| Best window 1 | 07:00-09:30 (peak **08:00**) | 10:00 ET | 1.90x | 2.07x | 1.74x | 36.1% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.73x | 1.77x | 1.68x | 37.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.48x | 1.59x | 1.38x | 18.3% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.18, 5671 days - **weak** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.98x / Wed 1.03x / Thu 1.04x / Fri 1.04x |
-| NFP 08:30 ET (06:30 Calgary) | range 3.26x other Fridays (260 NFP days; big moves 93.5% vs 42.8%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 5.08x a normal Wednesday (182 FOMC days; big moves 85.2% vs 7.4%) |
-| FOMC 14:30 ET press conf. (12:30) | range 3.66x a normal Wednesday (182 FOMC days; big moves 74.2% vs 5.7%) |
+| NFP 08:30 ET (06:30 Calgary) | range 3.26x other Fridays (260 NFP days; big moves 93.5% vs 42.5%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 5.08x a normal Wednesday (182 FOMC days; big moves 85.7% vs 7.1%) |
+| FOMC 14:30 ET press conf. (12:30) | range 3.66x a normal Wednesday (182 FOMC days; big moves 73.1% vs 5.2%) |
 | Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.98; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
 
 ### NZDHKD (NZD_HKD) - Exotics
@@ -2006,7 +1823,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-09:30 (peak **08:00**) | 10:00 ET | 1.85x | 2.08x | 1.65x | 32.1% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.56x | 1.66x | 1.46x | 27.5% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.43x | 1.51x | 1.35x | 14.5% | London open 08:00 (normal weeks) |
+| Best window 3 | 00:00-04:30 (peak **01:00**) | 03:00 ET | 1.43x | 1.51x | 1.35x | 14.4% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
@@ -2042,7 +1859,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.92x | 2.23x | 1.65x | 32.5% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.92x | 2.23x | 1.65x | 32.4% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | Best window 2 | 05:30-07:00 (peak **06:30**) | 08:30 ET | 1.76x | 1.96x | 1.58x | 32.1% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-05:30 (peak **01:00**) | 03:00 ET | 1.59x | 1.72x | 1.48x | 21.6% | London open 08:00 (normal weeks) |
 
@@ -2061,15 +1878,15 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.98x | 2.35x | 1.66x | 35.0% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 05:00-07:00 (peak **06:30**) | 08:30 ET | 1.83x | 2.16x | 1.54x | 32.6% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.77x | 2.01x | 1.56x | 29.3% | London open 08:00 (normal weeks) |
+| Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.98x | 2.35x | 1.66x | 34.7% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 2 | 05:00-07:00 (peak **06:30**) | 08:30 ET | 1.83x | 2.16x | 1.54x | 32.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.77x | 2.01x | 1.56x | 29.0% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.19, 4776 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.99x / Wed 1.00x / Thu 1.06x / Fri 1.01x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.97x other Fridays (233 NFP days; big moves 90.1% vs 35.4%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.97x other Fridays (233 NFP days; big moves 90.1% vs 34.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.04x a normal Wednesday (154 FOMC days; big moves 80.5% vs 8.3%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.14x a normal Wednesday (154 FOMC days; big moves 63.0% vs 6.0%) |
 | Era check | last 2 y vs all rho 0.69; before vs since 2020 rho 0.89; peak 08:00 -> 08:00 (last 2 y 08:00) - **shifted** |
@@ -2108,7 +1925,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 | Best weekday | **Thu**: 1.12x the quietest (Mon), 95% CI 1.09-1.15, 5340 days - **weak** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.98x / Wed 1.01x / Thu 1.04x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.02x other Fridays (241 NFP days; big moves 92.5% vs 62.1%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 3.42x a normal Wednesday (173 FOMC days; big moves 76.3% vs 7.8%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 3.42x a normal Wednesday (173 FOMC days; big moves 76.3% vs 7.9%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.23x a normal Wednesday (173 FOMC days; big moves 67.1% vs 5.9%) |
 | Era check | last 2 y vs all rho 0.84; before vs since 2020 rho 0.90; peak 08:00 -> 07:30 (last 2 y 07:30) - **stable** |
 
@@ -2118,7 +1935,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 07:00-09:30 (peak **07:30**) | 09:30 ET | 2.45x | 2.72x | 2.20x | 58.7% | NYSE open 09:30 ET |
+| Best window 1 | 07:00-09:30 (peak **07:30**) | 09:30 ET | 2.45x | 2.72x | 2.20x | 58.8% | NYSE open 09:30 ET |
 | Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.19x | 2.36x | 2.02x | 50.6% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.42x | 1.60x | 1.26x | 15.0% | London open 08:00 (normal weeks) |
 
@@ -2126,9 +1943,9 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|
 | Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5340 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.99x / Wed 1.01x / Thu 1.06x / Fri 1.03x |
-| NFP 08:30 ET (06:30 Calgary) | range 1.94x other Fridays (241 NFP days; big moves 93.8% vs 53.1%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 3.41x a normal Wednesday (173 FOMC days; big moves 74.0% vs 8.1%) |
-| FOMC 14:30 ET press conf. (12:30) | range 3.2x a normal Wednesday (173 FOMC days; big moves 66.5% vs 5.8%) |
+| NFP 08:30 ET (06:30 Calgary) | range 1.94x other Fridays (241 NFP days; big moves 93.8% vs 53.2%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 3.41x a normal Wednesday (173 FOMC days; big moves 74.6% vs 8.1%) |
+| FOMC 14:30 ET press conf. (12:30) | range 3.2x a normal Wednesday (173 FOMC days; big moves 66.5% vs 5.7%) |
 | Era check | last 2 y vs all rho 0.88; before vs since 2020 rho 0.92; peak 08:00 -> 07:30 (last 2 y 07:30) - **stable** |
 
 ### XAGGBP (XAG_GBP) - Metals
@@ -2139,7 +1956,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-09:30 (peak **07:30**) | 09:30 ET | 2.33x | 2.49x | 2.19x | 58.0% | NYSE open 09:30 ET |
 | Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.12x | 2.21x | 2.04x | 51.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.44x | 1.62x | 1.28x | 15.7% | London open 08:00 (normal weeks) |
+| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.44x | 1.62x | 1.28x | 15.6% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
@@ -2176,14 +1993,14 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-09:30 (peak **07:30**) | 09:30 ET | 2.54x | 2.93x | 2.19x | 57.9% | NYSE open 09:30 ET |
-| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.22x | 2.45x | 2.00x | 49.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.35x | 1.44x | 1.27x | 15.3% | London open 08:00 (normal weeks) |
+| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.22x | 2.45x | 2.00x | 49.3% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.35x | 1.44x | 1.27x | 15.4% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.1-1.17, 5340 days - **weak** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.98x / Wed 1.01x / Thu 1.05x / Fri 1.04x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.04x other Fridays (241 NFP days; big moves 92.5% vs 52.7%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.04x other Fridays (241 NFP days; big moves 92.1% vs 52.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.48x a normal Wednesday (173 FOMC days; big moves 78.0% vs 7.9%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.28x a normal Wednesday (173 FOMC days; big moves 66.5% vs 5.5%) |
 | Era check | last 2 y vs all rho 0.90; before vs since 2020 rho 0.91; peak 07:30 -> 07:30 (last 2 y 07:30) - **stable** |
@@ -2215,7 +2032,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 06:00-09:30 (peak **07:30**) | 09:30 ET | 2.35x | 2.44x | 2.26x | 60.9% | NYSE open 09:30 ET |
 | Best window 2 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.33x | 1.42x | 1.25x | 14.9% | London open 08:00 (normal weeks) |
-| Best window 3 | 10:30-13:00 (peak **11:00**) | 13:00 ET | 1.21x | 1.12x | 1.30x | 20.2% |  |
+| Best window 3 | 10:30-13:00 (peak **11:00**) | 13:00 ET | 1.21x | 1.12x | 1.30x | 20.1% |  |
 
 |  |  |
 |---|---|
@@ -2309,8 +2126,8 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-09:30 (peak **07:30**) | 09:30 ET | 2.61x | 3.46x | 1.97x | 48.7% | NYSE open 09:30 ET |
-| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.34x | 2.91x | 1.88x | 45.1% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 3 | 10:30-12:00 (peak **11:00**) | 13:00 ET | 1.49x | 1.64x | 1.35x | 20.6% |  |
+| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.34x | 2.91x | 1.88x | 45.0% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 3 | 10:30-12:00 (peak **11:00**) | 13:00 ET | 1.49x | 1.64x | 1.35x | 20.7% |  |
 
 |  |  |
 |---|---|
@@ -2321,79 +2138,24 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 | FOMC 14:30 ET press conf. (12:30) | range 2.8x a normal Wednesday (173 FOMC days; big moves 59.0% vs 5.0%) |
 | Era check | last 2 y vs all rho 0.86; before vs since 2020 rho 0.89; peak 07:30 -> 07:30 (last 2 y 07:30) - **stable** |
 
-### DE10YBEUR (DE10YB_EUR) - Index / commodity CFDs
-
-2005-01-03 to 2026-11-13 (21.9 years, 179,289 half-hours). Best times: **reliable** (first vs second half rho 0.98).
-
-|  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
-|---|---|---|---|---|---|---|---|
-| Best window 1 | 06:00-07:30 (peak **06:30**) | 08:30 ET | 1.84x | 2.11x | 1.60x | 34.1% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 2 | 07:30-09:30 (peak **08:00**) | 10:00 ET | 1.79x | 2.15x | 1.50x | 26.3% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 3 | 00:30-04:00 (peak **01:00**) | 03:00 ET | 1.77x | 1.93x | 1.62x | 30.3% | London open 08:00 (normal weeks) |
-
-|  |  |
-|---|---|
-| Best weekday | **Thu**: 1.31x the quietest (Mon), 95% CI 1.26-1.34, 5558 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.86x / Tue 0.97x / Wed 1.03x / Thu 1.12x / Fri 1.03x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.38x other Fridays (253 NFP days; big moves 92.5% vs 37.0%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 4.33x a normal Wednesday (172 FOMC days; big moves 61.6% vs 1.8%) |
-| FOMC 14:30 ET press conf. (12:30) | range 3.43x a normal Wednesday (172 FOMC days; big moves 44.8% vs 1.1%) |
-| Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.98; peak 08:00 -> 01:00 (last 2 y 01:00) - **stable** |
-
-### JPN225 (JP225_USD) - Index / commodity CFDs
-
-2005-01-03 to 2026-11-13 (21.9 years, 225,574 half-hours). Best times: **reliable** (first vs second half rho 0.90).
-
-|  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
-|---|---|---|---|---|---|---|---|
-| Best window 1 | 07:30-09:00 (peak **07:30**) | 09:30 ET | 2.29x | 3.14x | 1.67x | 32.4% | NYSE open 09:30 ET |
-| Best window 2 | 18:00-19:00 (peak **18:00**) | 20:00 ET | 2.15x | 2.27x | 2.04x | 51.2% | Asia morning (Tokyo 09:00-10:00 JST, Tokyo fix 09:55) |
-| Best window 3 | 12:00-14:00 (peak **13:30**) | 15:30 ET | 1.42x | 1.64x | 1.22x | 17.2% | last regular stock half-hour |
-
-|  |  |
-|---|---|
-| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.21, 5418 days - **weak** |
-| Day activity Mon-Fri | Mon 0.90x / Tue 1.00x / Wed 1.01x / Thu 1.05x / Fri 1.04x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.82x other Fridays (251 NFP days; big moves 70.5% vs 12.2%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 2.5x a normal Wednesday (180 FOMC days; big moves 66.1% vs 9.3%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.38x a normal Wednesday (181 FOMC days; big moves 60.8% vs 8.2%) |
-| Era check | last 2 y vs all rho 0.90; before vs since 2020 rho 0.94; peak 07:30 -> 07:30 (last 2 y 07:30) - **stable** |
-
 ### SG30SGD (SG30_SGD) - Index / commodity CFDs
 
 2005-01-03 to 2026-11-13 (21.9 years, 178,342 half-hours). Best times: **reliable** (first vs second half rho 0.80).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 17:30-19:00 (peak **18:00**) | 20:00 ET | 3.29x | 3.94x | 2.75x | 74.6% | Asia morning (Tokyo 09:00-10:00 JST, Tokyo fix 09:55) |
-| Best window 2 | 19:00-20:00 (peak **19:00**) | 21:00 ET | 2.68x | 3.14x | 2.29x | 59.2% |  |
-| Best window 3 | 07:30-09:00 (peak **07:30**) | 09:30 ET | 1.66x | 1.68x | 1.65x | 36.2% | NYSE open 09:30 ET |
+| Best window 1 | 17:30-19:00 (peak **18:00**) | 20:00 ET | 3.29x | 3.94x | 2.75x | 74.1% | Asia morning (Tokyo 09:00-10:00 JST, Tokyo fix 09:55) |
+| Best window 2 | 19:00-20:00 (peak **19:00**) | 21:00 ET | 2.68x | 3.14x | 2.29x | 58.8% |  |
+| Best window 3 | 07:30-09:00 (peak **07:30**) | 09:30 ET | 1.66x | 1.68x | 1.65x | 36.1% | NYSE open 09:30 ET |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.09x the quietest (Mon), 95% CI 1.05-1.12, 4498 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.94x / Tue 0.98x / Wed 1.00x / Thu 1.02x / Fri 1.00x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.36x other Fridays (228 NFP days; big moves 45.2% vs 8.5%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.36x other Fridays (228 NFP days; big moves 45.6% vs 8.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.64x a normal Wednesday (85 FOMC days; big moves 49.4% vs 5.2%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.64x a normal Wednesday (85 FOMC days; big moves 61.2% vs 3.7%) |
 | Era check | last 2 y vs all rho 0.73; before vs since 2020 rho 0.68; peak 18:00 -> 18:00 (last 2 y 18:00) - **shifted** |
-
-### UK10YBGBP (UK10YB_GBP) - Index / commodity CFDs
-
-2005-01-04 to 2026-11-13 (21.9 years, 109,996 half-hours). Best times: **reliable** (first vs second half rho 0.96).
-
-|  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
-|---|---|---|---|---|---|---|---|
-| Best window 1 | 01:00-02:00 (peak **01:00**) | 03:00 ET | 1.67x | 1.78x | 1.56x | 24.9% | London open 08:00 (normal weeks) |
-| Best window 2 | 07:00-09:30 (peak **08:00**) | 10:00 ET | 1.35x | 1.47x | 1.24x | 13.7% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 3 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.33x | 1.40x | 1.27x | 20.8% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-
-|  |  |
-|---|---|
-| Best weekday | **Thu**: 1.27x the quietest (Mon), 95% CI 1.24-1.3, 5485 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.86x / Tue 0.98x / Wed 1.01x / Thu 1.09x / Fri 1.05x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.37x other Fridays (251 NFP days; big moves 85.7% vs 22.3%) |
-| Era check | last 2 y vs all rho 0.97; before vs since 2020 rho 0.97; peak 01:00 -> 01:00 (last 2 y 01:00) - **stable** |
 
 ### USB02YUSD (USB02Y_USD) - Index / commodity CFDs
 
@@ -2401,17 +2163,17 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 06:00-07:30 (peak **06:30**) | 08:30 ET | 2.83x | 4.00x | 2.00x | 51.1% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 2 | 07:30-09:30 (peak **08:00**) | 10:00 ET | 2.50x | 3.33x | 1.88x | 38.7% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 3 | 10:30-12:00 (peak **11:00**) | 13:00 ET | 1.58x | 1.88x | 1.33x | 22.3% |  |
+| Best window 1 | 06:00-07:30 (peak **06:30**) | 08:30 ET | 2.83x | 4.00x | 2.00x | 50.7% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 2 | 07:30-09:30 (peak **08:00**) | 10:00 ET | 2.50x | 3.33x | 1.88x | 38.2% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 3 | 10:30-12:00 (peak **11:00**) | 13:00 ET | 1.58x | 1.88x | 1.33x | 22.0% |  |
 
 |  |  |
 |---|---|
 | Best weekday | **Fri**: 1.32x the quietest (Mon), 95% CI 1.28-1.37, 5345 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.83x / Tue 0.95x / Wed 1.06x / Thu 1.06x / Fri 1.09x |
-| NFP 08:30 ET (06:30 Calgary) | range 3.91x other Fridays (258 NFP days; big moves 96.5% vs 58.3%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 7.56x a normal Wednesday (182 FOMC days; big moves 89.0% vs 15.3%) |
-| FOMC 14:30 ET press conf. (12:30) | range 3.96x a normal Wednesday (178 FOMC days; big moves 83.1% vs 16.0%) |
+| NFP 08:30 ET (06:30 Calgary) | range 3.91x other Fridays (258 NFP days; big moves 96.5% vs 57.6%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 7.55x a normal Wednesday (182 FOMC days; big moves 89.0% vs 15.0%) |
+| FOMC 14:30 ET press conf. (12:30) | range 3.96x a normal Wednesday (178 FOMC days; big moves 83.1% vs 15.6%) |
 | Era check | last 2 y vs all rho 0.99; before vs since 2020 rho 0.96; peak 06:30 -> 06:30 (last 2 y 07:30) - **stable** |
 
 ### USB05YUSD (USB05Y_USD) - Index / commodity CFDs
@@ -2420,37 +2182,18 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 06:00-07:30 (peak **06:30**) | 08:30 ET | 3.19x | 4.41x | 2.31x | 59.7% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 2 | 07:30-09:30 (peak **07:30**) | 09:30 ET | 2.81x | 3.91x | 2.02x | 51.1% | NYSE open 09:30 ET |
-| Best window 3 | 10:00-12:30 (peak **11:00**) | 13:00 ET | 1.77x | 2.13x | 1.47x | 28.4% |  |
+| Best window 1 | 06:00-07:30 (peak **06:30**) | 08:30 ET | 3.19x | 4.41x | 2.31x | 59.8% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 2 | 07:30-09:30 (peak **07:30**) | 09:30 ET | 2.81x | 3.91x | 2.02x | 51.3% | NYSE open 09:30 ET |
+| Best window 3 | 10:00-12:30 (peak **11:00**) | 13:00 ET | 1.77x | 2.13x | 1.47x | 28.6% |  |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.3x the quietest (Mon), 95% CI 1.26-1.35, 5609 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.83x / Tue 0.96x / Wed 1.06x / Thu 1.08x / Fri 1.06x |
-| NFP 08:30 ET (06:30 Calgary) | range 3.55x other Fridays (260 NFP days; big moves 96.2% vs 66.2%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 5.66x a normal Wednesday (182 FOMC days; big moves 93.4% vs 16.8%) |
-| FOMC 14:30 ET press conf. (12:30) | range 3.69x a normal Wednesday (182 FOMC days; big moves 90.7% vs 17.8%) |
+| NFP 08:30 ET (06:30 Calgary) | range 3.55x other Fridays (260 NFP days; big moves 96.2% vs 66.3%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 5.66x a normal Wednesday (182 FOMC days; big moves 94.0% vs 17.1%) |
+| FOMC 14:30 ET press conf. (12:30) | range 3.69x a normal Wednesday (182 FOMC days; big moves 90.1% vs 17.8%) |
 | Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.95; peak 06:30 -> 06:30 (last 2 y 06:30) - **stable** |
-
-### USB10YUSD (USB10Y_USD) - Index / commodity CFDs
-
-2005-01-03 to 2026-11-13 (21.9 years, 251,319 half-hours). Best times: **reliable** (first vs second half rho 0.94).
-
-|  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
-|---|---|---|---|---|---|---|---|
-| Best window 1 | 06:00-07:30 (peak **06:30**) | 08:30 ET | 3.18x | 4.37x | 2.32x | 58.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
-| Best window 2 | 07:30-09:30 (peak **07:30**) | 09:30 ET | 2.86x | 4.10x | 2.00x | 50.1% | NYSE open 09:30 ET |
-| Best window 3 | 10:30-12:30 (peak **11:00**) | 13:00 ET | 1.73x | 2.03x | 1.47x | 26.9% |  |
-
-|  |  |
-|---|---|
-| Best weekday | **Thu**: 1.32x the quietest (Mon), 95% CI 1.28-1.36, 5613 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.82x / Tue 0.96x / Wed 1.06x / Thu 1.08x / Fri 1.06x |
-| NFP 08:30 ET (06:30 Calgary) | range 3.36x other Fridays (260 NFP days; big moves 96.2% vs 65.0%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 4.94x a normal Wednesday (182 FOMC days; big moves 93.4% vs 16.3%) |
-| FOMC 14:30 ET press conf. (12:30) | range 3.33x a normal Wednesday (182 FOMC days; big moves 89.0% vs 15.6%) |
-| Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.95; peak 06:30 -> 07:30 (last 2 y 07:30) - **stable** |
 
 ### USB30YUSD (USB30Y_USD) - Index / commodity CFDs
 
@@ -2458,17 +2201,17 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 06:00-07:30 (peak **06:30**) | 08:30 ET | 3.37x | 4.78x | 2.38x | 62.2% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 1 | 06:00-07:30 (peak **06:30**) | 08:30 ET | 3.37x | 4.78x | 2.38x | 62.3% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 2 | 07:30-09:30 (peak **07:30**) | 09:30 ET | 3.10x | 4.55x | 2.11x | 54.6% | NYSE open 09:30 ET |
-| Best window 3 | 10:30-12:30 (peak **11:00**) | 13:00 ET | 1.86x | 2.30x | 1.50x | 29.8% |  |
+| Best window 3 | 10:30-12:30 (peak **11:00**) | 13:00 ET | 1.86x | 2.30x | 1.50x | 29.5% |  |
 
 |  |  |
 |---|---|
 | Best weekday | **Thu**: 1.28x the quietest (Mon), 95% CI 1.26-1.33, 5609 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.84x / Tue 0.97x / Wed 1.05x / Thu 1.08x / Fri 1.05x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.92x other Fridays (260 NFP days; big moves 96.2% vs 69.0%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 4.05x a normal Wednesday (182 FOMC days; big moves 92.9% vs 19.1%) |
-| FOMC 14:30 ET press conf. (12:30) | range 2.81x a normal Wednesday (182 FOMC days; big moves 89.6% vs 20.1%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.92x other Fridays (260 NFP days; big moves 96.2% vs 69.1%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 4.05x a normal Wednesday (182 FOMC days; big moves 92.9% vs 19.0%) |
+| FOMC 14:30 ET press conf. (12:30) | range 2.81x a normal Wednesday (182 FOMC days; big moves 89.6% vs 19.7%) |
 | Era check | last 2 y vs all rho 0.96; before vs since 2020 rho 0.93; peak 06:30 -> 06:30 (last 2 y 07:30) - **stable** |
 
 ## Method
@@ -2484,116 +2227,17 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 | Data | Shard | Asked | Analysed | Missing | API requests | Time | Feed |
 |---|---|---|---|---|---|---|---|
-| fx | 0/2 | 64 | 64 | 0 | 3176 | 6 min | - |
-| fx | 1/2 | 59 | 59 | 1 | 2975 | 6 min | - |
-| stocks | 0/4 | 247 | 157 | 117 | 12189 | 300 min | sip |
-| stocks | 1/4 | 232 | 156 | 112 | 11165 | 300 min | sip |
-| stocks | 2/4 | 264 | 169 | 104 | 13867 | 300 min | sip |
-| stocks | 3/4 | 273 | 164 | 133 | 12324 | 300 min | sip |
+| fx | 0/2 | 64 | 64 | 0 | 64 | 0 min | - |
+| fx | 1/2 | 45 | 45 | 0 | 100 | 0 min | - |
+| stocks | 0/4 | 247 | 246 | 1 | 11828 | 245 min | sip |
+| stocks | 1/4 | 232 | 232 | 0 | 10082 | 208 min | sip |
+| stocks | 2/4 | 264 | 263 | 1 | 9816 | 203 min | sip |
+| stocks | 3/4 | 273 | 273 | 0 | 13504 | 279 min | sip |
 
 Missing instruments (first 25 per shard):
 
-- fx USD_CHF: fetch HTTPError: 401 HTTP Error 401: Unauthorized
-- stocks MHK: fetch BudgetExceeded:  time budget spent
-- stocks MKL: fetch BudgetExceeded:  time budget spent
-- stocks MMM: fetch BudgetExceeded:  time budget spent
-- stocks MNST: fetch BudgetExceeded:  time budget spent
-- stocks MTCH: fetch BudgetExceeded:  time budget spent
-- stocks MTD: fetch BudgetExceeded:  time budget spent
-- stocks MU: fetch BudgetExceeded:  time budget spent
-- stocks NCLH: fetch BudgetExceeded:  time budget spent
-- stocks NDAQ: fetch BudgetExceeded:  time budget spent
-- stocks NI: fetch BudgetExceeded:  time budget spent
-- stocks ONB: fetch BudgetExceeded:  time budget spent
-- stocks ONON: fetch BudgetExceeded:  time budget spent
-- stocks ONTO: fetch BudgetExceeded:  time budget spent
-- stocks ORCL: fetch BudgetExceeded:  time budget spent
-- stocks ORLY: fetch BudgetExceeded:  time budget spent
-- stocks OSCR: fetch BudgetExceeded:  time budget spent
-- stocks OVV: fetch BudgetExceeded:  time budget spent
-- stocks PBF: fetch BudgetExceeded:  time budget spent
-- stocks PBR.A: fetch BudgetExceeded:  time budget spent
-- stocks PFGC: fetch BudgetExceeded:  time budget spent
-- stocks PG: fetch BudgetExceeded:  time budget spent
-- stocks PGR: fetch BudgetExceeded:  time budget spent
-- stocks PHG: fetch BudgetExceeded:  time budget spent
-- stocks PINS: fetch BudgetExceeded:  time budget spent
-- stocks PPTA: fetch BudgetExceeded:  time budget spent
-- stocks PEG: fetch BudgetExceeded:  time budget spent
-- stocks PEN: fetch BudgetExceeded:  time budget spent
-- stocks PENG: fetch BudgetExceeded:  time budget spent
-- stocks PH: fetch BudgetExceeded:  time budget spent
-- stocks PNR: fetch BudgetExceeded:  time budget spent
-- stocks PPG: fetch BudgetExceeded:  time budget spent
-- stocks PPL: fetch BudgetExceeded:  time budget spent
-- stocks PWR: fetch BudgetExceeded:  time budget spent
-- stocks QCOM: fetch BudgetExceeded:  time budget spent
-- stocks QGEN: fetch BudgetExceeded:  time budget spent
-- stocks RBA: fetch BudgetExceeded:  time budget spent
-- stocks RBC: fetch BudgetExceeded:  time budget spent
-- stocks RBRK: fetch BudgetExceeded:  time budget spent
-- stocks RCL: fetch BudgetExceeded:  time budget spent
-- stocks RDDT: fetch BudgetExceeded:  time budget spent
-- stocks RDY: fetch BudgetExceeded:  time budget spent
-- stocks RELX: fetch BudgetExceeded:  time budget spent
-- stocks RIO: fetch BudgetExceeded:  time budget spent
-- stocks RIOT: fetch BudgetExceeded:  time budget spent
-- stocks RKLB: fetch BudgetExceeded:  time budget spent
-- stocks RMD: fetch BudgetExceeded:  time budget spent
-- stocks ROIV: fetch BudgetExceeded:  time budget spent
-- stocks ROL: fetch BudgetExceeded:  time budget spent
-- stocks RPRX: fetch BudgetExceeded:  time budget spent
-- stocks RY: fetch BudgetExceeded:  time budget spent
-- stocks PM: fetch BudgetExceeded:  time budget spent
-- stocks PNW: fetch BudgetExceeded:  time budget spent
-- stocks POOL: fetch BudgetExceeded:  time budget spent
-- stocks PYPL: fetch BudgetExceeded:  time budget spent
-- stocks QSR: fetch BudgetExceeded:  time budget spent
-- stocks RCI: fetch BudgetExceeded:  time budget spent
-- stocks RJF: fetch BudgetExceeded:  time budget spent
-- stocks RL: fetch BudgetExceeded:  time budget spent
-- stocks ROK: fetch BudgetExceeded:  time budget spent
-- stocks ROP: fetch BudgetExceeded:  time budget spent
-- stocks ROST: fetch BudgetExceeded:  time budget spent
-- stocks RTX: fetch BudgetExceeded:  time budget spent
-- stocks RVMD: fetch BudgetExceeded:  time budget spent
-- stocks SA: fetch BudgetExceeded:  time budget spent
-- stocks SCCO: fetch BudgetExceeded:  time budget spent
-- stocks SHOP: fetch BudgetExceeded:  time budget spent
-- stocks SIMO: fetch BudgetExceeded:  time budget spent
-- stocks SITM: fetch BudgetExceeded:  time budget spent
-- stocks SKE: fetch BudgetExceeded:  time budget spent
-- stocks SLB: fetch BudgetExceeded:  time budget spent
-- stocks SNA: fetch BudgetExceeded:  time budget spent
-- stocks SNAP: fetch BudgetExceeded:  time budget spent
-- stocks SNX: fetch BudgetExceeded:  time budget spent
-- stocks SOFI: fetch BudgetExceeded:  time budget spent
-- stocks SOLS: fetch BudgetExceeded:  time budget spent
-- stocks NTNX: fetch BudgetExceeded:  time budget spent
-- stocks NU: fetch BudgetExceeded:  time budget spent
-- stocks NVDA: too little data (623 bars)
-- stocks NVO: fetch BudgetExceeded:  time budget spent
-- stocks NVT: fetch BudgetExceeded:  time budget spent
-- stocks NXE: fetch BudgetExceeded:  time budget spent
-- stocks ODFL: fetch BudgetExceeded:  time budget spent
-- stocks OGC: fetch BudgetExceeded:  time budget spent
-- stocks OWL: fetch BudgetExceeded:  time budget spent
-- stocks OXY: fetch BudgetExceeded:  time budget spent
-- stocks PAAS: fetch BudgetExceeded:  time budget spent
-- stocks PATH: fetch BudgetExceeded:  time budget spent
-- stocks PBA: fetch BudgetExceeded:  time budget spent
-- stocks PCAR: fetch BudgetExceeded:  time budget spent
-- stocks PCG: fetch BudgetExceeded:  time budget spent
-- stocks PCVX: fetch BudgetExceeded:  time budget spent
-- stocks PKG: fetch BudgetExceeded:  time budget spent
-- stocks PNC: fetch BudgetExceeded:  time budget spent
-- stocks PODD: fetch BudgetExceeded:  time budget spent
-- stocks PR: fetch BudgetExceeded:  time budget spent
-- stocks PRU: fetch BudgetExceeded:  time budget spent
-- stocks PSA: fetch BudgetExceeded:  time budget spent
-- stocks PSX: fetch BudgetExceeded:  time budget spent
-- stocks Q: fetch BudgetExceeded:  time budget spent
-- stocks QBTS: fetch BudgetExceeded:  time budget spent
+- stocks VYLR: too little data (596 bars)
+- stocks TEVA: too little data (1111 bars)
 
 ## Caveats
 
