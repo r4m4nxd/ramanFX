@@ -38,7 +38,8 @@ export function WatchEditor({ watch, markets, onAdd, onRemove }: { watch: string
           </span>
         ))}
       </div>
-      <div className="relative max-w-[340px]">
+      {/* the matches are part of the page flow, never a floating layer: a floating list was hidden behind the card below it */}
+      <div className="max-w-[340px]">
         <label className="relative block">
           <span className="sr-only">Add a market</span>
           <Icon name="plus" size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink3 pointer-events-none" />
@@ -47,9 +48,9 @@ export function WatchEditor({ watch, markets, onAdd, onRemove }: { watch: string
             onKeyDown={e => { if (e.key === 'Enter' && hits[0]) take(hits[0].sym); }} />
         </label>
         {!!q && (
-          <ul className="absolute z-20 left-0 right-0 mt-1 rounded-xl border border-line bg-surface shadow-lg overflow-hidden" aria-label="Matching markets">
+          <ul className="mt-1.5 rounded-xl border border-line bg-raised overflow-hidden" aria-label="Matching markets">
             {hits.map(h => (
-              <li key={h.sym}><button type="button" onClick={() => take(h.sym)} className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 text-left hover:bg-raised"><span className="font-semibold text-[13.5px]">{h.sym}</span><span className="text-[11.5px] text-ink3">{fxClassLabel(h.cls)}</span></button></li>
+              <li key={h.sym}><button type="button" onClick={() => take(h.sym)} className="w-full flex items-center justify-between gap-3 px-3.5 py-3 text-left hover:bg-surface border-b border-line last:border-b-0"><span className="font-semibold text-[13.5px]">{h.sym}</span><span className="text-[11.5px] text-ink3">{fxClassLabel(h.cls)}</span></button></li>
             ))}
             {!hits.length && <li className="px-3.5 py-2.5 text-[12.5px] text-ink3">No forex, metal, index or crypto market matches “{q}”.</li>}
           </ul>
