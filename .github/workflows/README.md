@@ -55,6 +55,7 @@ steps:
 | `fundamentals.yml` | nightly | `public/fundamentals` | `public/fundamentals/stocks.json`, `public/fx/latest.json`, `public/scanner/index.json`, `universe.csv`, `tools/reminders/events.json` |
 | `briefing.yml` | weekday mornings | `tools/briefing/state.json` | that state, `public/fx/d/*`, `public/scanner/*`, `public/fundamentals/stocks.json`, `tools/reminders/events.json` |
 | `reminders.yml` | weekday ticks | `tools/reminders/{events,state}.json` | the same |
+| `today.yml` | 8 PM and 6:15 AM Calgary | `tools/today/state.json` | the same |
 | `fx-backtest.yml`, `stock-backtest.yml`, `backtest-publish.yml` | manual | `public/{fx,scanner}/backtest.json`, `docs/research/{FX,Stock}_Backtest.md` | `universe.csv`, the scans |
 | `arrival-study.yml` | manual | `docs/research/arrival_study/` (report, trades.json, PNG charts; also an artifact) | `top_liquid.csv` |
 | `telegram-preview.yml` | manual | nothing | the published scans |

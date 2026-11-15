@@ -36,6 +36,7 @@ DATA_PATHS=(
   tools/reminders/events.json
   tools/reminders/state.json
   tools/briefing/state.json
+  tools/today/state.json
   tools/stock_scanner/universe.csv
   tools/stock_scanner/top_liquid.csv
   docs/research/FX_Backtest.md

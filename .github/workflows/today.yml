@@ -1,0 +1,61 @@
+name: Daily plan messages
+
+# Focus mode's two Telegram messages (tools/today/today.py): the evening plan (about 8 PM Calgary, Sunday to Thursday)
+# and the morning check (about 6:15 AM, Monday to Friday) for the owner's few markets (/focus in the bot).
+# The cron is UTC and covers Calgary at both UTC-6 and UTC-7; the script decides by the Calgary clock and sends each
+# message once a day (state in tools/today/state.json on the `data` branch). Nothing is sent while focus mode is off.
+on:
+  schedule:
+    - cron: '0,20,40 2,3 * * 1-5'      # 8:00-9:40 PM Calgary, Sunday to Thursday evening
+    - cron: '15,35,55 12,13 * * 1-5'   # 6:15-7:55 AM Calgary, Monday to Friday
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: 'Send one now: evening or morning (empty = whichever is due)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: today
+  cancel-in-progress: false
+
+jobs:
+  today:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      # The scan data and the sent-state live on the `data` branch (scripts/data-branch.sh, .github/workflows/README.md).
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Current time-zone data
+        run: python -m pip install --quiet --upgrade tzdata
+      - name: Tests (offline)
+        run: python -m unittest discover -s tools/today/tests
+        env:
+          PYTHONTZPATH: ''
+      - name: Send what is due
+        run: |
+          args=()
+          if [ -n "${IN_KIND}" ]; then args+=(--kind "${IN_KIND}"); fi
+          python tools/today/today.py "${args[@]}"
+        env:
+          PYTHONTZPATH: ''
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          IN_KIND: ${{ github.event.inputs.kind }}
+      - name: Save the sent state
+        if: ${{ !cancelled() && hashFiles('tools/today/state.json') != '' }}
+        run: |
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "today: state $(date -u +%Y-%m-%dT%H:%MZ)" tools/today/state.json \
+            || { echo "::error::daily plan state not pushed (a message may repeat)"; exit 1; }
