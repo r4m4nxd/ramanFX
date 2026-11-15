@@ -41,6 +41,8 @@ export const NAV: { to: string; label: string; short?: string; icon: IconName; m
   { to: '/insiders', label: 'Insider buys', short: 'Insiders', icon: 'eye', group: 'Plan & tools', hint: 'Insider cluster buys from SEC Form 4, with the scanner\'s zone context' },
   { to: '/moves', label: 'Big moves', short: 'Moves', icon: 'bolt', group: 'Plan & tools', hint: 'Every big 1W / 1D / 4H / 1H candle that just closed: forex, indices, crypto, stocks' },
   { to: '/train', label: 'Train my eye', short: 'Train', icon: 'eye', group: 'Plan & tools', hint: 'Mark pivots, trend lines and zones the way you read them; score the engine against your eye' },
+  { to: '/today', label: 'Today', icon: 'target', group: 'Plan & tools', hint: 'Your few markets: tonight\'s one-line plan and the morning check' },
+  { to: '/desk', label: 'Decision desk', short: 'Desk', icon: 'grid', group: 'Plan & tools', hint: 'Your watchlist checked against your own rules: four lights per market' },
   { to: '/market-hours', label: 'Market hours', short: 'Hours', icon: 'clock', group: 'Plan & tools', hint: 'Best times and weekdays for every pair and stock, Calgary time' },
   { to: '/chart', label: 'Advanced chart', short: 'Chart', icon: 'sliders', group: 'Plan & tools', hint: 'Live TradingView chart' },
   { to: '/news', label: 'Economic news', short: 'News', icon: 'clock', group: 'Plan & tools', hint: 'Economic calendar and headlines' },
@@ -407,7 +409,7 @@ export function Shell({ children }: { children: ReactNode }) {
               while a lazy page was still loading, leaving the new page invisible. */}
           <motion.div key={loc.pathname} data-page className={pageEnter}>
               {!deep && <motion.div className="lg:hidden land:hidden large-title mb-3 -mt-1 origin-left" aria-hidden="true" style={reduceMotion ? { opacity: bigOpacity } : { opacity: bigOpacity, filter: bigFilter, scale: bigScale }}>{title}</motion.div>}
-              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart', '/design', '/learn', '/ask', '/practice', '/bot-guide', '/checklist', '/tools', '/zones', '/scanner', '/fx', '/market-hours', '/moves', '/insiders', '/train'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
+              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart', '/design', '/learn', '/ask', '/practice', '/bot-guide', '/checklist', '/tools', '/zones', '/scanner', '/fx', '/market-hours', '/today', '/desk', '/moves', '/insiders', '/train'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
           </motion.div>
         </main>
       </div>

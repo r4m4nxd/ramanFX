@@ -209,6 +209,10 @@ export interface RiskRules {
   requirePlanBeforeTrade: boolean;
   /** v2: default risk per trade as % of balance, used by the position calculator. */
   riskPercent?: number;
+  /** The owner's watchlist of the Today page and the Decision Desk (core/desk.ts); kept here because these settings sync. */
+  deskWatch?: string[];
+  /** Nightly one-line plans: trading day 'YYYY-MM-DD' -> symbol -> text (core/desk.ts). */
+  deskPlans?: Record<string, Record<string, string>>;
 }
 
 export interface TagCategory {

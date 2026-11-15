@@ -69,6 +69,7 @@ interface State extends Journal {
   setActiveAccount: (id: string) => void;
   setPlaybook: (p: PlaybookState) => void;
   setRiskRules: (r: RiskRules) => void;
+  setDesk: (patch: { deskWatch?: string[]; deskPlans?: Record<string, Record<string, string>> }) => void;
   setOverride: (symbol: string, o: InstrumentOverride | null) => void;
   setTheme: (t: 'dark' | 'light') => void;
   setPrivacy: (v: boolean) => void;
@@ -210,7 +211,9 @@ export const useStore = create<State>((set, getState) => {
     },
     setActiveAccount: (id) => { set({ activeAccount: id }); put(SK.activeAccount, id); },
     setPlaybook: (p) => { set({ playbook: p }); put(SK.playbook, p); },
-    setRiskRules: (r) => commit({ riskRules: r }),
+    // the desk watchlist and plans live in the same synced object: a save from the Risk page never drops them
+    setRiskRules: (r) => { const cur = getState().riskRules; commit({ riskRules: { ...r, deskWatch: r.deskWatch ?? cur.deskWatch, deskPlans: r.deskPlans ?? cur.deskPlans } }); },
+    setDesk: (patch) => commit({ riskRules: { ...getState().riskRules, ...patch } }),
     setOverride: (sym, o) => {
       const next = { ...getState().overrides };
       if (o) next[sym] = o; else delete next[sym];
