@@ -22,7 +22,7 @@ import { calParts } from './core.ts';
 export const REPO = 'r4m4nxd/ramanFX';
 export interface Dispatch {
   /** Workflow file in .github/workflows. */
-  wf: 'fx-scan.yml' | 'stock-scan.yml' | 'briefing.yml' | 'reminders.yml' | 'movers.yml' | 'fundamentals.yml' | 'insiders.yml' | 'holders.yml' | 'realign.yml';
+  wf: 'fx-scan.yml' | 'stock-scan.yml' | 'briefing.yml' | 'reminders.yml' | 'movers.yml' | 'fundamentals.yml' | 'insiders.yml' | 'holders.yml' | 'realign.yml' | 'today.yml';
   /** Dedupe key: one dispatch per slot (rfx_coach_events 'dispatch:<slot>'). */
   slot: string;
   /** Slot start (UTC ms): a GitHub run created at or after this already covers the slot. */
@@ -118,6 +118,14 @@ export function dueDispatches(nowUtc: number): Dispatch[] {
       const b = m - (m % 30);
       out.push({ wf: 'reminders.yml', slot: `rem:${key(c)}T${p2(Math.floor(b / 60))}:${p2(b % 60)}`, since: startOf(b), inputs: {} });
     }
+    // Focus mode's morning check: due 6:15 AM; dispatch in 6:15-7:00 (today.py sends once, 6:00-8:30, only with /focus on).
+    if (m >= 6 * 60 + 15 && m < 7 * 60) out.push({ wf: 'today.yml', slot: `today-am:${key(c)}`, since: startOf(6 * 60 + 15), inputs: {} });
+  }
+  // Focus mode's evening plan: Sunday to Thursday, due 8:00 PM Calgary; dispatch in 8:00-9:00 (today.py: once, 19:45-22:30).
+  // GitHub's own cron never started this workflow on its first night (2026-11-15), so the coach starts it.
+  if (c.wd <= 4) {
+    const m = c.h * 60 + c.mi;
+    if (m >= 20 * 60 && m < 21 * 60) out.push({ wf: 'today.yml', slot: `today-pm:${key(c)}`, since: nowUtc - (m - 20 * 60) * 60000 - (nowUtc % 60000), inputs: {} });
   }
   return out;
 }

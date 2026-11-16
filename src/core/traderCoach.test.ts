@@ -347,6 +347,15 @@ describe('GitHub workflow scheduler', () => {
     expect([...ticks('2026-10-31T06:00:00Z', 18).keys()].filter(k => k.startsWith('brief') || k.startsWith('rem'))).toEqual([]);
   });
 
+  it('daily plan messages: the coach starts today.yml for the 6:15 AM check and the 8 PM plan (Calgary, UTC-6)', () => {
+    const slots = (iso: string) => dueDispatches(at(iso)).filter(d => d.wf === 'today.yml').map(d => d.slot);
+    expect(slots('2026-11-16T12:20:00Z')).toEqual(['today-am:2026-11-16']);          // Monday 6:20 AM
+    expect(slots('2026-11-16T12:00:00Z')).toEqual([]);                               // 6:00 AM: not yet
+    expect(slots('2026-11-17T02:10:00Z')).toEqual(['today-pm:2026-11-16']);          // Monday 8:10 PM
+    expect(slots('2026-11-16T02:10:00Z')).toEqual(['today-pm:2026-11-15']);          // Sunday 8:10 PM: the plan for Monday
+    expect(slots('2026-11-14T02:10:00Z')).toEqual([]);                               // Friday evening: no plan for Saturday
+    expect(slots('2026-11-15T12:20:00Z')).toEqual([]);                               // Sunday morning
+  });
   it('payloads: scheduled-equivalent inputs, ref main; a GitHub run inside the slot covers it', () => {
     const fx = dueDispatches(at('2026-10-28T14:10:00Z')).find(d => d.wf === 'fx-scan.yml')!;
     const r = dispatchRequest(fx, 'tok');
