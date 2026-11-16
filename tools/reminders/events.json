@@ -14,9 +14,9 @@
      "verified": true
     }
    ],
-   "fetched_at": "2026-11-12T10:00:40Z",
+   "fetched_at": "2026-11-16T10:00:37Z",
    "source": "tradingview",
-   "tried_at": "2026-11-12T10:00:40Z"
+   "tried_at": "2026-11-16T10:00:37Z"
   },
   "fomc": {
    "error": null,
@@ -107,14 +107,14 @@
      "verified": true
     },
     {
-     "date": "2027-12-08",
+     "date": "2027-11-17",
      "et": "14:00",
      "verified": true
     }
    ],
-   "fetched_at": "2026-11-12T10:00:40Z",
+   "fetched_at": "2026-11-16T10:00:37Z",
    "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
-   "tried_at": "2026-11-12T10:00:40Z"
+   "tried_at": "2026-11-16T10:00:37Z"
   },
   "nfp": {
    "error": null,
@@ -130,9 +130,9 @@
      "verified": true
     }
    ],
-   "fetched_at": "2026-11-12T10:00:40Z",
+   "fetched_at": "2026-11-16T10:00:37Z",
    "source": "tradingview",
-   "tried_at": "2026-11-12T10:00:40Z"
+   "tried_at": "2026-11-16T10:00:37Z"
   }
  }
 }
