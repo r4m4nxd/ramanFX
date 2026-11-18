@@ -30,7 +30,7 @@ concurrency:
 jobs:
   realign:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 14
     env:
       OANDA_ENV: ${{ vars.OANDA_ENV || 'practice' }}
       PYTHONTZPATH: ''
@@ -72,10 +72,31 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
+      # New 15-minute areas after a big move away, the owner's FTMO markets (tools/fx_scanner/fxfresh.py): one
+      # Pepperstone request per market (~1 minute), one Telegram message with the new ones. Never fails the job.
+      - name: New 15-minute areas
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        timeout-minutes: 6
+        run: |
+          python -m unittest discover -s tools/fx_scanner/tests -p test_fxfresh.py
+          ARGS=(--m15)
+          if [ "$DRY_RUN" = "true" ]; then ARGS+=(--dry-run); fi
+          python tools/fx_scanner/fxfresh.py "${ARGS[@]}"
+        env:
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          CTRADER_CLIENT_ID: ${{ secrets.CTRADER_CLIENT_ID }}
+          CTRADER_CLIENT_SECRET: ${{ secrets.CTRADER_CLIENT_SECRET }}
+          CTRADER_ACCESS_TOKEN: ${{ secrets.CTRADER_ACCESS_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FX_FEED: ${{ vars.FX_FEED || 'ctrader' }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
       - name: Publish to the data branch
-        if: ${{ !cancelled() && github.event.inputs.dry_run != 'true' && hashFiles('public/fx/realign.json') != '' }}
+        if: ${{ !cancelled() && github.event.inputs.dry_run != 'true' && (hashFiles('public/fx/realign.json') != '' || hashFiles('public/fx/fresh15.json') != '') }}
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          bash scripts/data-branch.sh push "realign: $(date -u +%Y-%m-%dT%H:%MZ)" public/fx/realign.json \
+          bash scripts/data-branch.sh push "realign: $(date -u +%Y-%m-%dT%H:%MZ)" public/fx/realign.json public/fx/fresh15.json \
             || { echo "::error::realign state not pushed"; exit 1; }

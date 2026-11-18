@@ -1,0 +1,23 @@
+{
+  "note": "The owner's FTMO MT5 market list (2026-11-18): scanner symbol (Pepperstone) -> FTMO MT5 name. The fresh-area alerts (fxfresh.py) cover exactly these.",
+  "symbols": {
+    "AUDCAD": "AUDCAD", "AUDCHF": "AUDCHF", "AUDJPY": "AUDJPY", "AUDNZD": "AUDNZD", "AUDUSD": "AUDUSD",
+    "CADCHF": "CADCHF", "CADJPY": "CADJPY", "CHFJPY": "CHFJPY",
+    "EURAUD": "EURAUD", "EURCAD": "EURCAD", "EURCHF": "EURCHF", "EURCZK": "EURCZK", "EURGBP": "EURGBP", "EURHUF": "EURHUF",
+    "EURJPY": "EURJPY", "EURNOK": "EURNOK", "EURNZD": "EURNZD", "EURPLN": "EURPLN", "EURUSD": "EURUSD",
+    "GBPAUD": "GBPAUD", "GBPCAD": "GBPCAD", "GBPCHF": "GBPCHF", "GBPJPY": "GBPJPY", "GBPNZD": "GBPNZD", "GBPUSD": "GBPUSD",
+    "NZDCAD": "NZDCAD", "NZDCHF": "NZDCHF", "NZDJPY": "NZDJPY", "NZDUSD": "NZDUSD",
+    "USDCAD": "USDCAD", "USDCHF": "USDCHF", "USDCNH": "USDCNH", "USDCZK": "USDCZK", "USDHKD": "USDHKD", "USDHUF": "USDHUF",
+    "USDILS": "USDILS", "USDJPY": "USDJPY", "USDMXN": "USDMXN", "USDNOK": "USDNOK", "USDPLN": "USDPLN", "USDSEK": "USDSEK",
+    "USDSGD": "USDSGD", "USDZAR": "USDZAR",
+    "BNBUSD": "BNBUSD", "BTCUSD": "BTCUSD", "ETHUSD": "ETHUSD", "SOLUSD": "SOLUSD", "XMRUSD": "XMRUSD", "XRPUSD": "XRPUSD",
+    "USDX": "DXY.cash", "US2000": "US2000.cash", "US500": "US500.cash",
+    "COCOA": "COCOA.c", "COFFEE": "COFFEE.c", "CORN": "CORN.c", "COTTON": "COTTON.c", "NATGAS": "NATGAS.cash",
+    "SOYBEANS": "SOYBEAN.c", "SUGAR": "SUGAR.c", "WHEAT": "WHEAT.c",
+    "XAGAUD": "XAGAUD", "XAGEUR": "XAGEUR", "XAGUSD": "XAGUSD", "XAUAUD": "XAUAUD", "XAUEUR": "XAUEUR", "XAUUSD": "XAUUSD",
+    "COPPER": "XCUUSD", "XPDUSD": "XPDUSD", "XPTUSD": "XPTUSD",
+    "AUS200": "AUS200.cash", "EUSTX50": "EU50.cash", "FRA40": "FRA40.cash", "GER40": "GER40.cash", "HEATOIL": "HEATOIL.c",
+    "HK50": "HK50.cash", "JPN225": "JP225.cash", "NETH25": "N25.cash", "SPA35": "SPN35.cash", "UK100": "UK100.cash",
+    "SPOTBRENT": "UKOIL.cash", "NAS100": "US100.cash", "US30": "US30.cash", "SPOTCRUDE": "USOIL.cash"
+  }
+}
