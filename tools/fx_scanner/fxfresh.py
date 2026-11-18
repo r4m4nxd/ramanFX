@@ -170,7 +170,7 @@ def deliver(items: List[Dict], path: str, prefs: Optional[Dict], send, notify: b
     n = 0
     ok = True
     if todo and not boot:
-        msg = message(todo, ftmo(), now)
+        msg = SN.kept(message(todo, ftmo(), now))          # the owner's own FTMO alerts: sent in every focus mode
         if P.in_quiet(prefs):
             msg = SN.silenced(msg, True)
         if notify:
