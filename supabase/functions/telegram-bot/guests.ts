@@ -68,7 +68,7 @@ export function guestStore(load: () => Promise<GuestPrefs>, save: (p: GuestPrefs
         alerts: p.alerts.filter(a => !a.fired_at).map(cleanAlert),
         quiet: p.quiet ? { ...p.quiet, tz: TZ } : null,
         watch: [...p.watch],
-        focus: { on: false, syms: [] },          // focus mode is the owner's setting only
+        focus: { on: false, syms: [], mode: 'plan' },          // focus mode is the owner's setting only
       };
     },
     addAlert: a => edit(p => { const id = p.next++; p.alerts.push(cleanAlert({ ...a, id })); return id; }),

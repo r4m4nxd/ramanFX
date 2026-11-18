@@ -34,7 +34,13 @@ for _p in (HERE, STOCK):
 import fxcfg as C  # noqa: E402
 import notify as SN  # noqa: E402  (stock scanner Telegram: escape, UTF-16 length, layout, send with 429 retry)
 
-esc, u16, send, pack_cards, Msg = SN.esc, SN.u16, SN.send, SN.pack_cards, SN.Msg
+esc, u16, pack_cards, Msg = SN.esc, SN.u16, SN.pack_cards, SN.Msg
+
+
+def send(messages, pause: float = 1.1) -> bool:
+    """Every forex-scanner message goes out through here, tagged 'fx': focus mode's forex scope (/focus fx) lets these
+    through while the stock, insider and big-move messages stay held."""
+    return SN.send(messages, pause, source='fx')
 ICON = SN.ICON
 SOURCE = 'Pepperstone'
 FOOTER = SN.FOOTER

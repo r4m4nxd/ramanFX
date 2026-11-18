@@ -684,6 +684,12 @@ def _post(token: str, fields: Dict) -> Dict:
 _FOCUS: Dict = {}
 
 
+def focus_state() -> Dict:
+    """{'on': bool, 'mode': 'plan' | 'fx'} of the owner's focus mode, read once per run."""
+    focus_on()
+    return {'on': _FOCUS.get('on', False), 'mode': _FOCUS.get('mode', 'plan')}
+
+
 def focus_on(log=print) -> bool:
     """Focus mode (the owner's /focus in the bot): the market alerts are held back, so Telegram carries only the daily
     plan messages, the owner's own price alerts and failure notices. Read once per run from the bot's prefs. Unknown
@@ -695,16 +701,20 @@ def focus_on(log=print) -> bool:
         on = False
         try:
             import prefs as _P
-            on = bool(((_P.fetch(log=lambda *a, **k: None) or {}).get('focus') or {}).get('on'))
+            fo = (_P.fetch(log=lambda *a, **k: None) or {}).get('focus') or {}
+            on = bool(fo.get('on'))
+            _FOCUS['mode'] = 'fx' if fo.get('mode') == 'fx' else 'plan'
         except Exception:  # noqa: BLE001
             on = False
         _FOCUS['on'] = on
     return _FOCUS['on']
 
 
-def send(messages: List[str], pause: float = 1.1) -> bool:
+def send(messages: List[str], pause: float = 1.1, source: str = '') -> bool:
+    """source: 'fx' for the forex scanner family (scan, arrivals, direction changes, event reminders): with focus mode
+    in its forex scope (/focus fx) those go out, everything else is still held."""
     token, chat = os.environ.get('TELEGRAM_BOT_TOKEN'), os.environ.get('TELEGRAM_CHAT_ID')
-    if token and chat and messages and focus_on():
+    if token and chat and messages and focus_on() and not (source == 'fx' and _FOCUS.get('mode') == 'fx'):
         held = [m for m in messages if not getattr(m, 'keep', False)]
         messages = [m for m in messages if getattr(m, 'keep', False)]
         if held:

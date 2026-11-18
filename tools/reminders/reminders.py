@@ -534,7 +534,7 @@ def main(argv=None) -> int:
         head = (f"<b>Reminder test</b> · this is how it will look on {s.strftime('%a %-d %b')}, sent ~{clock(s)}"
                 + ('' if nxt['verified'] else ' (date not yet verified)'))
         msg = SN.Msg(head + '\n\n' + str(nxt['msg']), nxt['msg'].buttons)
-        ok = SN.send([msg])
+        ok = SN.send([msg], source='fx')
         print('test reminder', 'sent' if ok else 'NOT sent')
         return 0 if ok else 1
 
@@ -545,7 +545,7 @@ def main(argv=None) -> int:
         print(f'missed (cron too late, event passed or window closed): {r["id"]}')
     for r in go:
         print('due:', describe(r))
-        if SN.send([r['msg']]):
+        if SN.send([r['msg']], source='fx'):
             sent[r['id']] = _iso(now)
             print('sent', r['id'])
             to_guests(r['msg'])

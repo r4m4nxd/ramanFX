@@ -77,7 +77,7 @@ describe('prefs store', () => {
       alerts: [{ id: a, sym: 'XAUUSD', kind: 'price', level: 2650, dir: 'above' }, { id: b, sym: 'NVDA', kind: 'zone' }],
       quiet: { from: '22:00', to: '06:00', tz: 'America/Edmonton' },
       watch: ['AUDNZD'],
-      focus: { on: false, syms: ['EURUSD', 'XAUUSD', 'NAS100'] },
+      focus: { on: false, syms: ['EURUSD', 'XAUUSD', 'NAS100'], mode: 'plan' },
     });
     expect(await s.fired(a, now)).toBe(true);
     expect(await s.fired(a, now)).toBe(false);
@@ -86,9 +86,9 @@ describe('prefs store', () => {
     expect(await s.unmute('EURUSD')).toBe(true);
     await s.setQuiet(null);
     p = await s.get(now);
-    expect(p).toEqual({ mutes: [], alerts: [], quiet: null, watch: [], focus: { on: false, syms: ['EURUSD', 'XAUUSD', 'NAS100'] } });
-    await s.setFocus({ on: true, syms: ['EURUSD', 'XAUUSD'] });
-    expect((await s.get(now)).focus).toEqual({ on: true, syms: ['EURUSD', 'XAUUSD'] });
+    expect(p).toEqual({ mutes: [], alerts: [], quiet: null, watch: [], focus: { on: false, syms: ['EURUSD', 'XAUUSD', 'NAS100'], mode: 'plan' } });
+    await s.setFocus({ on: true, syms: ['EURUSD', 'XAUUSD'], mode: 'fx' });
+    expect((await s.get(now)).focus).toEqual({ on: true, syms: ['EURUSD', 'XAUUSD'], mode: 'fx' });
   });
 
   it('REST store: PostgREST paths, filters and upserts', async () => {
@@ -98,14 +98,14 @@ describe('prefs store', () => {
       const path = u.split('/rest/v1/')[1];
       let body: unknown = [];
       if (path.startsWith('rfx_bot_alerts?fired_at')) body = [{ id: 7, sym: 'NVDA', kind: 'zone', level: null, dir: null, pct: null }];
-      else if (path.startsWith('rfx_bot_config')) body = [{ quiet_from: '22:00', quiet_to: '06:00', focus_on: true, focus_syms: 'EURUSD,XAUUSD' }];
+      else if (path.startsWith('rfx_bot_config')) body = [{ quiet_from: '22:00', quiet_to: '06:00', focus_on: true, focus_syms: 'EURUSD,XAUUSD', focus_mode: 'fx' }];
       else if (path.startsWith('rfx_bot_watch?select')) body = [{ sym: 'AMD' }];
       else if (i?.method === 'POST' && path.startsWith('rfx_bot_alerts')) body = [{ id: 9 }];
       else if (i?.method === 'DELETE' || i?.method === 'PATCH') body = [{ id: 1 }];
       return { ok: true, status: 200, json: async () => body };
     };
     const s = restStore('https://x.supabase.co', { apikey: 'k' }, f);
-    expect(await s.get(new Date(NOW))).toEqual({ mutes: [], alerts: [{ id: 7, sym: 'NVDA', kind: 'zone' }], quiet: { from: '22:00', to: '06:00', tz: 'America/Edmonton' }, watch: ['AMD'], focus: { on: true, syms: ['EURUSD', 'XAUUSD'] } });
+    expect(await s.get(new Date(NOW))).toEqual({ mutes: [], alerts: [{ id: 7, sym: 'NVDA', kind: 'zone' }], quiet: { from: '22:00', to: '06:00', tz: 'America/Edmonton' }, watch: ['AMD'], focus: { on: true, syms: ['EURUSD', 'XAUUSD'], mode: 'fx' } });
     expect(calls.map(c => c.u)).toContain(`rfx_bot_mutes?until_utc=gt.${encodeURIComponent('2026-10-29T15:00:00.000Z')}&select=sym,until_utc&order=sym`);
     calls.length = 0;
     expect(await s.addAlert({ sym: 'XAUUSD', kind: 'pct', pct: 0.2, level: 2600 })).toBe(9);
