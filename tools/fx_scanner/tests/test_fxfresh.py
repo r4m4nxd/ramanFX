@@ -109,5 +109,13 @@ class Fresh(unittest.TestCase):
         self.assertTrue(any('USDX' in x for x in logs))
 
 
+class Mt5Names(unittest.TestCase):
+    def test_bot_view_files_also_under_the_ftmo_name(self):
+        import fxscan as X
+        with tempfile.TemporaryDirectory() as d:
+            X.mt5_export({'cfd': {'generated': 'g', 'instruments': {'SPOTCRUDE': {'zones': [], 'tls': {}}, 'EURUSD': {'zones': [], 'tls': {}}}}}, d)
+            self.assertEqual(sorted(os.listdir(os.path.join(d, 'mt5'))), ['EURUSD.txt', 'SPOTCRUDE.txt', 'USOIL.txt'])
+
+
 if __name__ == '__main__':
     unittest.main()

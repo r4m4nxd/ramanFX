@@ -324,6 +324,17 @@ def public(res: Dict, h4: str, fixture: bool = False, partial: bool = False, ext
     return pub, {c: {'generated': gen, 'instruments': v} for c, v in shards.items() if v}
 
 
+def _ftmo_names() -> Dict[str, str]:
+    try:
+        with open(os.path.join(HERE, 'ftmo.json')) as f:
+            return json.load(f).get('symbols') or {}
+    except (OSError, ValueError):
+        return {}
+
+
+FTMO_NAMES = _ftmo_names()
+
+
 def mt5_export(shards: Dict[str, Dict], out_dir: str) -> None:
     """public/fx/mt5/<SYM>.txt: the bot's zones + trend lines of one symbol in a plain format the MT5 indicator
     RamanFX_BotView.mq5 reads (no JSON parser in MQL). Lines, ';' separated, times = server-time labels:
@@ -340,8 +351,13 @@ def mt5_export(shards: Dict[str, Dict], out_dir: str) -> None:
             for tf, ls in (x.get('tls') or {}).items():
                 for t in ls or []:
                     out.append(f"L;{tf};{t['dir']};{t['p']};{t['s']};{t['n']};{t['t']};{t.get('touches', 0)};{1 if t.get('x') else 0}")
-            with open(os.path.join(d, f'{sym}.txt'), 'w') as f:
-                f.write('\n'.join(out) + '\n')
+            # also under the FTMO MT5 name (ftmo.json: SPOTCRUDE -> USOIL.cash -> USOIL.txt): the indicator asks for
+            # the chart's own symbol without its broker suffix
+            alias = (FTMO_NAMES.get(sym) or '').split('.', 1)[0].upper()
+            for name in dict.fromkeys([sym, alias]):
+                if name:
+                    with open(os.path.join(d, f'{name}.txt'), 'w') as f:
+                        f.write('\n'.join(out) + '\n')
 
 
 def write(pub: Dict, shards: Dict[str, Dict], out_dir: str = C.OUT_DIR) -> str:
