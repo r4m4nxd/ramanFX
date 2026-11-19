@@ -2,9 +2,9 @@
  "lessons": {
   "cycle": 1,
   "last": {
-   "date": "2026-11-18",
-   "key": "baker:3",
-   "title": "Supply and Demand: The Forces Behind Price"
+   "date": "2026-11-19",
+   "key": "zoom:3",
+   "title": "EURUSD chain-analysis review: trendline breaks, re-anchoring and not forcing zones"
   },
   "used": [
    "raja:1",
@@ -20,7 +20,8 @@
    "raja:3",
    "course:3",
    "seiden:9",
-   "baker:3"
+   "baker:3",
+   "zoom:3"
   ]
  },
  "sent": {
@@ -37,6 +38,7 @@
   "2026-11-13": "2026-11-13T12:00:35Z",
   "2026-11-16": "2026-11-16T12:00:39Z",
   "2026-11-17": "2026-11-17T12:00:43Z",
-  "2026-11-18": "2026-11-18T12:00:32Z"
+  "2026-11-18": "2026-11-18T12:00:32Z",
+  "2026-11-19": "2026-11-19T12:00:34Z"
  }
 }
