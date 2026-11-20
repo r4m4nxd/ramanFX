@@ -2,9 +2,9 @@
  "lessons": {
   "cycle": 1,
   "last": {
-   "date": "2026-11-19",
-   "key": "zoom:3",
-   "title": "EURUSD chain-analysis review: trendline breaks, re-anchoring and not forcing zones"
+   "date": "2026-11-20",
+   "key": "raja:4",
+   "title": "High Curve and Low Curve, Trendline-Close Confirmation and Trailing Stops"
   },
   "used": [
    "raja:1",
@@ -21,7 +21,8 @@
    "course:3",
    "seiden:9",
    "baker:3",
-   "zoom:3"
+   "zoom:3",
+   "raja:4"
   ]
  },
  "sent": {
@@ -39,6 +40,7 @@
   "2026-11-16": "2026-11-16T12:00:39Z",
   "2026-11-17": "2026-11-17T12:00:43Z",
   "2026-11-18": "2026-11-18T12:00:32Z",
-  "2026-11-19": "2026-11-19T12:00:34Z"
+  "2026-11-19": "2026-11-19T12:00:34Z",
+  "2026-11-20": "2026-11-20T12:00:41Z"
  }
 }
