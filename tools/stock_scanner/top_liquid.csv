@@ -1,302 +1,302 @@
 # US top liquid (universe TOP): built by universe.py refresh_top; 4462 candidates, >= 50M USD/day 20-day median, cap 300, other universes excluded
 symbol,name,sector,cik,exchange,dv20_musd
-SKHY,SK hynix Inc.,Information Technology,0002120882,NASDAQ,3008.2
-IREN,IREN Limited,Financials,0001878848,NASDAQ,1452.1
-CRDO,Credo Technology Group Holding Ltd,Information Technology,0001807794,NASDAQ,1187.2
-NET,"Cloudflare, Inc.",Information Technology,0001477333,NYSE,1172.1
-SNOW,Snowflake Inc.,Information Technology,0001640147,NYSE,1127.1
-CBRS,Cerebras Systems Inc.,Information Technology,0002021728,NASDAQ,1097.6
-AAOI,"Applied Optoelectronics, Inc.",Information Technology,0001158114,NASDAQ,794.5
-AAL,American Airlines Group Inc.,Industrials,0000006201,NASDAQ,757.5
-SOFI,"SoFi Technologies, Inc.",Financials,0001818874,NASDAQ,716.1
-LNG,Cheniere Energy Inc,Utilities,0000003570,NYSE,664.2
-NTRA,"Natera, Inc.",Health Care,0001604821,NASDAQ,652.5
-CRCL,"Circle Internet Group, Inc.",Financials,0001876042,NYSE,637.1
-IONQ,"IonQ, Inc.",Information Technology,0001824920,NYSE,590.2
-BMNR,"BitMine Immersion Technologies, Inc.",Financials,0001829311,NYSE,589.0
-WULF,TeraWulf Inc.,Financials,0001083301,NASDAQ,576.0
-ASTS,"AST SpaceMobile, Inc.",Communication Services,0001780312,NASDAQ,573.5
-TEAM,Atlassian Corporation,Information Technology,0001650372,NASDAQ,565.1
-CDE,"Coeur Mining, Inc.",Materials,0000215466,NYSE,551.2
-AXTI,AXT Inc,Information Technology,0001051627,NASDAQ,511.8
-TSEM,Tower Semiconductor Ltd.,Information Technology,0000928876,NASDAQ,504.2
-ZS,"Zscaler, Inc.",Information Technology,0001713683,NASDAQ,487.2
-U,Unity Software Inc.,Information Technology,0001810806,NYSE,481.2
-ENTG,"Entegris, Inc.",Materials,0001101302,NASDAQ,481.2
-APLD,Applied Digital Corporation,Information Technology,0001144879,NASDAQ,442.0
-RKT,"Rocket Companies, Inc.",Financials,0001805284,NYSE,438.7
-DT,"Dynatrace, Inc.",Information Technology,0001773383,NYSE,428.4
-MDB,"MongoDB, Inc.",Information Technology,0001441816,NASDAQ,413.2
-MTSI,"MACOM Technology Solutions Holdings, Inc.",Information Technology,0001493594,NASDAQ,409.3
-RBLX,Roblox Corporation,Information Technology,0001315098,NYSE,407.1
-HL,Hecla Mining Company,Materials,0000719413,NYSE,404.9
-TEM,"Tempus AI, Inc.",Information Technology,0001717115,NASDAQ,388.1
-NVT,nVent Electric plc,Industrials,0001720635,NYSE,386.0
-FN,Fabrinet,Information Technology,0001408710,NYSE,385.3
-RVMD,"Revolution Medicines, Inc.",Health Care,0001628171,NASDAQ,382.2
-CIFR,Cipher Digital Inc.,Financials,0001819989,NASDAQ,377.0
-SMTC,Semtech Corporation,Information Technology,0000088941,NASDAQ,373.3
-CRS,Carpenter Technology Corp,Materials,0000017843,NYSE,367.5
-ONON,On Holding AG,Materials,0001858985,NYSE,366.0
-FTAI,FTAI Aviation Ltd.,Industrials,0001590364,NASDAQ,353.5
-TLN,Talen Energy Corporation,Utilities,0001622536,NASDAQ,351.6
-MDLN,Medline Inc.,Health Care,0002046386,NASDAQ,342.8
-RIVN,"Rivian Automotive, Inc.",Consumer Discretionary,0001874178,NASDAQ,341.8
-RIOT,"Riot Platforms, Inc.",Financials,0001167419,NASDAQ,339.9
-TTMI,"TTM Technologies, Inc.",Information Technology,0001116942,NASDAQ,337.0
-GH,"Guardant Health, Inc.",Health Care,0001576280,NASDAQ,335.0
-ROIV,Roivant Sciences Ltd.,Health Care,0001635088,NASDAQ,333.6
-ATI,ATI Inc.,Materials,0001018963,NYSE,326.9
-STRL,"Sterling Infrastructure, Inc.",Industrials,0000874238,NASDAQ,325.0
-INSM,Insmed Incorporated,Health Care,0001104506,NASDAQ,316.8
-CART,Maplebear Inc.,Industrials,0001579091,NASDAQ,314.8
-HUT,Hut 8 Corp.,Financials,0001964789,NASDAQ,313.5
-BURL,"BURLINGTON STORES, INC.",Consumer Discretionary,0001579298,NYSE,310.5
-RBRK,"Rubrik, Inc.",Information Technology,0001943896,NYSE,308.2
-MTZ,"MasTec, Inc.",Industrials,0000015615,NYSE,305.9
-VIK,Viking Holdings Ltd,Industrials,0001745201,NYSE,304.5
-BRZE,"Braze, Inc.",Information Technology,0001676238,NASDAQ,296.2
-SN,"SharkNinja, Inc.",Consumer Discretionary,0001957132,NYSE,296.1
-TOST,"Toast, Inc.",Information Technology,0001650164,NYSE,295.6
-MKSI,MKS Inc.,Information Technology,0001049502,NASDAQ,294.6
-LPLA,LPL Financial Holdings Inc.,Financials,0001397911,NASDAQ,287.9
-TWST,Twist Bioscience Corporation,Health Care,0001581280,NASDAQ,287.3
-ETSY,"Etsy, Inc.",Industrials,0001370637,NYSE,284.3
-PATH,"UiPath, Inc.",Information Technology,0001734722,NYSE,281.7
-RIG,Transocean LTD.,Energy,0001451505,NYSE,278.7
-AFRM,"Affirm Holdings, Inc.",Financials,0001820953,NASDAQ,274.3
-MARA,"MARA Holdings, Inc.",Financials,0001507605,NASDAQ,272.4
-HIMS,"Hims & Hers Health, Inc.",Health Care,0001773751,NYSE,272.4
-UTHR,United Therapeutics Corporation,Health Care,0001082554,NASDAQ,271.2
-DOCN,"DigitalOcean Holdings, Inc.",Information Technology,0001582961,NYSE,270.9
-SITM,SiTime Corporation,Information Technology,0001451809,NASDAQ,269.2
-TRU,TransUnion,Industrials,0001552033,NYSE,262.6
-FWONK,Liberty Media Corporation Series C,Communication Services,0001560385,NASDAQ,262.0
-HUBS,"HUBSPOT, INC.",Information Technology,0001404655,NYSE,260.2
-CLF,Cleveland-Cliffs Inc.,Materials,0000764065,NYSE,259.5
-DINO,HF Sinclair Corporation,Industrials,0001915657,NYSE,258.5
-ONDS,Ondas Inc.,Information Technology,0001646188,NASDAQ,258.2
-BRK.A,Berkshire Hathaway Inc.,Financials,0001067983,NYSE,256.5
-ONTO,Onto Innovation Inc.,Information Technology,0000704532,NYSE,250.8
-EAT,"Brinker International, Inc.",Consumer Discretionary,0000703351,NYSE,249.6
-JHX,James Hardie Industries plc,Materials,0001159152,NYSE,248.9
-DKNG,DraftKings Inc.,Consumer Discretionary,0001883685,NASDAQ,248.9
-HNGE,"Hinge Health, Inc.",Information Technology,0001673743,NYSE,247.6
-LSCC,Lattice Semiconductor Corporation,Information Technology,0000855658,NASDAQ,247.4
-FPS,"Forgent Power Solutions, Inc.",Industrials,0002080126,NYSE,242.7
-S,"SentinelOne, Inc.",Information Technology,0001583708,NYSE,241.6
-ZM,"Zoom Communications, Inc.",Information Technology,0001585521,NASDAQ,239.8
-SNAP,Snap Inc.,Information Technology,0001564408,NYSE,236.8
-KNX,Knight-Swift Transportation Holdings Inc.,Industrials,0001492691,NYSE,236.5
-CTVA,"Corteva, Inc.",Consumer Staples,0001755672,NYSE,235.6
-DKS,"Dick's Sporting Goods, Inc.",Consumer Discretionary,0001089063,NYSE,235.6
-SUNB,"Sunbelt Rentals Holdings, Inc.",Industrials,0002083785,NYSE,233.7
-PINS,"Pinterest, Inc.",Information Technology,0001506293,NYSE,229.4
-NLY,Annaly Capital Management. Inc.,Real Estate,0001043219,NYSE,229.1
-NXT,Nextpower Inc.,Information Technology,0001852131,NASDAQ,229.0
-THC,Tenet Healthcare Corporation New,Health Care,0000070318,NYSE,228.2
-USFD,US Foods Holding Corp.,Consumer Staples,0001665918,NYSE,227.5
-HALO,"Halozyme Therapeutics, Inc.",Health Care,0001159036,NASDAQ,226.3
-RPRX,Royalty Pharma plc,Health Care,0001802768,NASDAQ,224.2
-AGNC,AGNC Investment Corp.,Real Estate,0001423689,NASDAQ,223.5
-SCCO,Southern Copper Corporation,Materials,0001001838,NYSE,220.9
-FTI,TechnipFMC plc Ordinary Share,Industrials,0001681459,NYSE,220.5
-GKOS,Glaukos Corporation,Health Care,0001192448,NYSE,216.8
-WWD,"Woodward, Inc.",Industrials,0000108312,NASDAQ,216.7
-PR,Permian Resources Corporation,Energy,0001658566,NYSE,215.9
-WCC,Wesco International Inc.,Industrials,0000929008,NYSE,215.5
-FIG,"Figma, Inc.",Information Technology,0001579878,NYSE,215.1
-OKLO,Oklo Inc.,Utilities,0001849056,NYSE,215.1
-QGEN,QIAGEN N.V.,Health Care,0001015820,NYSE,213.0
-WSO,"Watsco, Inc.",Industrials,0000105016,NYSE,212.2
-MANH,"Manhattan Associates, Inc.",Information Technology,0001056696,NASDAQ,211.5
-BROS,Dutch Bros Inc.,Consumer Discretionary,0001866581,NYSE,210.1
-OVV,Ovintiv Inc.,Energy,0001792580,NYSE,210.0
-PBR.A,Petroleo Brasileiro S.A.-Petrobras,Energy,0001119639,NYSE,209.8
-CORZ,"Core Scientific, Inc.",Financials,0001839341,NASDAQ,208.9
-XP,XP Inc.,Financials,0001787425,NASDAQ,208.9
-AU,AngloGold Ashanti plc,Materials,0001973832,NYSE,206.6
-RRX,Regal Rexnord Corporation,Industrials,0000082811,NYSE,204.4
-GFS,GlobalFoundries Inc.,Information Technology,0001709048,NASDAQ,203.5
-XPO,"XPO, Inc.",Industrials,0001166003,NYSE,202.8
-MP,MP Materials Corp.,Materials,0001801368,NYSE,202.3
-BAH,Booz Allen Hamilton Holding Corporation,Industrials,0001443646,NYSE,200.8
-TW,Tradeweb Markets Inc.,Financials,0001758730,NASDAQ,199.9
-FCNCA,"First Citizens BancShares, Inc.",Financials,0000798941,NASDAQ,196.9
-FRO,Frontline Plc,Industrials,0000913290,NYSE,196.9
-BBIO,"BridgeBio Pharma, Inc.",Health Care,0001743881,NASDAQ,196.6
-NBIX,"Neurocrine Biosciences, Inc.",Health Care,0000914475,NASDAQ,196.5
-QXO,"QXO, Inc.",Industrials,0001236275,NYSE,195.9
-W,Wayfair Inc.,Consumer Discretionary,0001616707,NYSE,193.1
-AMKR,"Amkor Technology, Inc.",Information Technology,0001047127,NASDAQ,192.8
-ICLR,ICON plc,Health Care,0001060955,NASDAQ,192.7
-TTD,"The Trade Desk, Inc.",Information Technology,0001671933,NASDAQ,192.5
-SFM,"Sprouts Farmers Market, Inc.",Consumer Staples,0001575515,NASDAQ,192.5
-CROX,"Crocs, Inc.",Materials,0001334036,NASDAQ,191.8
-MOD,Modine Manufacturing Co,Consumer Discretionary,0000067347,NYSE,191.6
-MXL,"MaxLinear, Inc.",Information Technology,0001288469,NASDAQ,191.1
-PCOR,"Procore Technologies, Inc.",Information Technology,0001611052,NYSE,190.8
-VG,"Venture Global, Inc.",Utilities,0002007855,NYSE,190.0
-MOH,"Molina Healthcare, Inc.",Financials,0001179929,NYSE,189.9
-PBF,PBF ENERGY INC.,Energy,0001534504,NYSE,188.1
+SKHY,SK hynix Inc.,Information Technology,0002120882,NASDAQ,3076.4
+IREN,IREN Limited,Financials,0001878848,NASDAQ,1441.1
+CBRS,Cerebras Systems Inc.,Information Technology,0002021728,NASDAQ,1219.5
+NET,"Cloudflare, Inc.",Information Technology,0001477333,NYSE,1208.3
+CRDO,Credo Technology Group Holding Ltd,Information Technology,0001807794,NASDAQ,1170.0
+SNOW,Snowflake Inc.,Information Technology,0001640147,NYSE,1151.1
+SOFI,"SoFi Technologies, Inc.",Financials,0001818874,NASDAQ,799.2
+AAOI,"Applied Optoelectronics, Inc.",Information Technology,0001158114,NASDAQ,790.1
+AAL,American Airlines Group Inc.,Industrials,0000006201,NASDAQ,753.9
+NTRA,"Natera, Inc.",Health Care,0001604821,NASDAQ,665.8
+IONQ,"IonQ, Inc.",Information Technology,0001824920,NYSE,623.1
+LNG,Cheniere Energy Inc,Utilities,0000003570,NYSE,612.8
+WULF,TeraWulf Inc.,Financials,0001083301,NASDAQ,612.5
+CRCL,"Circle Internet Group, Inc.",Financials,0001876042,NYSE,587.8
+TEAM,Atlassian Corporation,Information Technology,0001650372,NASDAQ,579.4
+ASTS,"AST SpaceMobile, Inc.",Communication Services,0001780312,NASDAQ,568.4
+AXTI,AXT Inc,Information Technology,0001051627,NASDAQ,531.6
+U,Unity Software Inc.,Information Technology,0001810806,NYSE,529.7
+CDE,"Coeur Mining, Inc.",Materials,0000215466,NYSE,523.7
+BMNR,"BitMine Immersion Technologies, Inc.",Financials,0001829311,NYSE,509.3
+TSEM,Tower Semiconductor Ltd.,Information Technology,0000928876,NASDAQ,499.4
+ENTG,"Entegris, Inc.",Materials,0001101302,NASDAQ,497.1
+ZS,"Zscaler, Inc.",Information Technology,0001713683,NASDAQ,462.0
+RIOT,"Riot Platforms, Inc.",Financials,0001167419,NASDAQ,458.8
+RVMD,"Revolution Medicines, Inc.",Health Care,0001628171,NASDAQ,447.6
+MTSI,"MACOM Technology Solutions Holdings, Inc.",Information Technology,0001493594,NASDAQ,446.1
+RBLX,Roblox Corporation,Information Technology,0001315098,NYSE,439.5
+RKT,"Rocket Companies, Inc.",Financials,0001805284,NYSE,427.5
+FN,Fabrinet,Information Technology,0001408710,NYSE,417.6
+APLD,Applied Digital Corporation,Information Technology,0001144879,NASDAQ,406.4
+VIK,Viking Holdings Ltd,Industrials,0001745201,NYSE,400.8
+TEM,"Tempus AI, Inc.",Information Technology,0001717115,NASDAQ,397.3
+NVT,nVent Electric plc,Industrials,0001720635,NYSE,396.2
+INSM,Insmed Incorporated,Health Care,0001104506,NASDAQ,393.3
+HL,Hecla Mining Company,Materials,0000719413,NYSE,386.5
+MDB,"MongoDB, Inc.",Information Technology,0001441816,NASDAQ,386.3
+RIVN,"Rivian Automotive, Inc.",Consumer Discretionary,0001874178,NASDAQ,371.2
+TLN,Talen Energy Corporation,Utilities,0001622536,NASDAQ,361.8
+CRS,Carpenter Technology Corp,Materials,0000017843,NYSE,355.8
+MDLN,Medline Inc.,Health Care,0002046386,NASDAQ,353.6
+ONON,On Holding AG,Materials,0001858985,NYSE,352.9
+CIFR,Cipher Digital Inc.,Financials,0001819989,NASDAQ,352.6
+SMTC,Semtech Corporation,Information Technology,0000088941,NASDAQ,350.8
+FTAI,FTAI Aviation Ltd.,Industrials,0001590364,NASDAQ,342.6
+DT,"Dynatrace, Inc.",Information Technology,0001773383,NYSE,341.6
+SN,"SharkNinja, Inc.",Consumer Discretionary,0001957132,NYSE,339.5
+GH,"Guardant Health, Inc.",Health Care,0001576280,NASDAQ,336.8
+HUT,Hut 8 Corp.,Financials,0001964789,NASDAQ,336.2
+SITM,SiTime Corporation,Information Technology,0001451809,NASDAQ,321.4
+MKSI,MKS Inc.,Information Technology,0001049502,NASDAQ,321.0
+TTMI,"TTM Technologies, Inc.",Information Technology,0001116942,NASDAQ,320.1
+RBRK,"Rubrik, Inc.",Information Technology,0001943896,NYSE,318.2
+STRL,"Sterling Infrastructure, Inc.",Industrials,0000874238,NASDAQ,306.4
+NXT,Nextpower Inc.,Information Technology,0001852131,NASDAQ,304.2
+BURL,"BURLINGTON STORES, INC.",Consumer Discretionary,0001579298,NYSE,303.0
+THC,Tenet Healthcare Corporation New,Health Care,0000070318,NYSE,299.5
+ATI,ATI Inc.,Materials,0001018963,NYSE,295.5
+ETSY,"Etsy, Inc.",Industrials,0001370637,NYSE,295.3
+MTZ,"MasTec, Inc.",Industrials,0000015615,NYSE,292.8
+LPLA,LPL Financial Holdings Inc.,Financials,0001397911,NASDAQ,292.6
+AFRM,"Affirm Holdings, Inc.",Financials,0001820953,NASDAQ,291.6
+MOD,Modine Manufacturing Co,Consumer Discretionary,0000067347,NYSE,289.1
+DOCN,"DigitalOcean Holdings, Inc.",Information Technology,0001582961,NYSE,288.1
+CART,Maplebear Inc.,Industrials,0001579091,NASDAQ,286.7
+ROIV,Roivant Sciences Ltd.,Health Care,0001635088,NASDAQ,281.2
+PATH,"UiPath, Inc.",Information Technology,0001734722,NYSE,281.0
+FWONK,Liberty Media Corporation Series C,Communication Services,0001560385,NASDAQ,280.0
+TOST,"Toast, Inc.",Information Technology,0001650164,NYSE,278.2
+TWST,Twist Bioscience Corporation,Health Care,0001581280,NASDAQ,276.8
+HUBS,"HUBSPOT, INC.",Information Technology,0001404655,NYSE,274.9
+LSCC,Lattice Semiconductor Corporation,Information Technology,0000855658,NASDAQ,268.1
+UTHR,United Therapeutics Corporation,Health Care,0001082554,NASDAQ,261.9
+GKOS,Glaukos Corporation,Health Care,0001192448,NYSE,261.4
+MARA,"MARA Holdings, Inc.",Financials,0001507605,NASDAQ,261.0
+ZM,"Zoom Communications, Inc.",Information Technology,0001585521,NASDAQ,258.3
+DKNG,DraftKings Inc.,Consumer Discretionary,0001883685,NASDAQ,253.4
+HIMS,"Hims & Hers Health, Inc.",Health Care,0001773751,NYSE,252.6
+CORZ,"Core Scientific, Inc.",Financials,0001839341,NASDAQ,251.6
+MP,MP Materials Corp.,Materials,0001801368,NYSE,251.2
+DINO,HF Sinclair Corporation,Industrials,0001915657,NYSE,248.6
+ONDS,Ondas Inc.,Information Technology,0001646188,NASDAQ,247.6
+S,"SentinelOne, Inc.",Information Technology,0001583708,NYSE,244.4
+JHX,James Hardie Industries plc,Materials,0001159152,NYSE,242.4
+SNAP,Snap Inc.,Information Technology,0001564408,NYSE,240.1
+WWD,"Woodward, Inc.",Industrials,0000108312,NASDAQ,239.3
+EAT,"Brinker International, Inc.",Consumer Discretionary,0000703351,NYSE,238.7
+FROG,JFrog Ltd.,Information Technology,0001800667,NASDAQ,238.5
+AU,AngloGold Ashanti plc,Materials,0001973832,NYSE,237.2
+NLY,Annaly Capital Management. Inc.,Real Estate,0001043219,NYSE,236.2
+W,Wayfair Inc.,Consumer Discretionary,0001616707,NYSE,234.6
+FPS,"Forgent Power Solutions, Inc.",Industrials,0002080126,NYSE,232.1
+USFD,US Foods Holding Corp.,Consumer Staples,0001665918,NYSE,232.1
+AGNC,AGNC Investment Corp.,Real Estate,0001423689,NASDAQ,230.0
+NBIX,"Neurocrine Biosciences, Inc.",Health Care,0000914475,NASDAQ,228.9
+CTVA,"Corteva, Inc.",Consumer Staples,0001755672,NYSE,228.6
+BRZE,"Braze, Inc.",Information Technology,0001676238,NASDAQ,228.0
+RPRX,Royalty Pharma plc,Health Care,0001802768,NASDAQ,225.5
+DKS,"Dick's Sporting Goods, Inc.",Consumer Discretionary,0001089063,NYSE,225.1
+ONTO,Onto Innovation Inc.,Information Technology,0000704532,NYSE,224.9
+SUNB,"Sunbelt Rentals Holdings, Inc.",Industrials,0002083785,NYSE,223.8
+FIG,"Figma, Inc.",Information Technology,0001579878,NYSE,221.7
+HALO,"Halozyme Therapeutics, Inc.",Health Care,0001159036,NASDAQ,221.4
+QXO,"QXO, Inc.",Industrials,0001236275,NYSE,220.8
+BBIO,"BridgeBio Pharma, Inc.",Health Care,0001743881,NASDAQ,218.2
+OKLO,Oklo Inc.,Utilities,0001849056,NYSE,216.4
+TTD,"The Trade Desk, Inc.",Information Technology,0001671933,NASDAQ,216.1
+XPO,"XPO, Inc.",Industrials,0001166003,NYSE,213.0
+FTI,TechnipFMC plc Ordinary Share,Industrials,0001681459,NYSE,212.9
+VFC,V.F. Corporation,Consumer Discretionary,0000103379,NYSE,212.2
+WCC,Wesco International Inc.,Industrials,0000929008,NYSE,207.8
+RRX,Regal Rexnord Corporation,Industrials,0000082811,NYSE,207.2
+WING,Wingstop Inc.,Consumer Discretionary,0001636222,NASDAQ,206.3
+SCCO,Southern Copper Corporation,Materials,0001001838,NYSE,205.5
+BRK.A,Berkshire Hathaway Inc.,Financials,0001067983,NYSE,205.4
+ET,Energy Transfer LP,Utilities,0001276187,NYSE,205.2
+RIG,Transocean LTD.,Energy,0001451505,NYSE,204.3
+SGI,Somnigroup International Inc.,Consumer Discretionary,0001206264,NYSE,203.4
+PINS,"Pinterest, Inc.",Information Technology,0001506293,NYSE,203.2
+WSO,"Watsco, Inc.",Industrials,0000105016,NYSE,200.2
+ITT,ITT Inc.,Industrials,0000216228,NYSE,198.6
+CLH,"Clean Harbors, Inc",Industrials,0000822818,NYSE,197.5
+CROX,"Crocs, Inc.",Materials,0001334036,NASDAQ,195.1
+ARMK,ARAMARK,Consumer Discretionary,0001584509,NYSE,194.6
+MANH,"Manhattan Associates, Inc.",Information Technology,0001056696,NASDAQ,193.5
+SFM,"Sprouts Farmers Market, Inc.",Consumer Staples,0001575515,NASDAQ,193.5
+PR,Permian Resources Corporation,Energy,0001658566,NYSE,193.4
+BJ,"BJs Wholesale Club Holdings, Inc.",Consumer Discretionary,0001531152,NYSE,193.3
+OVV,Ovintiv Inc.,Energy,0001792580,NYSE,192.8
+TRU,TransUnion,Industrials,0001552033,NYSE,192.5
+CPNG,"Coupang, Inc.",Consumer Discretionary,0001834584,NYSE,191.9
+KNX,Knight-Swift Transportation Holdings Inc.,Industrials,0001492691,NYSE,189.1
+ADT,ADT Inc.,Industrials,0001703056,NYSE,188.5
 MHK,"Mohawk Industries, Inc.",Consumer Discretionary,0000851968,NYSE,187.4
-CNH,CNH INDUSTRIAL N.V.,Industrials,0001567094,NYSE,187.2
-RGEN,Repligen Corporation,Health Care,0000730272,NASDAQ,187.1
-CLH,"Clean Harbors, Inc",Industrials,0000822818,NYSE,186.9
-VFC,V.F. Corporation,Consumer Discretionary,0000103379,NYSE,186.8
-EPAM,"EPAM SYSTEMS, INC.",Information Technology,0001352010,NYSE,186.4
-SGI,Somnigroup International Inc.,Consumer Discretionary,0001206264,NYSE,183.7
-AMRZ,Amrize Ltd,Materials,0002035989,NYSE,183.6
-SIMO,Silicon Motion Technology Corporation,Information Technology,0001329394,NASDAQ,183.1
-TXRH,"Texas Roadhouse, Inc.",Consumer Discretionary,0001289460,NASDAQ,181.7
-SNX,TD SYNNEX Corporation,Industrials,0001177394,NYSE,181.5
-FROG,JFrog Ltd.,Information Technology,0001800667,NASDAQ,181.2
-WING,Wingstop Inc.,Consumer Discretionary,0001636222,NASDAQ,180.6
+ZETA,Zeta Global Holdings Corp.,Information Technology,0001851003,NYSE,186.4
+TW,Tradeweb Markets Inc.,Financials,0001758730,NASDAQ,186.3
+GFS,GlobalFoundries Inc.,Information Technology,0001709048,NASDAQ,185.3
+AA,Alcoa Corporation,Materials,0001675149,NYSE,183.8
+PCOR,"Procore Technologies, Inc.",Information Technology,0001611052,NYSE,183.7
+BTSG,"BrightSpring Health Services, Inc.",Health Care,0001865782,NASDAQ,182.8
+CLF,Cleveland-Cliffs Inc.,Materials,0000764065,NYSE,182.8
+SIMO,Silicon Motion Technology Corporation,Information Technology,0001329394,NASDAQ,182.6
+AMRZ,Amrize Ltd,Materials,0002035989,NYSE,182.5
+HNGE,"Hinge Health, Inc.",Information Technology,0001673743,NYSE,180.4
+EXEL,"Exelixis, Inc.",Health Care,0000939767,NASDAQ,180.3
+AS,"Amer Sports, Inc.",Consumer Discretionary,0001988894,NYSE,180.3
 ENPH,"Enphase Energy, Inc.",Information Technology,0001463101,NASDAQ,180.3
-CPNG,"Coupang, Inc.",Consumer Discretionary,0001834584,NYSE,178.2
-BJ,"BJs Wholesale Club Holdings, Inc.",Consumer Discretionary,0001531152,NYSE,178.0
-TXG,"10x Genomics, Inc.",Information Technology,0001770787,NASDAQ,177.6
+DUOL,"Duolingo, Inc.",Information Technology,0001562088,NASDAQ,180.0
+TXRH,"Texas Roadhouse, Inc.",Consumer Discretionary,0001289460,NASDAQ,179.4
+QGEN,QIAGEN N.V.,Health Care,0001015820,NYSE,179.3
+CAVA,"CAVA Group, Inc.",Consumer Discretionary,0001639438,NYSE,178.7
 MDGL,"Madrigal Pharmaceuticals, Inc.",Health Care,0001157601,NASDAQ,177.5
-QLYS,"Qualys, Inc.",Information Technology,0001107843,NASDAQ,177.1
-VRNS,"Varonis Systems, Inc.",Information Technology,0001361113,NASDAQ,175.1
-CW,Curtiss-Wright Corp.,Industrials,0000026324,NYSE,174.4
-ET,Energy Transfer LP,Utilities,0001276187,NYSE,173.8
-PAYC,"PAYCOM SOFTWARE, INC.",Information Technology,0001590955,NYSE,173.7
-ITT,ITT Inc.,Industrials,0000216228,NYSE,173.6
-ARMK,ARAMARK,Consumer Discretionary,0001584509,NYSE,172.3
-OWL,Blue Owl Capital Inc.,Financials,0001823945,NYSE,172.0
-DOCU,"DocuSign, Inc.",Information Technology,0001261333,NASDAQ,171.1
-AA,Alcoa Corporation,Materials,0001675149,NYSE,170.3
-MTCH,"Match Group, Inc.",Information Technology,0000891103,NASDAQ,170.1
-SMR,NuScale Power Corporation,Industrials,0001822966,NYSE,169.7
+RGEN,Repligen Corporation,Health Care,0000730272,NASDAQ,177.3
+CNH,CNH INDUSTRIAL N.V.,Industrials,0001567094,NYSE,177.2
+LYFT,"Lyft, Inc.",Industrials,0001759509,NASDAQ,175.7
+CELH,"Celsius Holdings, Inc.",Consumer Staples,0001341766,NASDAQ,175.5
+UNM,Unum Group,Financials,0000005513,NYSE,175.3
+QLYS,"Qualys, Inc.",Information Technology,0001107843,NASDAQ,175.1
+ICLR,ICON plc,Health Care,0001060955,NASDAQ,174.1
+DOCU,"DocuSign, Inc.",Information Technology,0001261333,NASDAQ,173.7
+EPAM,"EPAM SYSTEMS, INC.",Information Technology,0001352010,NYSE,173.6
+BAH,Booz Allen Hamilton Holding Corporation,Industrials,0001443646,NYSE,173.5
+BROS,Dutch Bros Inc.,Consumer Discretionary,0001866581,NYSE,173.0
+PBR.A,Petroleo Brasileiro S.A.-Petrobras,Energy,0001119639,NYSE,172.1
+VRNS,"Varonis Systems, Inc.",Information Technology,0001361113,NASDAQ,172.0
+VIAV,Viavi Solutions Inc.,Information Technology,0000912093,NASDAQ,171.7
+PAYC,"PAYCOM SOFTWARE, INC.",Information Technology,0001590955,NYSE,170.1
+ESTC,Elastic N.V.,Information Technology,0001707753,NYSE,169.3
+BWXT,"BWX Technologies, Inc.",Industrials,0001486957,NYSE,168.8
+MOH,"Molina Healthcare, Inc.",Financials,0001179929,NYSE,168.4
+KTOS,"Kratos Defense & Security Solutions, Inc.",Industrials,0001069258,NASDAQ,168.1
 RRC,Range Resources Corp,Energy,0000315852,NYSE,167.4
-ADT,ADT Inc.,Industrials,0001703056,NYSE,167.2
-SANM,Sanmina Corporation,Information Technology,0000897723,NASDAQ,166.2
-CAVA,"CAVA Group, Inc.",Consumer Discretionary,0001639438,NYSE,165.0
-RNR,RenaissanceRe Holdings Ltd.,Financials,0000913144,NYSE,164.2
-VSAT,"ViaSat, Inc.",Communication Services,0000797721,NASDAQ,164.1
-AR,ANTERO RESOURCES CORPORATION,Energy,0001433270,NYSE,163.8
-GWRE,"GUIDEWIRE SOFTWARE, INC.",Information Technology,0001528396,NYSE,162.6
+TXG,"10x Genomics, Inc.",Information Technology,0001770787,NASDAQ,166.8
+ASND,Ascendis Pharma A/S Ordinary Share,Health Care,0001612042,NASDAQ,165.6
+FCNCA,"First Citizens BancShares, Inc.",Financials,0000798941,NASDAQ,165.2
+VSAT,"ViaSat, Inc.",Communication Services,0000797721,NASDAQ,164.8
+OWL,Blue Owl Capital Inc.,Financials,0001823945,NYSE,164.8
+RGTI,"Rigetti Computing, Inc.",Information Technology,0001838359,NASDAQ,164.7
+JAZZ,Jazz Pharmaceuticals plc,Health Care,0001232524,NASDAQ,164.1
+CAKE,Cheesecake Factory Incorporated (The),Consumer Discretionary,0000887596,NASDAQ,164.0
 AHR,"American Healthcare REIT, Inc.",Real Estate,0001632970,NYSE,162.6
-LYFT,"Lyft, Inc.",Industrials,0001759509,NASDAQ,162.4
-VIAV,Viavi Solutions Inc.,Information Technology,0000912093,NASDAQ,161.8
-KTOS,"Kratos Defense & Security Solutions, Inc.",Industrials,0001069258,NASDAQ,161.6
-AS,"Amer Sports, Inc.",Consumer Discretionary,0001988894,NYSE,160.8
-ZETA,Zeta Global Holdings Corp.,Information Technology,0001851003,NYSE,159.0
-CAKE,Cheesecake Factory Incorporated (The),Consumer Discretionary,0000887596,NASDAQ,157.5
-SEI,"Solaris Energy Infrastructure, Inc.",Industrials,0001697500,NYSE,156.9
-JAZZ,Jazz Pharmaceuticals plc,Health Care,0001232524,NASDAQ,156.6
-ALLY,Ally Financial Inc.,Financials,0000040729,NYSE,156.5
-ASND,Ascendis Pharma A/S Ordinary Share,Health Care,0001612042,NASDAQ,156.5
-DUOL,"Duolingo, Inc.",Information Technology,0001562088,NASDAQ,155.5
-ASST,"Strive, Inc.",Financials,0001920406,NASDAQ,155.2
-GME,GameStop Corp. Class A,Consumer Discretionary,0001326380,NYSE,155.2
-FIVE,"Five Below, Inc.",Consumer Discretionary,0001177609,NASDAQ,154.2
-RGLD,"Royal Gold, Inc.",Financials,0000085535,NASDAQ,154.1
-CRBG,"Corebridge Financial, Inc.",Financials,0001889539,NYSE,153.8
-IOT,Samsara Inc.,Information Technology,0001642896,NYSE,153.8
-AEIS,"Advanced Energy Industries, Inc.",Information Technology,0000927003,NASDAQ,153.5
-PFGC,Performance Food Group Company,Consumer Staples,0001618673,NYSE,153.2
-EVR,Evercore Inc.,Financials,0001360901,NYSE,152.8
-FND,"Floor & Decor Holdings, Inc.",Consumer Discretionary,0001507079,NYSE,152.2
-ESTC,Elastic N.V.,Information Technology,0001707753,NYSE,151.9
-BTSG,"BrightSpring Health Services, Inc.",Health Care,0001865782,NASDAQ,151.9
-MEDP,"Medpace Holdings, Inc.",Health Care,0001668397,NASDAQ,151.9
-LTH,"Life Time Group Holdings, Inc.",Consumer Discretionary,0001869198,NYSE,151.6
-RGTI,"Rigetti Computing, Inc.",Information Technology,0001838359,NASDAQ,151.3
-HEI,HEICO Corporation,Industrials,0000046619,NYSE,151.2
-CELH,"Celsius Holdings, Inc.",Consumer Staples,0001341766,NASDAQ,150.7
-SOLS,Solstice Advanced Materials Inc.,Materials,0002064953,NASDAQ,150.5
-ONC,BeOne Medicines Ltd.,Health Care,0001651308,NASDAQ,150.5
-GTLB,GitLab Inc.,Information Technology,0001653482,NASDAQ,150.2
-H,Hyatt Hotels Corporation,Consumer Discretionary,0001468174,NYSE,149.9
-VSXY,Victorias Secret & Co.,Consumer Discretionary,0001856437,NYSE,149.9
-CHWY,"Chewy, Inc.",Consumer Discretionary,0001766502,NYSE,149.0
-RMBS,Rambus Inc.,Information Technology,0000917273,NASDAQ,149.0
-MUSA,MURPHY USA INC.,Consumer Discretionary,0001573516,NYSE,148.7
-EXEL,"Exelixis, Inc.",Health Care,0000939767,NASDAQ,148.6
-RS,"Reliance, Inc.",Industrials,0000861884,NYSE,148.5
-CACI,CACI INTERNATIONAL CLA,Information Technology,0000016058,NYSE,147.9
-AVAV,"AeroVironment, Inc.",Industrials,0001368622,NASDAQ,147.4
-AEHR,Aehr Test Systems,Information Technology,0001040470,NASDAQ,146.6
-CCC,CCC Intelligent Solutions Holdings Inc.,Information Technology,0001818201,NASDAQ,146.4
-BWA,BorgWarner Inc.,Consumer Discretionary,0000908255,NYSE,145.6
-ELF,"e.l.f. Beauty, Inc.",Consumer Staples,0001600033,NYSE,145.4
-ANF,Abercrombie & Fitch Co.,Consumer Discretionary,0001018840,NYSE,145.2
-EHC,Encompass Health Corporation,Health Care,0000785161,NYSE,145.1
-CAG,"Conagra Brands, Inc.",Consumer Staples,0000023217,NYSE,145.0
-JLL,"Jones Lang LaSalle, Inc.",Real Estate,0001037976,NYSE,144.8
-OSCR,"Oscar Health, Inc.",Financials,0001568651,NYSE,144.0
-SUI,"Sun Communities, Inc",Real Estate,0000912593,NYSE,144.0
-CZR,"Caesars Entertainment, Inc.",Consumer Discretionary,0001590895,NASDAQ,143.0
-TOL,"Toll Brothers, Inc.",Industrials,0000794170,NYSE,142.9
-VICR,Vicor Corporation,Information Technology,0000751978,NASDAQ,142.7
-TENB,"Tenable Holdings, Inc.",Information Technology,0001660280,NASDAQ,141.9
-SSNC,"SS&C Technologies Holdings, Inc.",Information Technology,0001402436,NASDAQ,141.9
-PENG,"Penguin Solutions, Inc.",Information Technology,0001616533,NASDAQ,141.6
-AXSM,"Axsome Therapeutics, Inc.",Health Care,0001579428,NASDAQ,141.6
-UNM,Unum Group,Financials,0000005513,NYSE,141.4
-CSL,"Carlisle Companies, Inc.",Materials,0000790051,NYSE,141.0
-BRKR,Bruker Corporation,Information Technology,0001109354,NASDAQ,140.4
-CLSK,"CleanSpark, Inc.",Financials,0000827876,NASDAQ,139.4
-FORM,"FormFactor, Inc. FormFactor, Inc.",Information Technology,0001039399,NASDAQ,139.2
-BWXT,"BWX Technologies, Inc.",Industrials,0001486957,NYSE,138.5
-POOL,Pool Corporation,Industrials,0000945841,NASDAQ,138.5
-APG,APi Group Corporation,Industrials,0001796209,NYSE,138.3
-GGG,Graco Inc,Industrials,0000042888,NYSE,137.5
-SIRI,SiriusXM Holdings Inc.,Communication Services,0000908937,NASDAQ,137.5
-NTNX,"Nutanix, Inc.",Information Technology,0001618732,NASDAQ,137.1
-QBTS,D-Wave Quantum Inc.,Information Technology,0001907982,NASDAQ,136.9
-BLDR,"Builders FirstSource, Inc.",Consumer Discretionary,0001316835,NYSE,136.6
-AVTR,"Avantor, Inc.",Information Technology,0001722482,NYSE,136.3
-EPD,Enterprise Products Partners L.P.,Utilities,0001061219,NYSE,135.0
-MMED,"MiniMed Group, Inc.",Health Care,0002062583,NASDAQ,134.4
-IONS,"Ionis Pharmaceuticals, Inc.",Health Care,0000874015,NASDAQ,134.1
-FHN,First Horizon Corporation,Financials,0000036966,NYSE,132.6
+SMR,NuScale Power Corporation,Industrials,0001822966,NYSE,161.5
+FIVE,"Five Below, Inc.",Consumer Discretionary,0001177609,NASDAQ,161.4
+RGLD,"Royal Gold, Inc.",Financials,0000085535,NASDAQ,161.1
+FRO,Frontline Plc,Industrials,0000913290,NYSE,160.4
+SNX,TD SYNNEX Corporation,Industrials,0001177394,NYSE,159.8
+ELF,"e.l.f. Beauty, Inc.",Consumer Staples,0001600033,NYSE,159.6
+MTCH,"Match Group, Inc.",Information Technology,0000891103,NASDAQ,159.2
+PBF,PBF ENERGY INC.,Energy,0001534504,NYSE,158.5
+PFGC,Performance Food Group Company,Consumer Staples,0001618673,NYSE,158.0
+MXL,"MaxLinear, Inc.",Information Technology,0001288469,NASDAQ,156.6
+SEI,"Solaris Energy Infrastructure, Inc.",Industrials,0001697500,NYSE,156.2
+AMKR,"Amkor Technology, Inc.",Information Technology,0001047127,NASDAQ,155.9
+RNR,RenaissanceRe Holdings Ltd.,Financials,0000913144,NYSE,155.3
+CHYM,"Chime Financial, Inc.",Financials,0001795586,NASDAQ,153.8
+JLL,"Jones Lang LaSalle, Inc.",Real Estate,0001037976,NYSE,153.5
+CAG,"Conagra Brands, Inc.",Consumer Staples,0000023217,NYSE,152.5
+VG,"Venture Global, Inc.",Utilities,0002007855,NYSE,152.4
+SANM,Sanmina Corporation,Information Technology,0000897723,NASDAQ,150.6
+GWRE,"GUIDEWIRE SOFTWARE, INC.",Information Technology,0001528396,NYSE,149.8
+VSXY,Victorias Secret & Co.,Consumer Discretionary,0001856437,NYSE,149.0
+CW,Curtiss-Wright Corp.,Industrials,0000026324,NYSE,148.6
+LTH,"Life Time Group Holdings, Inc.",Consumer Discretionary,0001869198,NYSE,148.6
+USAR,"USA Rare Earth, Inc.",Materials,0001970622,NASDAQ,148.2
+DBX,"Dropbox, Inc.",Information Technology,0001467623,NASDAQ,147.9
+ELAN,Elanco Animal Health Incorporated,Health Care,0001739104,NYSE,147.0
+CRBG,"Corebridge Financial, Inc.",Financials,0001889539,NYSE,146.9
+AEHR,Aehr Test Systems,Information Technology,0001040470,NASDAQ,146.7
+APG,APi Group Corporation,Industrials,0001796209,NYSE,145.9
+CSL,"Carlisle Companies, Inc.",Materials,0000790051,NYSE,144.8
+BBWI,"Bath & Body Works, Inc.",Consumer Discretionary,0000701985,NYSE,144.5
+QBTS,D-Wave Quantum Inc.,Information Technology,0001907982,NASDAQ,144.5
+IOT,Samsara Inc.,Information Technology,0001642896,NYSE,144.3
+MEDP,"Medpace Holdings, Inc.",Health Care,0001668397,NASDAQ,144.0
+MUSA,MURPHY USA INC.,Consumer Discretionary,0001573516,NYSE,143.4
+ANF,Abercrombie & Fitch Co.,Consumer Discretionary,0001018840,NYSE,143.0
+XP,XP Inc.,Financials,0001787425,NASDAQ,142.9
+CHWY,"Chewy, Inc.",Consumer Discretionary,0001766502,NYSE,142.7
+OSCR,"Oscar Health, Inc.",Financials,0001568651,NYSE,142.4
+SIRI,SiriusXM Holdings Inc.,Communication Services,0000908937,NASDAQ,141.8
+EPD,Enterprise Products Partners L.P.,Utilities,0001061219,NYSE,141.6
+NTNX,"Nutanix, Inc.",Information Technology,0001618732,NASDAQ,141.6
+AEIS,"Advanced Energy Industries, Inc.",Information Technology,0000927003,NASDAQ,141.1
+ONC,BeOne Medicines Ltd.,Health Care,0001651308,NASDAQ,141.1
+SOLS,Solstice Advanced Materials Inc.,Materials,0002064953,NASDAQ,140.5
+RS,"Reliance, Inc.",Industrials,0000861884,NYSE,140.4
+FND,"Floor & Decor Holdings, Inc.",Consumer Discretionary,0001507079,NYSE,140.2
+TENB,"Tenable Holdings, Inc.",Information Technology,0001660280,NASDAQ,140.2
+TOL,"Toll Brothers, Inc.",Industrials,0000794170,NYSE,139.9
+AXSM,"Axsome Therapeutics, Inc.",Health Care,0001579428,NASDAQ,139.7
+AR,ANTERO RESOURCES CORPORATION,Energy,0001433270,NYSE,139.0
+AVAV,"AeroVironment, Inc.",Industrials,0001368622,NASDAQ,138.7
+GAP,"The Gap, Inc.",Consumer Discretionary,0000039911,NYSE,138.1
+FORM,"FormFactor, Inc. FormFactor, Inc.",Information Technology,0001039399,NASDAQ,137.8
+ASST,"Strive, Inc.",Financials,0001920406,NASDAQ,137.7
+BWA,BorgWarner Inc.,Consumer Discretionary,0000908255,NYSE,137.7
+GME,GameStop Corp. Class A,Consumer Discretionary,0001326380,NYSE,137.6
+CCC,CCC Intelligent Solutions Holdings Inc.,Information Technology,0001818201,NASDAQ,136.7
+ALLY,Ally Financial Inc.,Financials,0000040729,NYSE,136.3
+H,Hyatt Hotels Corporation,Consumer Discretionary,0001468174,NYSE,136.0
+SYNA,Synaptics Incorporated,Information Technology,0000817720,NASDAQ,136.0
+PURR,Hyperliquid Strategies Inc,Financials,0002078856,NASDAQ,136.0
+CPB,The Campbell's Company,Consumer Staples,0000016732,NASDAQ,135.5
+NYT,New York Times Co.,Communication Services,0000071691,NYSE,135.2
+BRKR,Bruker Corporation,Information Technology,0001109354,NASDAQ,134.8
+GGG,Graco Inc,Industrials,0000042888,NYSE,134.8
+BMRN,BioMarin Pharmaceutical Inc.,Health Care,0001048477,NASDAQ,134.7
+PRAX,"Praxis Precision Medicines, Inc.",Health Care,0001689548,NASDAQ,134.7
+EHC,Encompass Health Corporation,Health Care,0000785161,NYSE,134.7
+CACI,CACI INTERNATIONAL CLA,Information Technology,0000016058,NYSE,134.3
+PCTY,Paylocity Holding Corporation,Information Technology,0001591698,NASDAQ,133.3
+HEI,HEICO Corporation,Industrials,0000046619,NYSE,132.6
 GLXY,Galaxy Digital Inc.,Financials,0001859392,NASDAQ,132.5
-BMRN,BioMarin Pharmaceutical Inc.,Health Care,0001048477,NASDAQ,132.3
-AVT,"Avnet, Inc.",Industrials,0000008858,NASDAQ,132.2
-DAR,DARLING INGREDIENTS INC.,Consumer Staples,0000916540,NYSE,131.8
+M,Macy's Inc.,Consumer Discretionary,0000794367,NYSE,132.2
+SSNC,"SS&C Technologies Holdings, Inc.",Information Technology,0001402436,NASDAQ,131.9
+RYTM,"Rhythm Pharmaceuticals, Inc.",Health Care,0001649904,NASDAQ,131.6
 COMP,"Compass, Inc.",Real Estate,0001563190,NYSE,131.3
-TAP,Molson Coors Beverage Company Class B,Consumer Staples,0000024545,NYSE,130.2
-USAR,"USA Rare Earth, Inc.",Materials,0001970622,NASDAQ,130.0
-RBC,RBC Bearings Incorporated,Industrials,0001324948,NYSE,129.7
-LQDA,Liquidia Corporation,Health Care,0001819576,NASDAQ,129.5
-M,Macy's Inc.,Consumer Discretionary,0000794367,NYSE,129.5
-BBWI,"Bath & Body Works, Inc.",Consumer Discretionary,0000701985,NYSE,128.0
-PCTY,Paylocity Holding Corporation,Information Technology,0001591698,NASDAQ,127.7
-ESI,Element Solutions Inc.,Materials,0001590714,NYSE,127.4
-ELS,"Equity Lifestyle Properties, Inc.",Real Estate,0000895417,NYSE,127.3
-IOVA,"Iovance Biotherapeutics, Inc.",Health Care,0001425205,NASDAQ,126.7
+RMBS,Rambus Inc.,Information Technology,0000917273,NASDAQ,130.9
+POOL,Pool Corporation,Industrials,0000945841,NASDAQ,130.4
+SCI,Service Corporation International,Consumer Discretionary,0000089089,NYSE,130.4
+WRBY,Warby Parker Inc.,Health Care,0001504776,NYSE,130.3
+FHN,First Horizon Corporation,Financials,0000036966,NYSE,130.3
+SUI,"Sun Communities, Inc",Real Estate,0000912593,NYSE,129.9
+DTM,"DT Midstream, Inc.",Utilities,0001842022,NYSE,129.2
+TAP,Molson Coors Beverage Company Class B,Consumer Staples,0000024545,NYSE,129.1
+EQH,"Equitable Holdings, Inc.",Financials,0001333986,NYSE,128.3
+TFX,Teleflex Incorporated,Health Care,0000096943,NYSE,127.7
+EVR,Evercore Inc.,Financials,0001360901,NYSE,127.2
+GTLB,GitLab Inc.,Information Technology,0001653482,NASDAQ,127.0
 NTSK,"Netskope, Inc.",Information Technology,0002063196,NASDAQ,126.5
-TPG,TPG Inc.,Financials,0001880661,NASDAQ,126.2
-DY,"Dycom Industries, Inc.",Industrials,0000067215,NYSE,126.2
-NYT,New York Times Co.,Communication Services,0000071691,NYSE,126.2
-WHR,Whirlpool Corp.,Consumer Discretionary,0000106640,NYSE,125.9
-ALK,"Alaska Air Group, Inc.",Industrials,0000766421,NYSE,125.0
-GAP,"The Gap, Inc.",Consumer Discretionary,0000039911,NYSE,122.9
-MKTX,"MarketAxess Holdings, Inc.",Financials,0001278021,NASDAQ,122.7
-KMX,CarMax Inc.,Consumer Discretionary,0001170010,NYSE,121.8
-RNG,"RINGCENTRAL, INC.",Information Technology,0001384905,NYSE,121.1
-ADC,Agree Realty Corporation,Real Estate,0000917251,NYSE,121.1
-MKL,Markel Group Inc.,Financials,0001096343,NYSE,120.4
-EMBJ,Embraer S.A.,Industrials,0001355444,NYSE,120.3
-TFX,Teleflex Incorporated,Health Care,0000096943,NYSE,120.3
+HZN,Bright Horizon Energy Corporation,Utilities,0001130464,NYSE,126.1
+PRMB,Primo Brands Corporation,Consumer Staples,0002042694,NYSE,126.0
+VOYA,"VOYA FINANCIAL, INC.",Financials,0001535929,NYSE,124.7
+TPG,TPG Inc.,Financials,0001880661,NASDAQ,124.1
+MKL,Markel Group Inc.,Financials,0001096343,NYSE,123.3
+DY,"Dycom Industries, Inc.",Industrials,0000067215,NYSE,123.1
+TGTX,"TG Therapeutics, Inc.",Health Care,0001001316,NASDAQ,123.1
+DAR,DARLING INGREDIENTS INC.,Consumer Staples,0000916540,NYSE,123.1
+RGA,"Reinsurance Group of America, Incorporated",Financials,0000898174,NYSE,122.7
+KYMR,"Kymera Therapeutics, Inc.",Health Care,0001815442,NASDAQ,121.5
+RPM,"RPM International, Inc.",Materials,0000110621,NYSE,121.2
+AVTR,"Avantor, Inc.",Information Technology,0001722482,NYSE,121.1
+CLSK,"CleanSpark, Inc.",Financials,0000827876,NASDAQ,120.4
 OLLI,"Ollie's Bargain Outlet Holdings, Inc.",Consumer Discretionary,0001639300,NASDAQ,120.3
-PEN,"Penumbra, Inc.",Health Care,0001321732,NYSE,120.2
-DBX,"Dropbox, Inc.",Information Technology,0001467623,NASDAQ,120.0
-BSY,"Bentley Systems, Incorporated",Information Technology,0001031308,NASDAQ,119.7
-CVLT,"Commvault Systems, Inc.",Information Technology,0001169561,NASDAQ,119.5
+FBIN,"Fortune Brands Innovations, Inc.",Materials,0001519751,NYSE,119.6
 FIGR,"Figure Technology Solutions, Inc.",Financials,0002064124,NASDAQ,119.3
-CG,The Carlyle Group Inc.,Financials,0001527166,NASDAQ,117.7
-SAIA,"Saia, Inc.",Industrials,0001177702,NASDAQ,117.6
-HR,Healthcare Realty Trust Incorporated,Real Estate,0001360604,NYSE,117.6
-DTM,"DT Midstream, Inc.",Utilities,0001842022,NYSE,117.5
-RPM,"RPM International, Inc.",Materials,0000110621,NYSE,117.2
-HXL,Hexcel Corporation,Materials,0000717605,NYSE,117.1
-PNFP,"Pinnacle Financial Partners, Inc.",Financials,0002082866,NYSE,117.0
+CG,The Carlyle Group Inc.,Financials,0001527166,NASDAQ,119.2
+CTRE,"CareTrust REIT, Inc",Real Estate,0001590717,NYSE,117.5
+ADC,Agree Realty Corporation,Real Estate,0000917251,NYSE,117.2
+WPC,W.P. Carey Inc. (REIT),Real Estate,0001025378,NYSE,117.2
+BLDR,"Builders FirstSource, Inc.",Consumer Discretionary,0001316835,NYSE,117.0
+KVYO,"Klaviyo, Inc.",Information Technology,0001835830,NYSE,116.8
 GMED,GLOBUS MEDICAL INC,Health Care,0001237831,NYSE,116.7
-WPC,W.P. Carey Inc. (REIT),Real Estate,0001025378,NYSE,116.6
 FLS,Flowserve Corporation,Industrials,0000030625,NYSE,116.5
-EQH,"Equitable Holdings, Inc.",Financials,0001333986,NYSE,116.2
-BOOT,"Boot Barn Holdings, Inc.",Consumer Discretionary,0001610250,NYSE,116.2
+SAIA,"Saia, Inc.",Industrials,0001177702,NASDAQ,116.2
+NNN,"NNN REIT, Inc.",Real Estate,0000751364,NYSE,116.0
+BRX,BRIXMOR PROPERTY GROUP INC.,Real Estate,0001581068,NYSE,116.0
+PNFP,"Pinnacle Financial Partners, Inc.",Financials,0002082866,NYSE,115.8
+MKTX,"MarketAxess Holdings, Inc.",Financials,0001278021,NASDAQ,115.7
+NEU,NewMarket Corporation,Materials,0001282637,NYSE,115.6
+RBC,RBC Bearings Incorporated,Industrials,0001324948,NYSE,115.5
