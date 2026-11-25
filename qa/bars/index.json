@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-25T17:50:15Z",
+ "generated": "2026-11-25T18:01:33Z",
  "price": "bid",
  "clock": "server time = New York + 7 h (Pepperstone MT5 GMT+2 / GMT+3, 00:00 = 17:00 New York)",
  "align": {
@@ -54,9 +54,9 @@
      "pages": 1
     },
     "M15": {
-     "n": 2761,
-     "first": "2026-09-18T23:30",
-     "last": "2026-10-30T23:30",
+     "n": 2757,
+     "first": "2026-10-14T21:00",
+     "last": "2026-11-25T20:00",
      "forming": true,
      "misaligned": 0,
      "pages": 1
