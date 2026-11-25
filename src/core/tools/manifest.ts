@@ -240,8 +240,8 @@ export const TOOLS: Tool[] = [
     guide: { to: '/bot-guide?t=vision', label: 'ZoneVision guide' },
   },
   {
-    id: 'botviewtv', platform: 'tv', name: 'BotView', version: '1.1', kind: 'Indicator',
-    purpose: "The MT5 BotView for TradingView: the bot's own zones and trend lines, computed on the chart with the bot's engine. Nearest zones each side (fresh / tested), the next higher timeframe's nearest zone and lines, the ARRIVAL zone marked, one alert for a new arrival. 1.1: when a timeframe has no trend line of its own (e.g. monthly), the line of the timeframe below is drawn dashed.",
+    id: 'botviewtv', platform: 'tv', name: 'BotView', version: '1.2', kind: 'Indicator',
+    purpose: "The MT5 BotView for TradingView: the bot's own zones and trend lines, computed on the chart with the bot's engine. Nearest zones each side (fresh / tested), the next higher timeframe's nearest zone and lines, the ARRIVAL zone marked, one alert for a new arrival. 1.2 (test): trend lines by the line-chart rule - swings of the closes, real peaks / valleys marked, the line joins the last two real ones.",
     files: [{ file: 'RamanFX_BotView.pine' }],
     install: [
       ...pineSteps('BotView', false),

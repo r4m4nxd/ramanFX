@@ -1,4 +1,4 @@
-// RamanFX BotView 1.1 for TradingView (Pine Script v6): the same picture as the MT5 BotView, computed on the chart itself
+// RamanFX BotView 1.2 for TradingView (Pine Script v6): the same picture as the MT5 BotView, computed on the chart itself
 // with the bot's own engine (Pine cannot download the bot's files). The zones are the bot's detect() (base of 1-6
 // small candles + a strong move away, removed by a candle CLOSE beyond the far edge), the trend lines are the bot's
 // structure-method lines (the ones its arrival alerts use), and the ARRIVAL tag is the bot's arrival rule (the move
@@ -8,18 +8,27 @@
 //  * The next higher timeframe (15m -> 1h, 1h -> 4h, 4h -> D, D -> W, W -> M): its nearest zone each side (dotted
 //    outline) and its trend lines (gold dotted).
 //  * Trend lines of this timeframe: solid.
+//  * 1.2 TREND LINES, the owner's line-chart rule (Nov 2026, under test here before it goes into the bot): swings are
+//    read off the CLOSES (the line chart): a swing counts once price has reversed by 2 x ATR. A peak is REAL when
+//    price then closed below the valley before it (a new low); a valley is real when price then closed above the
+//    peak before it (a new high). The line joins the newest real peak (valley) and the real one before it, wick to
+//    wick, with no candle close beyond it in between; it lives until a candle closes beyond it (then grey dotted).
+//    Real pivots are marked with small triangles. Switch "Trend line rule" to 0 for the bot's current lines.
 //  * 1.1: when this timeframe has no live line on a side (big candles merge two peaks into neighbours, e.g. monthly),
 //    the line of the timeframe below (M -> W, W -> D, D -> 4h, 4h -> 1h, 1h -> 15m) is drawn instead, dashed.
 // Use a Pepperstone chart for the same candles as the bot; another broker's candles give slightly different zones.
 // Everything is drawn from CLOSED candles only (no repainting); it updates when a candle closes.
 //@version=6
-indicator("RamanFX BotView 1.1", shorttitle = "BotView", overlay = true, max_lines_count = 60, max_labels_count = 60, max_boxes_count = 40)
+indicator("RamanFX BotView 1.2", shorttitle = "BotView", overlay = true, max_lines_count = 60, max_labels_count = 60, max_boxes_count = 40)
 
 G1 = "BotView (the bot's zones and trend lines)"
 InpMaxPerSide = input.int(3, "This timeframe's zones drawn per side (nearest to price)", minval = 1, maxval = 8, group = G1)
 InpHtf        = input.bool(true, "Also the next higher timeframe: nearest zone each side (outline) + its lines (gold dotted)", group = G1)
 InpLines      = input.bool(true, "Trend lines", group = G1)
-InpLtfLines   = input.bool(true, "No trend line on this timeframe: use the one from the timeframe below (dashed)", group = G1)
+InpRule       = input.int(1, "Trend line rule: 1 = line-chart swings (new, under test), 0 = the bot's current lines", minval = 0, maxval = 1, group = G1)
+InpSwingAtr   = input.float(2.0, "Line-chart rule: a swing counts after a reversal of this many ATR", minval = 0.5, step = 0.25, group = G1)
+InpPivots     = input.bool(true, "Line-chart rule: mark the real peaks / valleys", group = G1)
+InpLtfLines   = input.bool(false, "No trend line on this timeframe: use the one from the timeframe below (dashed)", group = G1)
 InpLabels     = input.bool(true, "Small text at each zone's right end (timeframe, side, fresh / tested)", group = G1)
 InpArrTag     = input.bool(true, "Mark the ARRIVAL zone (trend line closed through + opposite zone removed)", group = G1)
 InpArrAlert   = input.bool(true, "Alert: a new arrival zone on this chart's timeframe", group = G1)
@@ -1095,6 +1104,146 @@ bvTrend(RxSer S, ZvLine t, color c, string st) =>
     line ln = line.new(S.t.get(t.a), t.pa, S.t.get(t.b), t.pb, xloc = xloc.bar_time, extend = extend.right, color = c, style = st, width = 1)
     gL.push(ln)
 
+type ZzPiv
+    int bar = 0
+    float p = 0.0
+    int t = 0
+    bool real = false
+
+// line-chart swings (zigzag on the closes, reversal >= k x ATR), oldest first; price = the wick extreme within 2
+// candles of the close swing; real = price then closed beyond the opposite swing before it
+bvZz(RxSer S, float k) =>
+    array<ZzPiv> out = array.new<ZzPiv>()
+    array<int> zb = array.new<int>()
+    array<int> zt = array.new<int>()
+    int bars = math.min(S.n - 3, 300)
+    if bars > 20
+        int hi = bars
+        int lo = bars
+        int dd = 0
+        int j = bars
+        while j > 1
+            j -= 1
+            float a = rxZvAtr(S, j)
+            if a <= 0
+                a := rxZvAtr(S, 1)
+            float cj = S.c.get(j)
+            if cj > S.c.get(hi)
+                hi := j
+            if cj < S.c.get(lo)
+                lo := j
+            if dd >= 0 and S.c.get(hi) - cj >= k * a and hi > j
+                zb.push(hi)
+                zt.push(1)
+                dd := -1
+                lo := j
+                hi := j
+            else if dd <= 0 and cj - S.c.get(lo) >= k * a and lo > j
+                zb.push(lo)
+                zt.push(-1)
+                dd := 1
+                hi := j
+                lo := j
+        int m = zb.size()
+        int i = -1
+        while i < m - 1
+            i += 1
+            int b = zb.get(i)
+            int t = zt.get(i)
+            int pv = -1
+            int x = i
+            while x > 0
+                x -= 1
+                if zt.get(x) == -t
+                    pv := zb.get(x)
+                    break
+            bool real = false
+            if pv > 0
+                int q = b
+                while q > 1
+                    q -= 1
+                    bool back = t > 0 ? S.c.get(q) > S.c.get(b) : S.c.get(q) < S.c.get(b)
+                    if back
+                        break
+                    bool made = t > 0 ? S.c.get(q) < S.c.get(pv) : S.c.get(q) > S.c.get(pv)
+                    if made
+                        real := true
+                        break
+            int wb = b
+            int w = math.max(1, b - 2) - 1
+            int wEnd = math.min(S.n - 1, b + 2)
+            while w < wEnd
+                w += 1
+                bool better = t > 0 ? S.h.get(w) > S.h.get(wb) : S.l.get(w) < S.l.get(wb)
+                if better
+                    wb := w
+            out.push(ZzPiv.new(wb, t > 0 ? S.h.get(wb) : S.l.get(wb), t, real))
+    out
+// the line of side d (+1 under valleys, -1 over peaks): [older bar, its price, newer bar, its price, brokenAt] or empty
+bvZzLine(RxSer S, array<ZzPiv> piv, int d) =>
+    array<float> res = array.new<float>()
+    int ni = -1
+    int i = piv.size()
+    while i > 0
+        i -= 1
+        if piv.get(i).t == -d and piv.get(i).real
+            ni := i
+            break
+    if ni >= 0
+        ZzPiv nw = piv.get(ni)
+        i := ni
+        while i > 0 and res.size() == 0
+            i -= 1
+            ZzPiv od = piv.get(i)
+            bool ok = od.t == -d and od.real and od.bar > nw.bar and (d > 0 ? nw.p > od.p : nw.p < od.p)
+            if ok
+                float sl = (nw.p - od.p) / (od.bar - nw.bar)
+                bool cut = false
+                int j = od.bar
+                while j > nw.bar + 1
+                    j -= 1
+                    float lv = nw.p + sl * (nw.bar - j)
+                    bool c1 = d > 0 ? S.c.get(j) < lv : S.c.get(j) > lv
+                    if c1
+                        cut := true
+                        break
+                if not cut
+                    int brk = -1
+                    j := nw.bar
+                    while j > 1
+                        j -= 1
+                        float lv2 = nw.p + sl * (nw.bar - j)
+                        bool c2 = d > 0 ? S.c.get(j) < lv2 : S.c.get(j) > lv2
+                        if c2
+                            brk := j
+                            break
+                    res := array.from(float(od.bar), od.p, float(nw.bar), nw.p, float(brk))
+    res
+// draw both lines of a series with the line-chart rule; returns how many live lines it drew
+bvZzDraw(RxSer S, color c, string st, bool marks) =>
+    int nLive = 0
+    array<ZzPiv> piv = bvZz(S, InpSwingAtr)
+    if marks
+        int i = -1
+        while i < piv.size() - 1
+            i += 1
+            ZzPiv p = piv.get(i)
+            if p.real
+                gT.push(label.new(S.t.get(p.bar), p.p, "", xloc = xloc.bar_time, yloc = yloc.price, style = p.t < 0 ? label.style_triangleup : label.style_triangledown, color = color.rgb(217, 119, 6), size = size.tiny, tooltip = p.t < 0 ? "real valley: price then closed above the peak before it" : "real peak: price then closed below the valley before it"))
+    for d = -1 to 1 by 2
+        array<float> ln = bvZzLine(S, piv, d)
+        if ln.size() == 5
+            int la = int(ln.get(0))
+            int lb = int(ln.get(2))
+            int brk = int(ln.get(4))
+            if brk < 0
+                nLive += 1
+                gL.push(line.new(S.t.get(la), ln.get(1), S.t.get(lb), ln.get(3), xloc = xloc.bar_time, extend = extend.right, color = c, style = st, width = 1))
+            else
+                float sl = (ln.get(3) - ln.get(1)) / (la - lb)
+                gL.push(line.new(S.t.get(la), ln.get(1), S.t.get(brk), ln.get(3) + sl * (lb - brk), xloc = xloc.bar_time, color = color.gray, style = line.style_dotted, width = 1))
+    nLive
+
 bool acNew = false
 bool chartClosed = barstate.isconfirmed and (barstate.islastconfirmedhistory or barstate.isrealtime)
 if chartMin > 0 and chartClosed
@@ -1141,7 +1290,11 @@ if chartMin > 0 and chartClosed
             if InpLabels
                 string txt = tfn + (d > 0 ? " demand" : " supply") + (z.tested ? " tested" : " fresh") + (isArr ? (arr.get(cur).strong ? " · ARRIVAL strong" : " · ARRIVAL") : "")
                 gT.push(label.new(right, d > 0 ? math.max(z.prox, z.dist) : math.min(z.prox, z.dist), txt, xloc = xloc.bar_time, style = d > 0 ? label.style_label_lower_right : label.style_label_upper_right, color = color.new(color.white, 100), textcolor = c, size = size.small))
-    if InpLines
+    if InpLines and InpRule == 1
+        int nl = bvZzDraw(S, InpLineCol, line.style_solid, InpPivots)
+        if InpLtfLines and lMin > 0 and qT.size() > 40 and nl == 0
+            bvZzDraw(serOf(lMin, qT, qO, qH, qL, qC, 0.0), InpLineCol, line.style_dashed, false)
+    if InpLines and InpRule == 0
         ZvResult zr = zvLines(S)
         if zr.hasUp
             bvTrend(S, zr.up, InpLineCol, line.style_solid)
@@ -1171,7 +1324,9 @@ if chartMin > 0 and chartClosed
                     gB.push(box.new(z.baseStart, math.max(z.prox, z.dist), right, math.min(z.prox, z.dist), border_color = c, border_width = 1, border_style = line.style_dotted, bgcolor = color.new(c, 100), xloc = xloc.bar_time))
                     if InpLabels
                         gT.push(label.new(right, d > 0 ? math.max(z.prox, z.dist) : math.min(z.prox, z.dist), htn + (d > 0 ? " demand" : " supply"), xloc = xloc.bar_time, style = d > 0 ? label.style_label_lower_right : label.style_label_upper_right, color = color.new(color.white, 100), textcolor = InpGold, size = size.small))
-            if InpLines
+            if InpLines and InpRule == 1
+                bvZzDraw(H, InpGold, line.style_dotted, false)
+            if InpLines and InpRule == 0
                 ZvResult hr = zvLines(H)
                 if hr.hasUp
                     bvTrend(H, hr.up, InpGold, line.style_dotted)
