@@ -39,8 +39,8 @@ const pineSteps = (name: string, preset = true) => [
 export const TOOLS: Tool[] = [
   // ─── MT5 ────────────────────────────────────────────────────────────
   {
-    id: 'botview5', platform: 'mt5', name: 'BotView', version: '1.02', kind: 'Expert Advisor',
-    purpose: 'Draws on MT5 exactly what the Telegram bot draws: its zones (this timeframe + the next higher one) and its live trend lines, from the bot\'s hourly scan on Pepperstone prices. Nothing is computed on the chart, so it always matches the bot.',
+    id: 'botview5', platform: 'mt5', name: 'BotView', version: '1.03', kind: 'Expert Advisor',
+    purpose: 'Draws on MT5 exactly what the Telegram bot draws: its zones (this timeframe + the next higher one) and its live trend lines, from the bot\'s hourly scan on Pepperstone prices. Nothing is computed on the chart, so it always matches the bot. 1.03: the same picture as the TradingView BotView 1.1 (nearest live zones, ARRIVAL zones marked, structure trend lines, the line of the timeframe below when a timeframe has none).',
     files: [{ file: 'RamanFX_BotView.mq5' }],
     install: [
       'MT5: File → Open Data Folder → MQL5 → Experts (an Expert Advisor: only EAs may download; it never trades).',

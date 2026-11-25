@@ -1,15 +1,19 @@
 //+------------------------------------------------------------------+
-//| RamanFX_BotView.mq5 v1.02                                        |
+//| RamanFX_BotView.mq5 v1.03                                        |
 //| Draws on MT5 exactly what the Telegram bot draws: the bot's zones |
 //| and live trend lines from its latest hourly scan (Pepperstone     |
 //| prices). Nothing is computed here, so the chart always matches    |
 //| the bot. An Expert Advisor only because MT5 lets only EAs and     |
 //| scripts download (WebRequest); it never trades.                  |
+//| 1.03: the same picture as the TradingView BotView 1.1 - nearest   |
+//| live zones per timeframe, ARRIVAL zones marked, structure trend    |
+//| lines, and the line of the timeframe below (dashed) when a         |
+//| timeframe has none. Weekly times land on the right candle.         |
 //| Setup once: Tools > Options > Expert Advisors > tick "Allow       |
 //| WebRequest for listed URL" and add https://raw.githubusercontent.com |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.02"
+#property version   "1.03"
 
 input string InpSymbol   = "";     // Bot symbol (empty = this chart's symbol, e.g. XAUUSD, US500, Soybeans)
 input bool   InpHtf      = true;   // Also the next higher timeframe: nearest zone each side (outline) + its lines (gold dotted)
@@ -35,6 +39,9 @@ string TfOf(ENUM_TIMEFRAMES p)
 string HtfOf(string tf) { return tf == "H1" ? "H4" : tf == "H4" ? "D1" : tf == "D1" ? "W1" : tf == "W1" ? "MN" : ""; }
 ENUM_TIMEFRAMES PeriodOf(string tf) { return tf == "H1" ? PERIOD_H1 : tf == "H4" ? PERIOD_H4 : tf == "D1" ? PERIOD_D1 : tf == "W1" ? PERIOD_W1 : PERIOD_MN1; }
 datetime T(string s) { StringReplace(s, "-", "."); StringReplace(s, "T", " "); return StringToTime(s); }
+// a bot bar label of timeframe tf as a time inside that MT5 candle: the bot labels a week from its Saturday 00:00
+// (before the Sunday open), which MT5 would read as the week before
+datetime TB(string s, string tf) { return T(s) + (tf == "W1" ? 2 * 86400 : 0); }
 
 bool Fetch()
   {
@@ -92,7 +99,7 @@ void Label(string nm, datetime t, double p, string txt, color c, int anchor)
 void Line(string nm, string tf, double p, double s, int n, string t, color c, int style)
   {
    ENUM_TIMEFRAMES pr = PeriodOf(tf);
-   int k = iBarShift(_Symbol, pr, T(t), false);
+   int k = iBarShift(_Symbol, pr, TB(t, tf), false);
    if(k < 0 || k + n >= iBars(_Symbol, pr)) return;
    datetime t1 = iTime(_Symbol, pr, k + n), t2 = iTime(_Symbol, pr, k);
    ObjectCreate(0, nm, OBJ_TREND, 0, t1, p - s * n, t2, p);
@@ -132,13 +139,15 @@ void Draw()
          if(dem ? cntD >= InpMaxPerSide : cntS >= InpMaxPerSide) continue;
          if(dem) cntD++; else cntS++;
          string nm = PFX + "z" + IntegerToString(i);
-         datetime t1 = T(f[5]);
+         datetime t1 = TB(f[5], tf);
+         int arr = ArraySize(f) >= 8 ? (int)StringToInteger(f[7]) : 0;   // 1.03: opposite zones removed when the zone is an ARRIVAL
          Box(nm, t1, pr, right, ds, dem ? dFill : sFill, true, STYLE_SOLID);
          Edge(nm + "p", t1, right, pr, dem ? dLine : sLine);
          Edge(nm + "d", t1, right, ds, dem ? dLine : sLine);
          int tch = (int)StringToInteger(f[6]);
          ObjectSetString(0, nm, OBJPROP_TOOLTIP, StringFormat("%s %s %s-%s %s", tf, f[2], f[3], f[4], tch > 0 ? "touched " + IntegerToString(tch) + "x" : "fresh"));
-         if(InpLabels) Label(nm + "t", right, dem ? MathMax(pr, ds) : MathMin(pr, ds), StringFormat("%s %s%s", tf, dem ? "demand" : "supply", tch > 0 ? " " + IntegerToString(tch) + "x" : ""),
+         if(arr > 0) { ObjectSetInteger(0, nm + "p", OBJPROP_WIDTH, 2); ObjectSetInteger(0, nm + "d", OBJPROP_WIDTH, 2); }
+         if(InpLabels) Label(nm + "t", right, dem ? MathMax(pr, ds) : MathMin(pr, ds), StringFormat("%s %s%s%s", tf, dem ? "demand" : "supply", tch > 0 ? " " + IntegerToString(tch) + "x" : " fresh", arr >= 2 ? " | ARRIVAL strong" : arr == 1 ? " | ARRIVAL" : ""),
                              txtC, dem ? ANCHOR_RIGHT_LOWER : ANCHOR_RIGHT_UPPER);
         }
       else if(htf != "" && f[1] == htf)
@@ -155,7 +164,7 @@ void Draw()
       bool dem = f[2] == "demand";
       double pr = StringToDouble(f[3]), ds = StringToDouble(f[4]);
       string nm = PFX + "h" + IntegerToString(i);
-      Box(nm, T(f[5]), pr, right, ds, dem ? dLine : sLine, false, STYLE_DOT);
+      Box(nm, TB(f[5], htf), pr, right, ds, dem ? dLine : sLine, false, STYLE_DOT);
       ObjectSetString(0, nm, OBJPROP_TOOLTIP, htf + " " + f[2] + " " + f[3] + "-" + f[4]);
       if(InpLabels) Label(nm + "t", right, dem ? MathMax(pr, ds) : MathMin(pr, ds), htf + " " + f[2], txtC, dem ? ANCHOR_RIGHT_LOWER : ANCHOR_RIGHT_UPPER);
      }
@@ -165,6 +174,12 @@ void Draw()
       if(StringSplit(rows[i], ';', f) < 9 || f[0] != "L" || f[8] == "1") continue;   // L;tf;dir;p;s;n;t;touches;crossed
       if(f[1] == tf) Line(PFX + "l" + IntegerToString(i), tf, StringToDouble(f[3]), StringToDouble(f[4]), (int)StringToInteger(f[5]), f[6], lineC, STYLE_SOLID);
       else if(htf != "" && f[1] == htf) Line(PFX + "l" + IntegerToString(i), htf, StringToDouble(f[3]), StringToDouble(f[4]), (int)StringToInteger(f[5]), f[6], gold, STYLE_DOT);
+     }
+   // 1.03: a side with no line on this timeframe: the line of the timeframe below, dashed (F;shown_on;line_tf;dir;p;s;n;t)
+   for(int i = 0; i < n; i++)
+     {
+      if(StringSplit(rows[i], ';', f) < 8 || f[0] != "F" || f[1] != tf) continue;
+      Line(PFX + "f" + IntegerToString(i), f[2], StringToDouble(f[4]), StringToDouble(f[5]), (int)StringToInteger(f[6]), f[7], lineC, STYLE_DASH);
      }
    // when the scan was made
    string g[];

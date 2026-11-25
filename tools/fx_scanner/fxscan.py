@@ -223,6 +223,71 @@ def pack(bars: List[Bar], n: int, nd: int) -> List[list]:
     return [[b.d, round(b.o, nd), round(b.h, nd), round(b.l, nd), round(b.c, nd)] for b in bars[-n:]]
 
 
+MT5_TFS = ('H1', 'H4', 'D1', 'W1', 'MN')
+MT5_LOWER = {'MN': 'W1', 'W1': 'D1', 'D1': 'H4', 'H4': 'H1'}
+MT5_PER_SIDE = 4
+
+
+def _arrival_n(S, tf: str, zones, z) -> int:
+    """Opposite zones the zone's move away removed when it also closed through the trend line against it (the arrival
+    rule, arrival.find_arrivals for ONE zone: the cheap test first), else 0."""
+    import arrival as A
+    import zvtrend as ZVT
+    L, d = z.leg_bar, z.dir
+    legs = [L]
+    j = L - 1
+    while j >= 1 and len(legs) < 3 and S.cdir(j) == d and not S.basing(j):
+        legs.append(j)
+        j -= 1
+    rem = [y for y in zones if y.dir == -d and y.removed and legs[-1] <= y.removed_bar <= L]
+    if not rem or S.n - 1 - L < 2 * ZVT.ZV['swing'] + 6:
+        return 0
+    r = ZVT.zv_lines(A.closed_series(S, L + 1, tf, None if tf in ZVT.VIRTUAL else A.AS_OF_BARS))
+    t = r.dn if d > 0 else r.up
+    if t is None or not any((S.C[k] > t.at(k - L) if d > 0 else S.C[k] < t.at(k - L)) for k in legs):
+        return 0
+    return len(rem)
+
+
+def mt5_view(an: F.FxAnalysis) -> Dict:
+    """What the MT5 BotView draws (owner 2026-11-25: the same picture as the TradingView BotView 1.1): per timeframe
+    the nearest live zones each side of price (not removed, on their own side; `arr` = opposite zones removed when the
+    zone is an ARRIVAL), the live structure-method trend lines (zvtrend.zv_lines: the lines the arrival alerts use), and
+    for a side with no line the line of the timeframe below (`fb`). Lines: p = price on the newest closed bar of the
+    line's own timeframe (t), s = change per bar, n = bars back to the older anchor."""
+    import zvtrend as ZVT
+    nd, px = an.nd, an.price
+    zs, ls, fb, zr = [], [], [], {}
+    for tf in MT5_TFS:
+        r = an.rows.get(tf)
+        if r is None or not r.ok or r.S.n < 8:
+            continue
+        S = r.S
+        zr[tf] = ZVT.zv_lines(S)
+        live = [z for z in r.zones if not z.removed and z.leg_bar <= an.p['max_zone_age'] and (z.dist < px if z.dir > 0 else z.dist > px)]
+        for d in (1, -1):
+            for z in sorted((z for z in live if z.dir == d), key=lambda z: abs(px - z.prox))[:MT5_PER_SIDE]:
+                x = an.dna.get(z.zid)
+                zs.append({'tf': tf, 'side': F.SIDE[d], 'proximal': round(z.prox, nd), 'distal': round(z.dist, nd), 'base_start': z.base_start,
+                           'touches': F.tests(an, z, x) if x is not None else int(z.tested), 'arr': _arrival_n(S, tf, r.zones, z),
+                           'gap': abs(px - z.prox)})
+    zs.sort(key=lambda z: z.pop('gap'))
+
+    def rec(tf, t):
+        S = an.rows[tf].S
+        return {'tf': tf, 'dir': t.dir, 'p': round(t.at(1), nd), 's': round(t.slope(), nd + 3), 'n': t.a - 1, 't': S.T[1]}
+    for tf, r in zr.items():
+        for d, t in ((1, r.up), (-1, r.dn)):
+            if t is not None:
+                ls.append(rec(tf, t))
+            else:
+                lo = MT5_LOWER.get(tf)
+                lt = zr[lo].line(d) if lo in zr else None
+                if lt is not None:
+                    fb.append({**rec(lo, lt), 'on': tf})
+    return {'zones': zs, 'lines': ls, 'fb': fb}
+
+
 def detail(an: F.FxAnalysis, hits: List[Dict], sigs: List[Dict]) -> Dict:
     i, nd = an.inst, an.nd
     zs = []
@@ -245,7 +310,8 @@ def detail(an: F.FxAnalysis, hits: List[Dict], sigs: List[Dict]) -> Dict:
             'ctx3': F.six(an.rows['3M'], an.price, nd), 'zones': zs[:16], 'hits': hits, 'checks': F.nearest_checks(an),
             'signals': [s['kind'] + ' ' + s['tf'] for s in sigs],
             'bars': {tf: pack(_closed(an, tf), n, nd) for tf, n in CHART_BARS.items() if an.rows[tf].S.T[-1]},
-            'tls': {tf: Z.tl_export(an.rows[tf], nd) for tf in ('H1', 'H4', 'D1', 'W1', 'MN') if an.rows[tf].ok}}
+            'tls': {tf: Z.tl_export(an.rows[tf], nd) for tf in ('H1', 'H4', 'D1', 'W1', 'MN') if an.rows[tf].ok},
+            'mt5': mt5_view(an)}
 
 
 def _closed(an: F.FxAnalysis, tf: str) -> List[Bar]:
@@ -340,17 +406,30 @@ def mt5_export(shards: Dict[str, Dict], out_dir: str) -> None:
     RamanFX_BotView.mq5 reads (no JSON parser in MQL). Lines, ';' separated, times = server-time labels:
         G;<generated>
         Z;tf;side;proximal;distal;base_start;touches
-        L;tf;dir;price_at_t;slope_per_bar;bars_back_to_anchor1;t;touches;crossed"""
+        L;tf;dir;price_at_t;slope_per_bar;bars_back_to_anchor1;t;touches;crossed
+    With the instrument's 'mt5' view (mt5_view: the TradingView BotView's picture) the zones are the nearest live ones
+    per timeframe with an 8th field (opposite zones removed when the zone is an ARRIVAL, else 0), the L lines are the
+    structure-method lines, and a side without a line gets the line of the timeframe below:
+        F;tf_shown_on;line_tf;dir;price_at_t;slope_per_bar;bars_back_to_anchor1;t"""
     d = os.path.join(out_dir, 'mt5')
     os.makedirs(d, exist_ok=True)
     for js in shards.values():
         for sym, x in (js.get('instruments') or {}).items():
             out = [f"G;{js.get('generated', '')}"]
-            for z in x.get('zones') or []:
-                out.append(f"Z;{z.get('tf')};{z.get('side')};{z.get('proximal')};{z.get('distal')};{z.get('base_start') or z.get('made') or ''};{z.get('touches', 0)}")
-            for tf, ls in (x.get('tls') or {}).items():
-                for t in ls or []:
-                    out.append(f"L;{tf};{t['dir']};{t['p']};{t['s']};{t['n']};{t['t']};{t.get('touches', 0)};{1 if t.get('x') else 0}")
+            v = x.get('mt5')
+            if v:
+                for z in v.get('zones') or []:
+                    out.append(f"Z;{z['tf']};{z['side']};{z['proximal']};{z['distal']};{z.get('base_start') or ''};{z.get('touches', 0)};{z.get('arr', 0)}")
+                for t in v.get('lines') or []:
+                    out.append(f"L;{t['tf']};{t['dir']};{t['p']};{t['s']:.10f};{t['n']};{t['t']};0;0")
+                for t in v.get('fb') or []:
+                    out.append(f"F;{t['on']};{t['tf']};{t['dir']};{t['p']};{t['s']:.10f};{t['n']};{t['t']}")
+            else:
+                for z in x.get('zones') or []:
+                    out.append(f"Z;{z.get('tf')};{z.get('side')};{z.get('proximal')};{z.get('distal')};{z.get('base_start') or z.get('made') or ''};{z.get('touches', 0)}")
+                for tf, ls in (x.get('tls') or {}).items():
+                    for t in ls or []:
+                        out.append(f"L;{tf};{t['dir']};{t['p']};{t['s']};{t['n']};{t['t']};{t.get('touches', 0)};{1 if t.get('x') else 0}")
             # also under the FTMO MT5 name (ftmo.json: SPOTCRUDE -> USOIL.cash -> USOIL.txt): the indicator asks for
             # the chart's own symbol without its broker suffix
             alias = (FTMO_NAMES.get(sym) or '').split('.', 1)[0].upper()
