@@ -36,36 +36,41 @@ SMALL = (1.0990, 1.1006, 1.0989, 1.1005)            # a move that makes no new h
 SMALL2 = (1.1005, 1.1007, 1.1002, 1.1006)
 
 
-def run(tail, tf='M15'):
+def run(tail, tf='M15', removed=1, known=1, cross=True):
+    """found() on real zones, with the arrival rule (trend line cross + removed areas: tests/test_arrival.py) stubbed:
+    every not-removed zone is an arrival that removed `removed` areas and became true on shift `known`."""
+    from unittest import mock
     S = A.series_of(bars(tail), tf)
     zones = Z.detect(S, A.FX_P)
-    return S, zones, FR.found('EURUSD', S, zones, tf, 5, S.C[1])
+
+    def fake(S_, tf_, p, zs):
+        arr = [mock.Mock(zone=z, removed=[object()] * removed, known_bar=known) for z in zs if not z.removed] if cross and removed else []
+        return zs, arr
+    with mock.patch.object(A, 'find_arrivals', fake):
+        return S, zones, FR.found('EURUSD', S, zones, tf, 5, S.C[1])
 
 
 class Fresh(unittest.TestCase):
-    def test_new_high_makes_an_item(self):
+    def test_an_arrival_makes_an_item(self):
         _, zones, items = run([BASE, UP, AWAY])
         self.assertTrue(zones)
         self.assertEqual(len(items), 1)
         x = items[0]
-        self.assertEqual((x['dir'], x['tf'], x['broke']), (1, 'M15', True))
+        self.assertEqual((x['dir'], x['tf'], x['removed']), (1, 'M15', 1))
         self.assertLess(x['hi'], x['price'])
 
-    def test_no_item_without_a_new_high_or_a_removed_area(self):
-        S, zones, items = run([BASE, SMALL, SMALL2])
-        self.assertTrue(any(z.sa_bar == 1 for z in zones))
-        self.assertEqual(items, [])
+    def test_a_big_candle_alone_is_not_an_item(self):
+        self.assertEqual(run([BASE, UP, AWAY], cross=False)[2], [])       # new high, but no line break
+        self.assertEqual(run([BASE, UP, AWAY], removed=0)[2], [])         # no opposite area removed
 
-    def test_old_areas_are_not_news(self):
+    def test_old_arrivals_are_not_news(self):
+        self.assertEqual(run([BASE, UP, AWAY], known=9)[2], [])
         tail = [BASE, UP, AWAY] + [(1.1075, 1.1080, 1.1070, 1.1076 if i % 2 else 1.1074) for i in range(8)]
-        _, _, items = run(tail)
-        self.assertEqual(items, [])
+        self.assertEqual(run(tail)[2], [])
 
-    def test_sell_side_mirror(self):
-        dn = (1.0999, 1.1000, 1.0938, 1.0940)
-        away = (1.0940, 1.0948, 1.0920, 1.0925)
-        _, _, items = run([(1.1000, 1.1006, 1.0994, 1.0999), dn, away])
-        self.assertEqual([(x['dir'], x['broke']) for x in items], [(-1, True)])
+    def test_the_real_rule_finds_nothing_in_a_flat_market(self):
+        S = A.series_of(bars([BASE, UP, AWAY]), 'M15')
+        self.assertEqual(FR.found('EURUSD', S, Z.detect(S, A.FX_P), 'M15', 5, S.C[1]), [])   # no trend line, nothing removed
 
     def test_card_is_plain_and_names_the_ftmo_symbol(self):
         x = {'id': 'NAS100|M15:D:x', 'sym': 'NAS100', 'tf': 'M15', 'dir': 1, 'lo': 26900.5, 'hi': 26950.0, 'price': 26986.3,
@@ -73,8 +78,8 @@ class Fresh(unittest.TestCase):
         c = FR.card(x, FR.ftmo())
         self.assertIn('US100.cash', c)
         self.assertIn('new 15-minute buy area', c)
-        self.assertIn('highest in a day', c)
-        self.assertIn('2 sell areas', c)
+        self.assertIn('closed above the 15-minute downtrend line', c)
+        self.assertIn('removed 2 sell areas', c)
         for w in ('proximal', 'distal', 'HTF', 'Raja'):
             self.assertNotIn(w, c)
 
@@ -85,6 +90,7 @@ class Fresh(unittest.TestCase):
 
     def test_deliver_seeds_then_sends_each_area_once(self):
         _, _, items = run([BASE, UP, AWAY])
+        self.assertEqual(len(items), 1)
         sent = []
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, 'fresh.json')
@@ -104,7 +110,9 @@ class Fresh(unittest.TestCase):
                 raise KeyError(sym)
             return bars([BASE, UP, AWAY])
         logs = []
-        items = FR.scan_m15(bars_of, ['EURUSD', 'USDX'], {'EURUSD': 5}, log=logs.append)
+        from unittest import mock
+        with mock.patch.object(FR, 'found', lambda sym, *a: [{'sym': sym}]):
+            items = FR.scan_m15(bars_of, ['EURUSD', 'USDX'], {'EURUSD': 5}, log=logs.append)
         self.assertEqual([x['sym'] for x in items], ['EURUSD'])
         self.assertTrue(any('USDX' in x for x in logs))
 

@@ -1,9 +1,8 @@
-"""Fresh areas after a big move away (owner 2026-11-18, FTMO account): a NEW buy / sell area on the 15-minute, hourly,
-4-hour, daily, weekly or monthly chart whose move away either
-    - closed at a new high / low (beyond every bar of the BREAK[tf] bars before the move), or
-    - removed at least one opposite area,
-on the departure candle or the EXT candles after it. One Telegram message per run with every new one, the markets of
-the owner's FTMO list only (ftmo.json), owner only, mutes and quiet hours honoured, no daily cap (he asked for all).
+"""New arrival areas (owner 2026-11-18 / tightened 2026-11-25, FTMO account): a NEW buy / sell area on the 15-minute,
+hourly, 4-hour, daily, weekly or monthly chart whose move away did BOTH: closed beyond the trend line against it AND
+removed at least one opposite area by a candle close (arrival.find_arrivals). Nothing else is sent. One Telegram
+message per run with every new one, the markets of the owner's FTMO list only (ftmo.json), owner only, mutes and quiet
+hours honoured.
 
     hourly scan (fxscan.py)      H1 .. MN from the rows the scan already built      state public/fx/fresh.json
     15-minute job (realign.yml)  M15 bars from the Pepperstone feed, 1 request each  state public/fx/fresh15.json
@@ -11,7 +10,7 @@ the owner's FTMO list only (ftmo.json), owner only, mutes and quiet hours honour
     python tools/fx_scanner/fxfresh.py --m15             run the 15-minute pass (sends; saves the state)
     python tools/fx_scanner/fxfresh.py --m15 --dry-run   print the would-be message, send / write nothing
 
-The first run of each pass only seeds its state. Never raises into the scan. Pure parts: qualify, found, card, message.
+The first run of each pass only seeds its state. Never raises into the scan. Pure parts: found, card, message.
 """
 from __future__ import annotations
 
@@ -35,8 +34,6 @@ import zones as Z  # noqa: E402
 STATE = os.path.join(C.OUT_DIR, 'fresh.json')
 STATE15 = os.path.join(C.OUT_DIR, 'fresh15.json')
 TFS = ('H1', 'H4', 'D1', 'W1', 'MN')
-BREAK = {'M15': 96, 'H1': 48, 'H4': 30, 'D1': 22, 'W1': 13, 'MN': 6}      # bars a new high / low must beat
-SPAN = {'M15': 'a day', 'H1': '2 days', 'H4': 'a week', 'D1': 'a month', 'W1': '3 months', 'MN': '6 months'}
 EXT = 3                                # candles after the departure that still belong to the move away
 NEW = {'M15': 4, 'H1': 2}              # new = it became true on the newest closed bar (15m / 1h: a missed run is caught up)
 KEEP_DAYS = {'M15': 3, 'H1': 7, 'H4': 21, 'D1': 45, 'W1': 90, 'MN': 200}
@@ -53,37 +50,22 @@ def ftmo() -> Dict[str, str]:
         return {}
 
 
-def qualify(S: Z.Series, zones: Sequence[Z.Zone], z: Z.Zone, tf: str) -> Optional[Dict]:
-    """Why this zone's move away is a big one, None when it is not: {'broke', 'removed', 'known'} (known = the shift
-    on which it became true: the zone exists from its stay-away candle on)."""
-    L, d = z.leg_bar, z.dir
-    if z.removed or z.sa_bar < 1:
-        return None
-    newest = max(1, L - EXT)
-    n = BREAK.get(tf, 30)
-    old = range(L + 1, min(S.n, L + 1 + n))
-    broke = None
-    if len(old) >= n // 2:
-        ref = max(S.H[j] for j in old) if d > 0 else min(S.L[j] for j in old)
-        broke = next((j for j in range(L, newest - 1, -1) if (S.C[j] > ref if d > 0 else S.C[j] < ref)), None)
-    rem = [y for y in zones if y.dir == -d and y.removed and newest <= y.removed_bar <= L]
-    if broke is None and not rem:
-        return None
-    first = max(([broke] if broke is not None else []) + [y.removed_bar for y in rem])   # the earlier of the two
-    return {'broke': broke is not None, 'removed': len(rem), 'known': min(z.sa_bar, first)}
-
-
 def found(sym: str, S: Z.Series, zones: Sequence[Z.Zone], tf: str, nd: int, price: float) -> List[Dict]:
-    """The new big-move areas of one timeframe (newest closed bars only)."""
+    """The new arrival areas of one timeframe (owner 2026-11-25: BOTH conditions, nothing else): the move away closed
+    beyond the trend line against it AND removed at least one opposite area by a candle close (arrival.find_arrivals,
+    the same rule as the chart's arrival zones), and it became true on the newest closed bars."""
+    import arrival as A
+    lim = NEW.get(tf, 1) + EXT + 1
+    near = [z for z in zones if z.leg_bar <= lim or (z.removed and z.removed_bar <= lim)]
+    if not any(z.leg_bar <= lim and not z.removed for z in near):
+        return []
     out = []
-    for z in zones:
-        if z.leg_bar > NEW.get(tf, 1) + EXT + 1:
-            continue
-        q = qualify(S, zones, z, tf)
-        if q is None or q['known'] > NEW.get(tf, 1):
+    for a in A.find_arrivals(S, tf, A.FX_P, near)[1]:
+        z = a.zone
+        if z.removed or z.leg_bar > lim or a.known_bar < 1 or a.known_bar > NEW.get(tf, 1):
             continue
         out.append({'id': f'{sym}|{z.zid}', 'sym': sym, 'tf': tf, 'dir': z.dir, 'lo': round(z.lo, nd), 'hi': round(z.hi, nd),
-                    'price': round(price, nd), 'digits': nd, 'broke': q['broke'], 'removed': q['removed'], 'made': z.made})
+                    'price': round(price, nd), 'digits': nd, 'broke': True, 'removed': len(a.removed), 'made': z.made})
     return out
 
 
@@ -94,19 +76,17 @@ def _f(v, nd: int) -> str:
 def card(x: Dict, names: Optional[Dict[str, str]] = None) -> str:
     """<b>Euro vs US dollar</b> (EURUSD) · new 15-minute buy area
     <blockquote>▲ Area <code>1.09520–1.09610</code> · price now <code>1.09890</code>
-    ● The price closed at its highest in a day
-    ● It broke through 2 sell areas on the way up
+    ● A candle closed above the 15-minute downtrend line
+    ● It removed 2 sell areas on the way up
     ● Next: wait for the price to come back to it, then do your checks</blockquote>"""
     import notify as SN
     d, nd, tf = x['dir'], x.get('digits', 5), x['tf']
     side, opp = ('demand', 'supply') if d > 0 else ('supply', 'demand')
     alt = (names or {}).get(x['sym']) or ''
     lines = [f"{'▲' if d > 0 else '▼'} Area {SN.code(_f(x['lo'], nd) + '–' + _f(x['hi'], nd))} · price now {SN.code(_f(x['price'], nd))}"]
-    if x.get('broke'):
-        lines.append(f"● The price closed at its {'highest' if d > 0 else 'lowest'} in {SPAN.get(tf, 'a while')}")
     n = int(x.get('removed') or 0)
-    if n:
-        lines.append(f"● It broke through {n} {SN.area(opp, n)} on the way {'up' if d > 0 else 'down'}")
+    lines.append(f"● A candle closed {'above' if d > 0 else 'below'} the {SN.esc(SN.tf_word(tf))} {'downtrend' if d > 0 else 'uptrend'} line")
+    lines.append(f"● It removed {n} {SN.area(opp, n)} on the way {'up' if d > 0 else 'down'}")
     lines.append('● Next: wait for the price to come back to it, then do your checks')
     return (f"{SN.title(x['sym'], alt=alt if alt != x['sym'] else '')} · new {SN.esc(SN.tf_word(tf))} {SN.area(side)}\n"
             + SN.block(lines))
@@ -123,7 +103,7 @@ def message(items: Sequence[Dict], names: Optional[Dict[str, str]] = None, now: 
     now = now or dt.datetime.now(dt.timezone.utc)
     its = sort_items(items)
     shown, rest = its[:cards], its[cards:]
-    head = ['<b>New areas after a big move</b>'] if len(its) > 1 else []
+    head = ['<b>New areas to trade from</b>'] if len(its) > 1 else []
     detail = [f"{SN.esc(i['sym'])} · {SN.esc(SN.tf_word(i['tf']))} {SN.area('demand' if i['dir'] > 0 else 'supply')} "
               f"{_f(i['lo'], i.get('digits', 5))}–{_f(i['hi'], i.get('digits', 5))}" for i in rest]
     when = SN.local_time(now.strftime('%Y-%m-%dT%H:%M:%S'), SN.CLOCK)
