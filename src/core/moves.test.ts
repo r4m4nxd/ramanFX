@@ -17,7 +17,7 @@ describe('big moves file (public/movers/latest.json)', () => {
   it('keeps good rows, drops bad ones and unsafe links', () => {
     const f = parseMoves(js);
     expect(f.sections.map(s => s.tf)).toEqual(['D1', 'D1']);
-    const fri = sectionsOf(f, 'D1')[0];
+    const fri = sectionsOf(f, 'D1', Date.parse('2026-10-31T00:00:00Z'))[0];
     expect(fri.label).toBe('day closed Fri 3:00 PM');
     expect(fri.rows.map(r => r.sym)).toEqual(['GBPJPY', 'NVDA']);
     expect(fri.rows[1].why).toEqual({ title: 'Nvidia falls', url: '' });
