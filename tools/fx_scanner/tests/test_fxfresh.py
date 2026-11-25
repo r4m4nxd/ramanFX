@@ -43,10 +43,11 @@ def run(tail, tf='M15', removed=1, known=1, cross=True):
     S = A.series_of(bars(tail), tf)
     zones = Z.detect(S, A.FX_P)
 
-    def fake(S_, tf_, p, zs):
-        arr = [mock.Mock(zone=z, removed=[object()] * removed, known_bar=known) for z in zs if not z.removed] if cross and removed else []
-        return zs, arr
-    with mock.patch.object(A, 'find_arrivals', fake):
+    import linechart as LC
+
+    def fake(S_, tf_, zs, z):
+        return {'n': removed, 'known': known} if cross and removed else None
+    with mock.patch.object(LC, 'arrival', fake):
         return S, zones, FR.found('EURUSD', S, zones, tf, 5, S.C[1])
 
 

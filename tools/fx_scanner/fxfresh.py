@@ -1,6 +1,6 @@
 """New arrival areas (owner 2026-11-18 / tightened 2026-11-25, FTMO account): a NEW buy / sell area on the 15-minute,
 hourly, 4-hour, daily, weekly or monthly chart whose move away did BOTH: closed beyond the trend line against it AND
-removed at least one opposite area by a candle close (arrival.find_arrivals), and only WITH the bigger picture (gate:
+removed at least one opposite area by a candle close (linechart.arrival: the owner's line-chart trend line), and only WITH the bigger picture (gate:
 the scanner's top-down direction for that entry timeframe, 15-minute: the 4-hour one; or inside an open area to watch
 near the bigger trend line). Nothing else is sent. One Telegram
 message per run with every new one, the markets of the owner's FTMO list only (ftmo.json), owner only, mutes and quiet
@@ -54,20 +54,19 @@ def ftmo() -> Dict[str, str]:
 
 def found(sym: str, S: Z.Series, zones: Sequence[Z.Zone], tf: str, nd: int, price: float) -> List[Dict]:
     """The new arrival areas of one timeframe (owner 2026-11-25: BOTH conditions, nothing else): the move away closed
-    beyond the trend line against it AND removed at least one opposite area by a candle close (arrival.find_arrivals,
-    the same rule as the chart's arrival zones), and it became true on the newest closed bars."""
-    import arrival as A
+    beyond the trend line against it (the line-chart rule, linechart.py) AND removed at least one opposite area by a
+    candle close, and it became true on the newest closed bars."""
+    import linechart as LC
     lim = NEW.get(tf, 1) + EXT + 1
-    near = [z for z in zones if z.leg_bar <= lim or (z.removed and z.removed_bar <= lim)]
-    if not any(z.leg_bar <= lim and not z.removed for z in near):
-        return []
     out = []
-    for a in A.find_arrivals(S, tf, A.FX_P, near)[1]:
-        z = a.zone
-        if z.removed or z.leg_bar > lim or a.known_bar < 1 or a.known_bar > NEW.get(tf, 1):
+    for z in zones:
+        if z.removed or z.leg_bar > lim:
+            continue
+        a = LC.arrival(S, tf, zones, z)
+        if a is None or a['known'] < 1 or a['known'] > NEW.get(tf, 1):
             continue
         out.append({'id': f'{sym}|{z.zid}', 'sym': sym, 'tf': tf, 'dir': z.dir, 'lo': round(z.lo, nd), 'hi': round(z.hi, nd),
-                    'price': round(price, nd), 'digits': nd, 'broke': True, 'removed': len(a.removed), 'made': z.made})
+                    'price': round(price, nd), 'digits': nd, 'broke': True, 'removed': a['n'], 'made': z.made})
     return out
 
 

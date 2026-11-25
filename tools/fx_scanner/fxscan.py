@@ -229,33 +229,19 @@ MT5_PER_SIDE = 4
 
 
 def _arrival_n(S, tf: str, zones, z) -> int:
-    """Opposite zones the zone's move away removed when it also closed through the trend line against it (the arrival
-    rule, arrival.find_arrivals for ONE zone: the cheap test first), else 0."""
-    import arrival as A
-    import zvtrend as ZVT
-    L, d = z.leg_bar, z.dir
-    legs = [L]
-    j = L - 1
-    while j >= 1 and len(legs) < 3 and S.cdir(j) == d and not S.basing(j):
-        legs.append(j)
-        j -= 1
-    rem = [y for y in zones if y.dir == -d and y.removed and legs[-1] <= y.removed_bar <= L]
-    if not rem or S.n - 1 - L < 2 * ZVT.ZV['swing'] + 6:
-        return 0
-    r = ZVT.zv_lines(A.closed_series(S, L + 1, tf, None if tf in ZVT.VIRTUAL else A.AS_OF_BARS))
-    t = r.dn if d > 0 else r.up
-    if t is None or not any((S.C[k] > t.at(k - L) if d > 0 else S.C[k] < t.at(k - L)) for k in legs):
-        return 0
-    return len(rem)
+    """Opposite zones removed when the zone is an ARRIVAL by the line-chart rule (linechart.arrival), else 0."""
+    import linechart as LC
+    a = LC.arrival(S, tf, zones, z)
+    return a['n'] if a else 0
 
 
 def mt5_view(an: F.FxAnalysis) -> Dict:
     """What the MT5 BotView draws (owner 2026-11-25: the same picture as the TradingView BotView 1.1): per timeframe
     the nearest live zones each side of price (not removed, on their own side; `arr` = opposite zones removed when the
-    zone is an ARRIVAL), the live structure-method trend lines (zvtrend.zv_lines: the lines the arrival alerts use), and
-    for a side with no line the line of the timeframe below (`fb`). Lines: p = price on the newest closed bar of the
+    zone is an ARRIVAL), the live trend lines by the owner's line-chart rule (linechart.py: the lines the new-area alerts use; `fb` stays
+    empty). Lines: p = price on the newest closed bar of the
     line's own timeframe (t), s = change per bar, n = bars back to the older anchor."""
-    import zvtrend as ZVT
+    import linechart as LC
     nd, px = an.nd, an.price
     zs, ls, fb, zr = [], [], [], {}
     for tf in MT5_TFS:
@@ -263,7 +249,7 @@ def mt5_view(an: F.FxAnalysis) -> Dict:
         if r is None or not r.ok or r.S.n < 8:
             continue
         S = r.S
-        zr[tf] = ZVT.zv_lines(S)
+        zr[tf] = LC.lines(S)
         live = [z for z in r.zones if not z.removed and z.leg_bar <= an.p['max_zone_age'] and (z.dist < px if z.dir > 0 else z.dist > px)]
         for d in (1, -1):
             for z in sorted((z for z in live if z.dir == d), key=lambda z: abs(px - z.prox))[:MT5_PER_SIDE]:
@@ -277,14 +263,9 @@ def mt5_view(an: F.FxAnalysis) -> Dict:
         S = an.rows[tf].S
         return {'tf': tf, 'dir': t.dir, 'p': round(t.at(1), nd), 's': round(t.slope(), nd + 3), 'n': t.a - 1, 't': S.T[1]}
     for tf, r in zr.items():
-        for d, t in ((1, r.up), (-1, r.dn)):
-            if t is not None:
-                ls.append(rec(tf, t))
-            else:
-                lo = MT5_LOWER.get(tf)
-                lt = zr[lo].line(d) if lo in zr else None
-                if lt is not None:
-                    fb.append({**rec(lo, lt), 'on': tf})
+        for d in (1, -1):
+            if r[d] is not None and r[d].live:       # owner 2026-11-25: no borrowed lower-TF line (it made no sense on H4)
+                ls.append(rec(tf, r[d]))
     return {'zones': zs, 'lines': ls, 'fb': fb}
 
 
