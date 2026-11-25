@@ -240,6 +240,16 @@ export const TOOLS: Tool[] = [
     guide: { to: '/bot-guide?t=vision', label: 'ZoneVision guide' },
   },
   {
+    id: 'botviewtv', platform: 'tv', name: 'BotView', version: '1.0', kind: 'Indicator',
+    purpose: "The MT5 BotView for TradingView: the bot's own zones and trend lines, computed on the chart with the bot's engine. Nearest zones each side (fresh / tested), the next higher timeframe's nearest zone and lines, the ARRIVAL zone marked, one alert for a new arrival.",
+    files: [{ file: 'RamanFX_BotView.pine' }],
+    install: [
+      ...pineSteps('BotView', false),
+      'Use a Pepperstone chart for the same candles as the bot.',
+      'Alert: Create alert → Condition BotView → Any alert() function call.',
+    ],
+  },
+  {
     id: 'stratv', platform: 'tv', name: 'Zone Strategy', version: '1.2', kind: 'Strategy',
     purpose: 'Automatic backtest of the ZoneVision / ZoneBot zone rules in the Strategy Tester (no trendline checks). 1.1: optional Entry mode Arrival zone limit / Realignment + LTF confirmation (the bot\'s arrival engine and stop rule), off by default. 1.2: trend lines: owner\'s structure method.',
     files: [{ file: 'RamanFX_ZoneStrategy.pine' }],
