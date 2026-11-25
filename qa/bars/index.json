@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-01T03:10:04Z",
+ "generated": "2026-11-25T17:50:15Z",
  "price": "bid",
  "clock": "server time = New York + 7 h (Pepperstone MT5 GMT+2 / GMT+3, 00:00 = 17:00 New York)",
  "align": {
@@ -30,25 +30,25 @@
      "pages": 1
     },
     "D1": {
-     "n": 5702,
-     "first": "2006-03-20T00:00",
-     "last": "2026-10-30T00:00",
-     "forming": false,
+     "n": 2315,
+     "first": "2018-01-02T00:00",
+     "last": "2026-11-25T00:00",
+     "forming": true,
      "misaligned": 0,
-     "pages": 2
+     "pages": 1
     },
     "H4": {
-     "n": 29877,
-     "first": "2008-01-01T16:00",
-     "last": "2026-10-30T20:00",
-     "forming": false,
+     "n": 3094,
+     "first": "2024-11-25T16:00",
+     "last": "2026-11-25T16:00",
+     "forming": true,
      "misaligned": 0,
-     "pages": 10
+     "pages": 1
     },
     "H1": {
-     "n": 3002,
-     "first": "2026-04-30T23:00",
-     "last": "2026-10-30T23:00",
+     "n": 3003,
+     "first": "2026-05-26T20:00",
+     "last": "2026-11-25T19:00",
      "forming": true,
      "misaligned": 0,
      "pages": 1
