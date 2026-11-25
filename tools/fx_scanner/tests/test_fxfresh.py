@@ -72,6 +72,24 @@ class Fresh(unittest.TestCase):
         S = A.series_of(bars([BASE, UP, AWAY]), 'M15')
         self.assertEqual(FR.found('EURUSD', S, Z.detect(S, A.FX_P), 'M15', 5, S.C[1]), [])   # no trend line, nothing removed
 
+    def test_only_with_the_bigger_picture(self):
+        x = {'sym': 'EURUSD', 'tf': 'M15', 'dir': 1, 'lo': 1.0950, 'hi': 1.0960}
+        self.assertEqual(FR.head_side('LONG - REDUCED'), (1, 1))
+        self.assertEqual(FR.head_side('WAIT - realigning (long side)'), (0, 0))
+        self.assertEqual(FR.gate(x, *FR.head_side('LONG - FULL'), ['H4'])['why'], 'trend')
+        self.assertIsNone(FR.gate(x, *FR.head_side('SHORT - FULL'), ['H4']))           # against the 4-hour picture
+        self.assertIsNone(FR.gate(x, *FR.head_side('WAIT'), ['H4']))                   # picture not clear
+        area = {'a': {'sym': 'EURUSD', 'dir': 1, 'tf': 'H4', 'htf': 'D1', 'lo': 1.0940, 'hi': 1.0970, 'confirmed': None}}
+        g = FR.gate(x, 0, 0, ['H4'], area)                                             # ... but inside an area to watch
+        self.assertEqual((g['why'], g['area_tf']), ('area', 'H4'))
+        self.assertIsNone(FR.gate({**x, 'dir': -1}, 0, 0, ['H4'], area))
+        self.assertIsNone(FR.gate({**x, 'lo': 1.2, 'hi': 1.21}, 0, 0, ['H4'], area))
+        c = FR.card({**g, 'price': 1.0980, 'digits': 5, 'removed': 1})
+        self.assertIn('inside the 4-hour area to watch', c)
+        self.assertIn('near the daily trend line', c)
+        c = FR.card({**FR.gate(x, 1, 1, ['H4', 'D1']), 'price': 1.0980, 'digits': 5, 'removed': 1})
+        self.assertIn('Bigger picture (4-hour and daily) points up · reduced size', c)
+
     def test_card_is_plain_and_names_the_ftmo_symbol(self):
         x = {'id': 'NAS100|M15:D:x', 'sym': 'NAS100', 'tf': 'M15', 'dir': 1, 'lo': 26900.5, 'hi': 26950.0, 'price': 26986.3,
              'digits': 1, 'broke': True, 'removed': 2}

@@ -1,6 +1,8 @@
 """New arrival areas (owner 2026-11-18 / tightened 2026-11-25, FTMO account): a NEW buy / sell area on the 15-minute,
 hourly, 4-hour, daily, weekly or monthly chart whose move away did BOTH: closed beyond the trend line against it AND
-removed at least one opposite area by a candle close (arrival.find_arrivals). Nothing else is sent. One Telegram
+removed at least one opposite area by a candle close (arrival.find_arrivals), and only WITH the bigger picture (gate:
+the scanner's top-down direction for that entry timeframe, 15-minute: the 4-hour one; or inside an open area to watch
+near the bigger trend line). Nothing else is sent. One Telegram
 message per run with every new one, the markets of the owner's FTMO list only (ftmo.json), owner only, mutes and quiet
 hours honoured.
 
@@ -69,6 +71,39 @@ def found(sym: str, S: Z.Series, zones: Sequence[Z.Zone], tf: str, nd: int, pric
     return out
 
 
+HTF_OF_M15 = 'H4'                      # owner: 4-hour direction, 15-minute entry
+
+
+def head_side(head: str):
+    """(side, q) of a published direction headline: 'LONG - FULL' -> (1, 2), 'SHORT - REDUCED' -> (-1, 1), any WAIT -> (0, 0)."""
+    h = (head or '').upper()
+    side = 1 if h.startswith('LONG') else (-1 if h.startswith('SHORT') else 0)
+    return side, (2 if 'FULL' in h else 1) if side else 0
+
+
+def area_for(areas: Dict[str, Dict], x: Dict) -> Optional[Dict]:
+    """The open area to watch (the hourly scan's realignment areas: the area nearest the bigger trend line) this new
+    area sits in, same direction."""
+    for a in (areas or {}).values():
+        if (a.get('sym') == x['sym'] and a.get('dir') == x['dir'] and not a.get('confirmed') and a.get('lo') is not None
+                and a.get('hi') is not None and x['lo'] <= a['hi'] and x['hi'] >= a['lo']
+                and RANK.get(a.get('tf'), 9) < RANK.get(x['tf'], 9)):
+            return a
+    return None
+
+
+def gate(x: Dict, side: int, q: int, via: Sequence[str], areas: Optional[Dict[str, Dict]] = None) -> Optional[Dict]:
+    """Owner 2026-11-25: only moves WITH the bigger picture. Kept when the scanner's top-down direction for this entry
+    timeframe (side, q: 2 full, 1 reduced, 0 wait / unclear) is the area's side, or when the area formed inside an open
+    area to watch near the bigger trend line (the confirmation of that area). Else None."""
+    if side == x['dir'] and q > 0:
+        return {**x, 'why': 'trend', 'q': q, 'via': list(via)}
+    a = area_for(areas or {}, x)
+    if a is not None:
+        return {**x, 'why': 'area', 'area_tf': a.get('tf'), 'area_lo': a['lo'], 'area_hi': a['hi'], 'area_htf': a.get('htf')}
+    return None
+
+
 def _f(v, nd: int) -> str:
     return f'{v:,.{nd}f}'
 
@@ -87,6 +122,13 @@ def card(x: Dict, names: Optional[Dict[str, str]] = None) -> str:
     n = int(x.get('removed') or 0)
     lines.append(f"● A candle closed {'above' if d > 0 else 'below'} the {SN.esc(SN.tf_word(tf))} {'downtrend' if d > 0 else 'uptrend'} line")
     lines.append(f"● It removed {n} {SN.area(opp, n)} on the way {'up' if d > 0 else 'down'}")
+    if x.get('why') == 'trend':
+        via = ' and '.join(SN.tf_word(t) for t in dict.fromkeys(x.get('via') or []))
+        lines.append(f"● Bigger picture ({SN.esc(via)}) points {'up' if d > 0 else 'down'} · {'full' if x.get('q') == 2 else 'reduced'} size")
+    elif x.get('why') == 'area':
+        rng = SN.code(_f(x['area_lo'], nd) + '–' + _f(x['area_hi'], nd))
+        near = f", near the {SN.esc(SN.tf_word(x['area_htf']))} trend line" if x.get('area_htf') else ''
+        lines.append(f"● It formed inside the {SN.esc(SN.tf_word(x.get('area_tf')))} area to watch {rng}{near}")
     lines.append('● Next: wait for the price to come back to it, then do your checks')
     return (f"{SN.title(x['sym'], alt=alt if alt != x['sym'] else '')} · new {SN.esc(SN.tf_word(tf))} {SN.area(side)}\n"
             + SN.block(lines))
@@ -176,6 +218,8 @@ def run(res: Dict, prefs: Optional[Dict], send, notify: bool = True, write: bool
     try:
         want = ftmo()
         items: List[Dict] = []
+        raw = 0
+        areas = _load(os.path.join(C.OUT_DIR, 'arrivals.json')).get('areas') or {}
         for sym, an in (res.get('analyses') or {}).items():
             if sym not in want:
                 continue
@@ -183,13 +227,27 @@ def run(res: Dict, prefs: Optional[Dict], send, notify: bool = True, write: bool
                 try:
                     r = an.rows.get(tf)
                     if r is not None and getattr(r, 'ok', False):
-                        items += found(sym, r.S, r.zones, tf, an.nd, an.price)
+                        D = (getattr(an, 'dirs', None) or {}).get(tf)
+                        side, q = (D.dir, D.q) if D is not None else (0, 0)
+                        via = [t for t in C.DIR_CHAIN.get(tf, ())[1:3] if t != tf]
+                        for x in found(sym, r.S, r.zones, tf, an.nd, an.price):
+                            raw += 1
+                            g = gate(x, side, q, via, areas)
+                            if g is not None:
+                                items.append(g)
                 except Exception as e:  # noqa: BLE001
                     log(f'fresh areas: {sym} {tf} skipped ({type(e).__name__})')
+        log(f'fresh areas (H1-MN): {raw} arrival(s) now, {len(items)} with the bigger picture')
         return deliver(items, path, prefs, send, notify, write, 'H1-MN', log, now)
     except Exception as e:  # noqa: BLE001
         log(f'fresh areas: skipped ({type(e).__name__}: {str(e)[:120]})')
         return 0
+
+
+def picture_map(out_dir: str = C.OUT_DIR, tf: str = HTF_OF_M15) -> Dict[str, str]:
+    """{sym: the hourly scan's direction headline of `tf`} (public/fx/latest.json)."""
+    m = _load(os.path.join(out_dir, 'latest.json')).get('map') or []
+    return {x['sym']: (x.get('dir') or {}).get(tf) or '' for x in m if isinstance(x, dict) and x.get('sym')}
 
 
 def digits_map(out_dir: str = C.OUT_DIR) -> Dict[str, int]:
@@ -249,6 +307,11 @@ def main(argv=None, bars_of=None, send=None, prefs=None, log=print) -> int:
             def bars_of(sym: str):
                 return CTF.recent(sym, 'M15', M15_BARS)
         items = scan_m15(bars_of, list(ftmo()), digits_map(), log)
+        pic = picture_map()
+        areas = _load(os.path.join(C.OUT_DIR, 'arrivals.json')).get('areas') or {}
+        raw = len(items)
+        items = [g for g in (gate(x, *head_side(pic.get(x['sym'], '')), [HTF_OF_M15], areas) for x in items) if g is not None]
+        log(f'fresh areas (15m): {raw} arrival(s) now, {len(items)} with the 4-hour picture')
         if send is None:
             import fxnotify as N
             send = N.send
