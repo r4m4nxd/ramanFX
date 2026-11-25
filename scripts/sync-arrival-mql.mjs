@@ -15,7 +15,7 @@ export const BLOCKS = [
   { name: 'RFX_ARRIVAL_ENGINE', lead: '// ', src: 'RFX_ZoneCore.mqh', dst: ['RamanFX_ZoneVision.mq4', 'RamanFX_ZoneBot.mq4'] },
   { name: 'RFX_ARRIVAL_CHART', lead: '// ', src: 'RamanFX_ZoneVision.mq5', dst: ['RamanFX_ZoneVision.mq4'] },
   { name: 'RFX_ARRIVAL_BOT', lead: '// ', src: 'RamanFX_ZoneBot.mq5', dst: ['RamanFX_ZoneBot.mq4'] },
-  { name: 'RFX_ARRIVAL_PINE', lead: '// ', src: 'RamanFX_ZoneVision_Arrival.pine', dst: ['RamanFX_ZoneStrategy.pine', 'RamanFX_BotView.pine'] },
+  { name: 'RFX_ARRIVAL_PINE', lead: '// ', src: 'RamanFX_ZoneVision_Arrival.pine', dst: ['RamanFX_ZoneStrategy.pine', 'RamanFX_BotView.pine', 'RamanFX_PivotTest.pine'] },
 ];
 export function block(text, name, lead = '// ') {
   const a = text.indexOf(`${lead}==== ${name} BEGIN ====`), e = `${lead}==== ${name} END ====`, b = text.indexOf(e);

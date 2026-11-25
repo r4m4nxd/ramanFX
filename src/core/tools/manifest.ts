@@ -250,6 +250,12 @@ export const TOOLS: Tool[] = [
     ],
   },
   {
+    id: 'pivottesttv', platform: 'tv', name: 'Pivot Test', version: '0.1', kind: 'Indicator',
+    purpose: 'TEST of the new trend-line rule, to check by eye: a real peak / valley is the extreme of a return into a strong zone (one that removed an opposite zone) that then made a new low / high; the line joins two of them without cutting candles.',
+    files: [{ file: 'RamanFX_PivotTest.pine' }],
+    install: pineSteps('Pivot Test', false),
+  },
+  {
     id: 'stratv', platform: 'tv', name: 'Zone Strategy', version: '1.2', kind: 'Strategy',
     purpose: 'Automatic backtest of the ZoneVision / ZoneBot zone rules in the Strategy Tester (no trendline checks). 1.1: optional Entry mode Arrival zone limit / Realignment + LTF confirmation (the bot\'s arrival engine and stop rule), off by default. 1.2: trend lines: owner\'s structure method.',
     files: [{ file: 'RamanFX_ZoneStrategy.pine' }],

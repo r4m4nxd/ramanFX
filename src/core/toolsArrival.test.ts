@@ -25,7 +25,7 @@ const BLOCKS: [string, string, string[]][] = [
   ['RFX_ARRIVAL_ENGINE', 'RFX_ZoneCore.mqh', ['RamanFX_ZoneVision.mq4', 'RamanFX_ZoneBot.mq4']],
   ['RFX_ARRIVAL_CHART', 'RamanFX_ZoneVision.mq5', ['RamanFX_ZoneVision.mq4']],
   ['RFX_ARRIVAL_BOT', 'RamanFX_ZoneBot.mq5', ['RamanFX_ZoneBot.mq4']],
-  ['RFX_ARRIVAL_PINE', 'RamanFX_ZoneVision_Arrival.pine', ['RamanFX_ZoneStrategy.pine', 'RamanFX_BotView.pine']],
+  ['RFX_ARRIVAL_PINE', 'RamanFX_ZoneVision_Arrival.pine', ['RamanFX_ZoneStrategy.pine', 'RamanFX_BotView.pine', 'RamanFX_PivotTest.pine']],
 ];
 const MQL = ['RFX_ZoneCore.mqh', 'RamanFX_ZoneVision.mq5', 'RamanFX_ZoneBot.mq5', 'RamanFX_ZoneVision.mq4', 'RamanFX_ZoneBot.mq4'];
 const PINE = ['RamanFX_ZoneVision.pine', 'RamanFX_ZoneVision_Direction.pine', 'RamanFX_ZoneVision_Arrival.pine', 'RamanFX_ZoneStrategy.pine'];
