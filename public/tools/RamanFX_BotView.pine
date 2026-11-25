@@ -1,4 +1,4 @@
-// RamanFX BotView 1.0 for TradingView (Pine Script v6): the same picture as the MT5 BotView, computed on the chart itself
+// RamanFX BotView 1.1 for TradingView (Pine Script v6): the same picture as the MT5 BotView, computed on the chart itself
 // with the bot's own engine (Pine cannot download the bot's files). The zones are the bot's detect() (base of 1-6
 // small candles + a strong move away, removed by a candle CLOSE beyond the far edge), the trend lines are the bot's
 // structure-method lines (the ones its arrival alerts use), and the ARRIVAL tag is the bot's arrival rule (the move
@@ -8,15 +8,18 @@
 //  * The next higher timeframe (15m -> 1h, 1h -> 4h, 4h -> D, D -> W, W -> M): its nearest zone each side (dotted
 //    outline) and its trend lines (gold dotted).
 //  * Trend lines of this timeframe: solid.
+//  * 1.1: when this timeframe has no live line on a side (big candles merge two peaks into neighbours, e.g. monthly),
+//    the line of the timeframe below (M -> W, W -> D, D -> 4h, 4h -> 1h, 1h -> 15m) is drawn instead, dashed.
 // Use a Pepperstone chart for the same candles as the bot; another broker's candles give slightly different zones.
 // Everything is drawn from CLOSED candles only (no repainting); it updates when a candle closes.
 //@version=6
-indicator("RamanFX BotView 1.0", shorttitle = "BotView", overlay = true, max_lines_count = 60, max_labels_count = 60, max_boxes_count = 40)
+indicator("RamanFX BotView 1.1", shorttitle = "BotView", overlay = true, max_lines_count = 60, max_labels_count = 60, max_boxes_count = 40)
 
 G1 = "BotView (the bot's zones and trend lines)"
 InpMaxPerSide = input.int(3, "This timeframe's zones drawn per side (nearest to price)", minval = 1, maxval = 8, group = G1)
 InpHtf        = input.bool(true, "Also the next higher timeframe: nearest zone each side (outline) + its lines (gold dotted)", group = G1)
 InpLines      = input.bool(true, "Trend lines", group = G1)
+InpLtfLines   = input.bool(true, "No trend line on this timeframe: use the one from the timeframe below (dashed)", group = G1)
 InpLabels     = input.bool(true, "Small text at each zone's right end (timeframe, side, fresh / tested)", group = G1)
 InpArrTag     = input.bool(true, "Mark the ARRIVAL zone (trend line closed through + opposite zone removed)", group = G1)
 InpArrAlert   = input.bool(true, "Alert: a new arrival zone on this chart's timeframe", group = G1)
@@ -996,6 +999,15 @@ f_apack() =>
         out.concat(bc)
     out
 hp = request.security(syminfo.tickerid, tvTf(hMin), f_apack(), lookahead = barmerge.lookahead_on)
+// the timeframe below (its closed candles, for the fallback trend lines)
+bvLowerTf(int m) => m == RX_Q ? 43200 : m == 43200 ? 10080 : m == 10080 ? 1440 : m == 1440 ? 240 : m == 240 ? 60 : m == 60 ? 15 : 0
+lMin = bvLowerTf(chartMin)
+[lt, lo_, lh, ll, lc] = request.security_lower_tf(syminfo.tickerid, tvTf(lMin), [time, open, high, low, close])
+var array<int> qT = array.new<int>()
+var array<float> qO = array.new<float>()
+var array<float> qH = array.new<float>()
+var array<float> qL = array.new<float>()
+var array<float> qC = array.new<float>()
 
 // the chart's closed candles, newest first (kept bar by bar)
 var array<int> cT = array.new<int>()
@@ -1015,6 +1027,19 @@ if barstate.isconfirmed
         cH.pop()
         cL.pop()
         cC.pop()
+    if lMin > 0 and lt.size() > 0
+        for k = 0 to lt.size() - 1
+            qT.unshift(int(lt.get(k)))
+            qO.unshift(lo_.get(k))
+            qH.unshift(lh.get(k))
+            qL.unshift(ll.get(k))
+            qC.unshift(lc.get(k))
+        while qT.size() > RX_MAXB
+            qT.pop()
+            qO.pop()
+            qH.pop()
+            qL.pop()
+            qC.pop()
 
 serOf(int tf, array<int> t, array<float> o, array<float> h, array<float> l, array<float> c, float price) =>
     RxSer S = rxNew(tf)
@@ -1122,6 +1147,14 @@ if chartMin > 0 and chartClosed
             bvTrend(S, zr.up, InpLineCol, line.style_solid)
         if zr.hasDn
             bvTrend(S, zr.dn, InpLineCol, line.style_solid)
+        // no live line on a side: the line of the timeframe below, dashed
+        if InpLtfLines and lMin > 0 and qT.size() > 40 and (not zr.hasUp or not zr.hasDn)
+            RxSer LS = serOf(lMin, qT, qO, qH, qL, qC, 0.0)
+            ZvResult lr = zvLines(LS)
+            if not zr.hasUp and lr.hasUp
+                bvTrend(LS, lr.up, InpLineCol, line.style_dashed)
+            if not zr.hasDn and lr.hasDn
+                bvTrend(LS, lr.dn, InpLineCol, line.style_dashed)
     // the next higher timeframe: its nearest zone each side (outline) and its lines (gold dotted)
     if InpHtf and hMin > 0
         RxSer H = htfSer(hp, hMin, close, true)
