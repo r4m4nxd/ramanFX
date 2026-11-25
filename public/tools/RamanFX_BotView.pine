@@ -1,4 +1,4 @@
-// RamanFX BotView 1.2 for TradingView (Pine Script v6): the same picture as the MT5 BotView, computed on the chart itself
+// RamanFX BotView 1.3 for TradingView (Pine Script v6): the same picture as the MT5 BotView, computed on the chart itself
 // with the bot's own engine (Pine cannot download the bot's files). The zones are the bot's detect() (base of 1-6
 // small candles + a strong move away, removed by a candle CLOSE beyond the far edge), the trend lines are the bot's
 // structure-method lines (the ones its arrival alerts use), and the ARRIVAL tag is the bot's arrival rule (the move
@@ -8,18 +8,20 @@
 //  * The next higher timeframe (15m -> 1h, 1h -> 4h, 4h -> D, D -> W, W -> M): its nearest zone each side (dotted
 //    outline) and its trend lines (gold dotted).
 //  * Trend lines of this timeframe: solid.
-//  * 1.2 TREND LINES, the owner's line-chart rule (Nov 2026, under test here before it goes into the bot): swings are
-//    read off the CLOSES (the line chart): a swing counts once price has reversed by 2 x ATR. A peak is REAL when
-//    price then closed below the valley before it (a new low); a valley is real when price then closed above the
-//    peak before it (a new high). The line joins the newest real peak (valley) and the real one before it, wick to
-//    wick, with no candle close beyond it in between; it lives until a candle closes beyond it (then grey dotted).
-//    Real pivots are marked with small triangles. Switch "Trend line rule" to 0 for the bot's current lines.
+//  * 1.3 TREND LINES, the owner's line-chart rule (Nov 2026; the bot's linechart.py, checked against his hand-drawn
+//    lines on gold M15 / H4 and gold-AUD weekly): swings are read off the CLOSES (the line chart), a swing counts once
+//    price has reversed by 2 x ATR; the pivot is the wick extreme within 2 candles of it. A peak is REAL when the fall
+//    that follows it closes below the valley before it (a new low) before the next peak forms; valleys mirrored - so a
+//    spike top whose fall holds is not a pivot, the lower peak after it is. The line joins the first two real peaks
+//    in a row (the newer one lower), wick to wick, no candle close beyond it in between, and is KEPT until a candle
+//    closes beyond it (later, smaller peaks do not move it; grey dotted once broken). Real pivots: small triangles.
+//    Switch "Trend line rule" to 0 for the bot's older lines.
 //  * 1.1: when this timeframe has no live line on a side (big candles merge two peaks into neighbours, e.g. monthly),
 //    the line of the timeframe below (M -> W, W -> D, D -> 4h, 4h -> 1h, 1h -> 15m) is drawn instead, dashed.
 // Use a Pepperstone chart for the same candles as the bot; another broker's candles give slightly different zones.
 // Everything is drawn from CLOSED candles only (no repainting); it updates when a candle closes.
 //@version=6
-indicator("RamanFX BotView 1.2", shorttitle = "BotView", overlay = true, max_lines_count = 60, max_labels_count = 60, max_boxes_count = 40)
+indicator("RamanFX BotView 1.3", shorttitle = "BotView", overlay = true, max_lines_count = 60, max_labels_count = 60, max_boxes_count = 40)
 
 G1 = "BotView (the bot's zones and trend lines)"
 InpMaxPerSide = input.int(3, "This timeframe's zones drawn per side (nearest to price)", minval = 1, maxval = 8, group = G1)
@@ -1150,21 +1152,16 @@ bvZz(RxSer S, float k) =>
             i += 1
             int b = zb.get(i)
             int t = zt.get(i)
-            int pv = -1
-            int x = i
-            while x > 0
-                x -= 1
-                if zt.get(x) == -t
-                    pv := zb.get(x)
-                    break
+            // real: the swing that FOLLOWS it (up to the next swing of its own kind) closes beyond the swing before it
             bool real = false
-            if pv > 0
+            if i > 0
+                int pv = zb.get(i - 1)
+                int stop = 0
+                if i + 2 < m
+                    stop := zb.get(i + 2)
                 int q = b
-                while q > 1
+                while q > stop + 1
                     q -= 1
-                    bool back = t > 0 ? S.c.get(q) > S.c.get(b) : S.c.get(q) < S.c.get(b)
-                    if back
-                        break
                     bool made = t > 0 ? S.c.get(q) < S.c.get(pv) : S.c.get(q) > S.c.get(pv)
                     if made
                         real := true
@@ -1179,45 +1176,61 @@ bvZz(RxSer S, float k) =>
                     wb := w
             out.push(ZzPiv.new(wb, t > 0 ? S.h.get(wb) : S.l.get(wb), t, real))
     out
-// the line of side d (+1 under valleys, -1 over peaks): [older bar, its price, newer bar, its price, brokenAt] or empty
+// the line of side d (+1 under valleys, -1 over peaks): [older bar, its price, newer bar, its price, brokenAt] or
+// empty. Built forward in time as a trader keeps it: the first two real pivots in a row (newer lower / higher, no
+// candle close beyond the line between them, not near-level); KEPT until a candle closes beyond it (later, smaller
+// pivots do not move it); after a break both pivots of the next line must come after the break.
 bvZzLine(RxSer S, array<ZzPiv> piv, int d) =>
-    array<float> res = array.new<float>()
-    int ni = -1
-    int i = piv.size()
-    while i > 0
-        i -= 1
-        if piv.get(i).t == -d and piv.get(i).real
-            ni := i
-            break
-    if ni >= 0
-        ZzPiv nw = piv.get(ni)
-        i := ni
-        while i > 0 and res.size() == 0
-            i -= 1
-            ZzPiv od = piv.get(i)
-            bool ok = od.t == -d and od.real and od.bar > nw.bar and (d > 0 ? nw.p > od.p : nw.p < od.p)
-            if ok
-                float sl = (nw.p - od.p) / (od.bar - nw.bar)
-                bool cut = false
-                int j = od.bar
-                while j > nw.bar + 1
-                    j -= 1
-                    float lv = nw.p + sl * (nw.bar - j)
-                    bool c1 = d > 0 ? S.c.get(j) < lv : S.c.get(j) > lv
-                    if c1
-                        cut := true
-                        break
-                if not cut
-                    int brk = -1
-                    j := nw.bar
-                    while j > 1
-                        j -= 1
-                        float lv2 = nw.p + sl * (nw.bar - j)
-                        bool c2 = d > 0 ? S.c.get(j) < lv2 : S.c.get(j) > lv2
-                        if c2
-                            brk := j
-                            break
-                    res := array.from(float(od.bar), od.p, float(nw.bar), nw.p, float(brk))
+    array<float> live = array.new<float>()
+    array<float> last = array.new<float>()
+    int prev = -1
+    int bound = S.n
+    int m = piv.size()
+    int i = -1
+    while i < m - 1
+        i += 1
+        ZzPiv p = piv.get(i)
+        if p.t == -d and p.real
+            bool skip = false
+            if live.size() == 5
+                int lb = int(live.get(4))
+                if lb > 0 and lb > p.bar
+                    last := live.copy()
+                    live := array.new<float>()
+                    prev := -1
+                    bound := lb
+                else
+                    skip := true
+            if not skip and p.bar < bound
+                if prev >= 0
+                    ZzPiv o = piv.get(prev)
+                    bool ordered = d > 0 ? p.p > o.p : p.p < o.p
+                    if ordered and o.bar > p.bar
+                        float sl = (p.p - o.p) / (o.bar - p.bar)
+                        float ab = rxZvAtr(S, p.bar)
+                        if ab <= 0
+                            ab := rxZvAtr(S, 1)
+                        bool cut = math.abs(p.p - o.p) < 1.0 * ab or math.abs(sl) < 0.015 * ab
+                        int j = o.bar
+                        while not cut and j > p.bar + 1
+                            j -= 1
+                            float lv = p.p + sl * (p.bar - j)
+                            bool c1 = d > 0 ? S.c.get(j) < lv : S.c.get(j) > lv
+                            if c1
+                                cut := true
+                        if not cut
+                            int brk = -1
+                            j := p.bar
+                            while j > 1
+                                j -= 1
+                                float lv2 = p.p + sl * (p.bar - j)
+                                bool c2 = d > 0 ? S.c.get(j) < lv2 : S.c.get(j) > lv2
+                                if c2
+                                    brk := j
+                                    break
+                            live := array.from(float(o.bar), o.p, float(p.bar), p.p, float(brk))
+                prev := i
+    array<float> res = live.size() == 5 ? live : last
     res
 // draw both lines of a series with the line-chart rule; returns how many live lines it drew
 bvZzDraw(RxSer S, color c, string st, bool marks) =>

@@ -40,6 +40,19 @@ class LineChart(unittest.TestCase):
         self.assertAlmostEqual(dn.pa, 7686.26, places=1)      # the second peak, not the 7,940 wick
         self.assertAlmostEqual(dn.pb, 6560.82, places=1)
 
+    def test_gold_m15_keeps_the_line_and_skips_the_spike(self):
+        S = series('xauusd_m15', 'M15')
+        piv = LC.pivots(S)
+        spike = next(p for p in piv if abs(p.p - 3689.8) < 1.5 and p.t > 0)
+        self.assertFalse(spike.real)                          # the first return high: its fall held above the last valley
+        dn = LC.line(S, piv, -1)
+        self.assertTrue(dn.live)
+        self.assertAlmostEqual(dn.pa, 3678.21, places=1)      # the lower peak after the spike
+        self.assertAlmostEqual(dn.pb, 3646.65, places=1)      # the next real lower peak
+        self.assertGreaterEqual(sum(1 for p in piv if p.t > 0 and p.real and p.bar < dn.b), 3)   # later, smaller peaks do not move it
+        up = LC.line(S, piv, 1)
+        self.assertTrue(up is not None and not up.live)       # the up line of the rally: broken by the drop
+
     def test_mirror_gives_the_up_line(self):
         S = series('xauusd_h4', 'H4', flip=True)
         L = LC.lines(S)

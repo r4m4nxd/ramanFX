@@ -3,9 +3,12 @@ AUD weekly). The same rule as the TradingView BotView 1.2 (public/tools/RamanFX_
 
     swings      read off the CLOSES (the line chart): a zigzag, a swing counts once price has reversed by K x ATR(14)
     pivot       the wick extreme within 2 candles of the close swing (the line is drawn wick to wick)
-    real peak   price then CLOSED below the valley before it (a new low); real valley: closed above the peak before it
-    line        the newest real peak (valley) + the nearest older real one above (below) it, with no candle close
-                beyond the line between the two (else the next older one); live until a candle closes beyond it
+    real peak   the fall that follows it CLOSES below the valley before it (a new low) before the next peak forms; real
+                valley mirrored. (A spike top whose fall holds above the last valley is not a pivot: the lower peak
+                after it, whose fall does break down, is.)
+    line        built forward in time, as a trader keeps it: the first two real peaks in a row, the newer one lower,
+                no candle close beyond the line between them, not near-level; KEPT until a candle closes beyond it (later, smaller
+                peaks do not move it); after a break both pivots of the next line must come after the break
 
 Index convention as zones.Series: shift 0 = the phantom bar, 1 = the newest closed bar, larger = older. Pure.
 """
@@ -17,6 +20,8 @@ from typing import Dict, List, Optional, Sequence
 K = 2.0
 LOOKBACK = 300
 WICK = 2
+MIN_RISE = 1.0        # x ATR between the two pivots
+MIN_SLOPE = 0.015     # x ATR per bar
 KEEP = 360            # bars kept before a zone's move away when the line is read as of that moment
 
 
@@ -26,6 +31,7 @@ class Piv:
     p: float
     t: int            # +1 peak, -1 valley
     real: bool
+    conf: int = -1    # shift of the close that made it real
 
 
 @dataclass
@@ -66,39 +72,55 @@ def pivots(S, k: float = K, lookback: int = LOOKBACK) -> List[Piv]:
             d, hi, lo = 1, j, j
     out: List[Piv] = []
     for i, (b, t) in enumerate(zz):
-        pv = next((zz[x][0] for x in range(i - 1, -1, -1) if zz[x][1] == -t), -1)
-        real = False
-        if pv > 0:
-            for q in range(b - 1, 0, -1):
-                if (C[q] > C[b]) if t > 0 else (C[q] < C[b]):
-                    break
+        # real: the swing that FOLLOWS it (up to the next swing of its own kind) closes beyond the swing before it
+        real, conf = False, -1
+        if i > 0:
+            pv = zz[i - 1][0]
+            end = zz[i + 2][0] if i + 2 < len(zz) else 0          # the next peak (valley): the following swing ends there
+            for q in range(b - 1, end, -1):
                 if (C[q] < C[pv]) if t > 0 else (C[q] > C[pv]):
-                    real = True
+                    real, conf = True, q
                     break
         wb = b
         for w in range(max(1, b - WICK), min(S.n - 1, b + WICK) + 1):
             if (S.H[w] > S.H[wb]) if t > 0 else (S.L[w] < S.L[wb]):
                 wb = w
-        out.append(Piv(wb, S.H[wb] if t > 0 else S.L[wb], t, real))
+        out.append(Piv(wb, S.H[wb] if t > 0 else S.L[wb], t, real, conf))
     return out
 
 
+def _broken(S, t: 'Line') -> int:
+    return next((j for j in range(t.b - 1, 0, -1) if ((S.C[j] < t.at(j)) if t.dir > 0 else (S.C[j] > t.at(j)))), -1)
+
+
 def line(S, piv: Sequence[Piv], d: int) -> Optional[Line]:
-    """The line of side d (+1 under the valleys, -1 over the peaks), live or broken (broken_at); None when there is none."""
-    ni = next((i for i in range(len(piv) - 1, -1, -1) if piv[i].t == -d and piv[i].real), -1)
-    if ni < 0:
-        return None
-    n = piv[ni]
-    for i in range(ni - 1, -1, -1):
-        o = piv[i]
-        if not (o.t == -d and o.real and o.bar > n.bar and (n.p > o.p if d > 0 else n.p < o.p)):
+    """The line of side d (+1 under the valleys, -1 over the peaks), built forward in time as a trader keeps it: the
+    first two real peaks in a row with the newer one lower (valleys: higher) and no candle close beyond the line between
+    them; KEPT until a candle closes beyond it (later, smaller peaks do not move it); after a break the next line needs
+    two real peaks that both come after the break. Live, or the last broken one (broken_at), or None."""
+    live: Optional[Line] = None
+    last: Optional[Line] = None
+    prev: Optional[Piv] = None
+    bound = S.n                                   # pivots must be newer than this shift (the last break)
+    for p in piv:                                 # oldest first
+        if p.t != -d or not p.real:
             continue
-        t = Line(d, o.bar, n.bar, o.p, n.p)
-        if any((S.C[j] < t.at(j)) if d > 0 else (S.C[j] > t.at(j)) for j in range(o.bar - 1, n.bar, -1)):
+        if live is not None:
+            if live.broken_at > 0 and live.broken_at > p.bar:      # it broke before this pivot formed: start over
+                last, live, prev, bound = live, None, None, live.broken_at
+            else:
+                continue                                           # the line stands: this pivot does not move it
+        if p.bar >= bound:
             continue
-        t.broken_at = next((j for j in range(n.bar - 1, 0, -1) if ((S.C[j] < t.at(j)) if d > 0 else (S.C[j] > t.at(j)))), -1)
-        return t
-    return None
+        if prev is not None and (p.p > prev.p if d > 0 else p.p < prev.p):
+            t = Line(d, prev.bar, p.bar, prev.p, p.p)
+            ab = max(S.atr(p.bar) or S.atr(1), 1e-12)
+            flat = abs(t.pb - t.pa) < MIN_RISE * ab or abs(t.slope()) < MIN_SLOPE * ab     # a near-level line never breaks
+            if not flat and not any((S.C[j] < t.at(j)) if d > 0 else (S.C[j] > t.at(j)) for j in range(prev.bar - 1, p.bar, -1)):
+                t.broken_at = _broken(S, t)
+                live = t
+        prev = p
+    return live if live is not None else last
 
 
 def lines(S, k: float = K) -> Dict[int, Optional[Line]]:
